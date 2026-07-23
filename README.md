@@ -1,5 +1,5 @@
 # Capitol Booking System
-Group: Vector Four
+Group: Vector Four (SS231)
 
 
 Members:
