@@ -26,3 +26,4 @@ Members:
 | `security` | Fixes related to **vulnerabilities** or security patches.                   | `security(auth): Fix JWT token leak`                      |
 | `hotfix`   | An **urgent fix** applied to production (alternative to `fix`).             | `hotfix(api): Patch crash in payment gateway`             |
 | `merge`    | A commit created by **merging branches**.                                   | `merge: branch 'feature/login' into 'main'`               |
+
