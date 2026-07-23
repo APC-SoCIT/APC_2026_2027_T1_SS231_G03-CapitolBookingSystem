@@ -4,7 +4,7 @@ Group: Vector Four (SS231)
 
 Members:
 - Christian Luis Esguerra
-- Moises James Sy
+- Moises James Q. Sy
 - Suzanne Marie Rosco
 - Maria Sophea Balidio
 
