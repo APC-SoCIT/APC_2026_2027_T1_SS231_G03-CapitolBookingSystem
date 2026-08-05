@@ -1,5 +1,8 @@
 import { Layout } from './components/common';
 import { AboutUs } from './pages/AboutUs';
+import { Catering } from './pages/Catering';
+import { CateringBuffet } from './pages/CateringBuffet';
+import { CateringPacked } from './pages/CateringPacked';
 import { Home } from './pages/Home';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
@@ -17,9 +20,9 @@ export default function App() {
       <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/about-us" element={<AboutUs />} />
-      <Route path="/catering" element={<Placeholder title="Catering" />} />
-      <Route path="/catering/buffet" element={<Placeholder title="Buffet Catering" />} />
-      <Route path="/catering/packed" element={<Placeholder title="Packed Meals" />} />
+      <Route path="/catering" element={<Catering />} />
+      <Route path="/catering/buffet" element={<CateringBuffet />} />
+      <Route path="/catering/packed" element={<CateringPacked />} />
       <Route path="/function-rooms" element={<Placeholder title="Function Rooms" />} />
       <Route path="/inquiries" element={<Placeholder title="Inquiries" />} />
       <Route path="/delivery" element={<Placeholder title="Delivery" />} />
