@@ -64,6 +64,50 @@ button, input, textarea, select { font: inherit; }
 .placeholder-page p { max-width: 38rem; margin: 0 auto; line-height: 1.6; }
 .eyebrow { color: #af0100; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
 
+.home-hero { position: relative; min-height: 78vh; display: grid; place-items: center; overflow: hidden; padding: 4rem 1.5rem; background: linear-gradient(155deg, #640000 0%, #3a0000 55%, #af0100 100%); text-align: center; }
+.hero-content { position: relative; z-index: 1; max-width: 680px; }
+.hero-orbit { position: absolute; border-radius: 50%; background: rgba(242, 231, 169, 0.04); pointer-events: none; }
+.hero-orbit--top { top: -80px; right: -80px; width: 320px; height: 320px; }
+.hero-orbit--bottom { bottom: -60px; left: -60px; width: 240px; height: 240px; }
+.hero-tag { display: inline-block; margin: 0 0 1.25rem; padding: 0.3rem 1rem; border: 1px solid rgba(242, 231, 169, 0.2); border-radius: 20px; color: rgba(242, 231, 169, 0.6); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase; }
+.home-hero h1 { margin: 0; color: #f2e7a9; font-family: Georgia, "Times New Roman", serif; font-size: clamp(3.5rem, 10vw, 7rem); line-height: 1; letter-spacing: 0.02em; text-shadow: 0 4px 24px rgba(0, 0, 0, 0.3); }
+.hero-subtitle { margin: 0.5rem 0 2.5rem; color: rgba(242, 231, 169, 0.8); font-family: Georgia, "Times New Roman", serif; font-size: clamp(1rem, 3vw, 1.35rem); font-style: italic; letter-spacing: 0.05em; }
+.ornament-divider { display: flex; align-items: center; gap: 1rem; max-width: 350px; margin: 0 auto 2.5rem; color: #f2e7a9; }
+.ornament-divider::before, .ornament-divider::after { flex: 1; height: 1px; background: rgba(242, 231, 169, 0.3); content: ''; }
+.hero-intro { max-width: 520px; margin: 0 auto 3rem; color: rgba(253, 246, 227, 0.7); line-height: 1.8; }
+.hero-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; }
+.button { display: inline-flex; align-items: center; justify-content: center; padding: 0.85rem 2rem; border-radius: 6px; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.04em; text-decoration: none; transition: transform 180ms ease, background 180ms ease; }
+.button:hover { transform: translateY(-2px); }
+.button--gold { background: #f2e7a9; color: #640000; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); }
+.button--outline { border: 1.5px solid rgba(242, 231, 169, 0.5); color: #f2e7a9; }
+.button--outline:hover { background: rgba(242, 231, 169, 0.1); }
+.food-strip { display: grid; grid-template-columns: repeat(4, 1fr); height: 150px; }
+.food-strip__item { display: grid; place-items: center; background: #3a0000; color: rgba(242, 231, 169, 0.35); font-family: Georgia, "Times New Roman", serif; font-style: italic; letter-spacing: 0.1em; }
+.food-strip__item--dark { background: #640000; }
+.section { max-width: 1200px; margin: 0 auto; padding: 5rem 1.5rem; }
+.section-heading { margin-bottom: 3rem; text-align: center; }
+.section-heading h2, .about-content h2 { margin: 0 0 1rem; color: #3a0000; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.75rem, 4vw, 2.5rem); }
+.section-heading p:last-child { max-width: 480px; margin: 0 auto; color: #8a5a5a; line-height: 1.7; }
+.service-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+.service-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 250px; padding: 2rem; border: 1px solid rgba(242, 231, 169, 0.2); border-radius: 10px; background: #640000; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); text-decoration: none; transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease; }
+.service-card:hover { background: #af0100; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25); transform: translateY(-4px); }
+.service-card__label { padding: 0.3rem 0.75rem; border: 1px solid rgba(242, 231, 169, 0.35); border-radius: 4px; color: #f2e7a9; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; }
+.service-card h3 { margin: 1rem 0 0.4rem; color: #f2e7a9; font-family: Georgia, "Times New Roman", serif; font-size: 1.25rem; }
+.service-card p { margin: 0; color: rgba(253, 246, 227, 0.75); font-size: 0.875rem; line-height: 1.6; }
+.service-card__action { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: auto; padding-top: 1.5rem; color: #f2e7a9; font-size: 0.8rem; font-weight: 600; }
+.legacy-strip { padding: 4rem 1.5rem; background: #640000; text-align: center; }
+.legacy-strip__content { max-width: 680px; margin: 0 auto; }
+.legacy-mark { display: block; margin-bottom: 1rem; color: #f2e7a9; font-family: Georgia, "Times New Roman", serif; font-size: 1.5rem; }
+.legacy-strip h2 { margin: 0 0 1.25rem; color: #f2e7a9; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.5rem, 4vw, 2.25rem); }
+.legacy-strip p { margin: 0; color: rgba(253, 246, 227, 0.75); line-height: 1.9; }
+.page-hero { padding: 5rem 1.5rem; background: linear-gradient(135deg, #640000, #af0100); color: #fdf6e3; text-align: center; }
+.page-hero .eyebrow { color: rgba(242, 231, 169, 0.7); }
+.page-hero h1 { margin: 0 0 1rem; color: #f2e7a9; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.5rem, 7vw, 4.5rem); }
+.page-hero p:last-child { max-width: 520px; margin: 0 auto; color: rgba(253, 246, 227, 0.75); line-height: 1.7; }
+.about-content { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 4rem; }
+.about-content__copy { color: #5a3a3a; line-height: 1.85; }
+.about-content__copy p { margin: 0 0 1.25rem; }
+
 @media (max-width: 640px) {
   .desktop-nav { display: none; }
   .menu-toggle { display: inline-flex; }
@@ -71,4 +115,8 @@ button, input, textarea, select { font: inherit; }
   .mobile-nav__link { padding: 0.65rem 0; border-bottom: 1px solid rgba(242, 231, 169, 0.1); color: rgba(253, 246, 227, 0.8); text-decoration: none; }
   .mobile-nav__link--active { color: #f2e7a9; }
   .site-footer__grid { grid-template-columns: 1fr; }
+  .food-strip { height: 100px; }
+  .food-strip__item { font-size: 0.8rem; }
+  .service-grid, .about-content { grid-template-columns: 1fr; }
+  .about-content { gap: 1rem; }
 }

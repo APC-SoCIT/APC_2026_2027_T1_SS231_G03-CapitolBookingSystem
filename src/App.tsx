@@ -1,4 +1,6 @@
 import { Layout } from './components/common';
+import { AboutUs } from './pages/AboutUs';
+import { Home } from './pages/Home';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 const Placeholder = ({ title }: { title: string }) => (
@@ -13,8 +15,8 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-      <Route path="/" element={<Placeholder title="Home" />} />
-      <Route path="/about-us" element={<Placeholder title="About Us" />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/about-us" element={<AboutUs />} />
       <Route path="/catering" element={<Placeholder title="Catering" />} />
       <Route path="/catering/buffet" element={<Placeholder title="Buffet Catering" />} />
       <Route path="/catering/packed" element={<Placeholder title="Packed Meals" />} />
