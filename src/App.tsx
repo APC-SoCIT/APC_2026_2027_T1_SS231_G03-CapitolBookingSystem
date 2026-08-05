@@ -1,7 +1,8 @@
+import { Layout } from './components/common';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 const Placeholder = ({ title }: { title: string }) => (
-  <section className="placeholder-page">
+  <section className="placeholder-page content-container">
     <p className="eyebrow">Capitol Restaurant</p>
     <h1>{title}</h1>
     <p>This section is scaffolded and will be rebuilt in the next implementation chunk.</p>
@@ -10,7 +11,8 @@ const Placeholder = ({ title }: { title: string }) => (
 
 export default function App() {
   return (
-    <Routes>
+    <Layout>
+      <Routes>
       <Route path="/" element={<Placeholder title="Home" />} />
       <Route path="/about-us" element={<Placeholder title="About Us" />} />
       <Route path="/catering" element={<Placeholder title="Catering" />} />
@@ -20,7 +22,8 @@ export default function App() {
       <Route path="/inquiries" element={<Placeholder title="Inquiries" />} />
       <Route path="/delivery" element={<Placeholder title="Delivery" />} />
       <Route path="/delivery/staff" element={<Placeholder title="Delivery Staff Demo" />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Layout>
   );
 }
