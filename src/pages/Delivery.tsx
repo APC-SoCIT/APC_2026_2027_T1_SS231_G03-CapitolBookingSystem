@@ -1,17 +1,21 @@
-import { Check, Clock3, MapPin, Package, Search, Truck } from 'lucide-react';
+import { ArrowRight, Check, Clock3, MapPin, Package, Search, ShoppingBag, Truck } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getDeliveryOrders, type DeliveryOrder, DELIVERY_STATUSES } from '../data/delivery';
 
 export function Delivery() {
-  const [reference, setReference] = useState('');
-  const [searchedReference, setSearchedReference] = useState('');
+  const [searchParams] = useSearchParams();
+  const initialReference = searchParams.get('reference') ?? '';
+  const [reference, setReference] = useState(initialReference);
+  const [searchedReference, setSearchedReference] = useState(initialReference);
   const orders = getDeliveryOrders();
   const order = useMemo(() => orders.find((item) => item.reference.toLowerCase() === searchedReference.trim().toLowerCase()), [orders, searchedReference]);
 
   return <div>
     <section className="page-hero"><p className="eyebrow">Capitol Restaurant</p><h1>Delivery Tracking</h1><p>Follow your Capitol order from our kitchen to your doorstep.</p></section>
     <section className="section delivery-section">
-      <div className="tracking-search"><div><p className="eyebrow">Demo tracking</p><h2>Where is your order?</h2><p>Enter your booking reference to view the latest delivery status.</p></div><div className="search-control"><label htmlFor="delivery-reference">Booking reference</label><div><input id="delivery-reference" placeholder="e.g. CAP-1042" value={reference} onChange={(event) => setReference(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && setSearchedReference(reference)} /><button className="button button--red" onClick={() => setSearchedReference(reference)} type="button"><Search size={17} /> Track</button></div></div></div>
+      <div className="delivery-actions"><div><p className="eyebrow">Hungry for Capitol?</p><h2>Order delivery online</h2><p>Choose from our packed meals and have Capitol favorites sent to your door.</p></div><Link className="button button--gold delivery-order-link" to="/delivery/order"><ShoppingBag size={17} /> Start an order <ArrowRight size={16} /></Link></div>
+      <div className="tracking-search"><div><p className="eyebrow">Where is your order?</p><h2>Track your delivery</h2><p>Enter your booking reference to view the latest delivery status.</p></div><div className="search-control"><label htmlFor="delivery-reference">Booking reference</label><div><input id="delivery-reference" placeholder="e.g. CAP-1042" value={reference} onChange={(event) => setReference(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && setSearchedReference(reference)} /><button className="button button--red" onClick={() => setSearchedReference(reference)} type="button"><Search size={17} /> Track</button></div></div></div>
       {!searchedReference && <DemoReferenceHint onSelect={(value) => { setReference(value); setSearchedReference(value); }} />}
       {searchedReference && !order && <div className="empty-state"><Package size={28} /><strong>We could not find that reference.</strong><span>Try one of the demo references: CAP-1042, CAP-1043, or CAP-1044.</span></div>}
       {order && <TrackingResult order={order} />}

@@ -6,6 +6,7 @@ import { CateringPacked } from './pages/CateringPacked';
 import { FunctionRooms } from './pages/FunctionRooms';
 import { Delivery } from './pages/Delivery';
 import { DeliveryStaff } from './pages/DeliveryStaff';
+import { DeliveryOrder } from './pages/DeliveryOrder';
 import { Home } from './pages/Home';
 import { Inquiries } from './pages/Inquiries';
 import { Navigate, Route, Routes } from 'react-router-dom';
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/function-rooms" element={<FunctionRooms />} />
       <Route path="/inquiries" element={<Inquiries />} />
       <Route path="/delivery" element={<Delivery />} />
+      <Route path="/delivery/order" element={<DeliveryOrder />} />
       <Route path="/delivery/staff" element={<DeliveryStaff />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
