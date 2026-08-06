@@ -36,10 +36,20 @@ export function Footer() {
             </a>
           </div>
           <div className="footer-socials">
-            <a href="#" aria-label="Capitol on Facebook">
+            <a
+              href="https://www.facebook.com/people/Capitol-Restaurant/100064077760291/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Capitol on Facebook"
+            >
               Facebook
             </a>
-            <a href="#" aria-label="Capitol on Instagram">
+            <a
+              href="https://www.instagram.com/capitolrestaurant"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Capitol on Instagram"
+            >
               Instagram
             </a>
           </div>
