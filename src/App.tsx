@@ -7,15 +7,8 @@ import { FunctionRooms } from './pages/FunctionRooms';
 import { Delivery } from './pages/Delivery';
 import { DeliveryStaff } from './pages/DeliveryStaff';
 import { Home } from './pages/Home';
+import { Inquiries } from './pages/Inquiries';
 import { Navigate, Route, Routes } from 'react-router-dom';
-
-const Placeholder = ({ title }: { title: string }) => (
-  <section className="placeholder-page content-container">
-    <p className="eyebrow">Capitol Restaurant</p>
-    <h1>{title}</h1>
-    <p>This section is scaffolded and will be rebuilt in the next implementation chunk.</p>
-  </section>
-);
 
 export default function App() {
   return (
@@ -27,7 +20,7 @@ export default function App() {
       <Route path="/catering/buffet" element={<CateringBuffet />} />
       <Route path="/catering/packed" element={<CateringPacked />} />
       <Route path="/function-rooms" element={<FunctionRooms />} />
-      <Route path="/inquiries" element={<Placeholder title="Inquiries" />} />
+      <Route path="/inquiries" element={<Inquiries />} />
       <Route path="/delivery" element={<Delivery />} />
       <Route path="/delivery/staff" element={<DeliveryStaff />} />
         <Route path="*" element={<Navigate to="/" replace />} />
