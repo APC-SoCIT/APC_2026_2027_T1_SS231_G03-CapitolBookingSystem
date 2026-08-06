@@ -1,7 +1,7 @@
-import { Menu, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { NAVIGATION_ITEMS, RESTAURANT_INFO } from '../../constants';
+import { Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { NAVIGATION_ITEMS, RESTAURANT_INFO } from "../../constants";
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,22 +12,28 @@ export function Header() {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <header className={`site-header ${scrolled ? 'site-header--scrolled' : ''}`}>
+    <header
+      className={`site-header ${scrolled ? "site-header--scrolled" : ""}`}
+    >
       <div className="site-header__inner">
         <Link className="brand" to="/" aria-label="Capitol Restaurant home">
           <span className="brand__name">{RESTAURANT_INFO.name}</span>
-          <span className="brand__meta">Since {RESTAURANT_INFO.since} · Pasay City</span>
+          <span className="brand__meta">
+            Since {RESTAURANT_INFO.since} · Pasay City
+          </span>
         </Link>
 
         <nav className="desktop-nav" aria-label="Main navigation">
           {NAVIGATION_ITEMS.map((item) => (
             <NavLink
-              className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
+              className={({ isActive }) =>
+                `nav-link ${isActive ? "nav-link--active" : ""}`
+              }
               key={item.path}
               to={item.path}
             >
@@ -38,7 +44,9 @@ export function Header() {
 
         <button
           aria-expanded={menuOpen}
-          aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-label={
+            menuOpen ? "Close navigation menu" : "Open navigation menu"
+          }
           className="menu-toggle"
           onClick={() => setMenuOpen((open) => !open)}
           type="button"
@@ -51,7 +59,9 @@ export function Header() {
         <nav className="mobile-nav" aria-label="Mobile navigation">
           {NAVIGATION_ITEMS.map((item) => (
             <NavLink
-              className={({ isActive }) => `mobile-nav__link ${isActive ? 'mobile-nav__link--active' : ''}`}
+              className={({ isActive }) =>
+                `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
+              }
               key={item.path}
               to={item.path}
             >

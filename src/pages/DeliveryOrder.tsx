@@ -1,12 +1,12 @@
-import { ArrowLeft, Minus, Plus, ShoppingBag } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { PACKED_MENU_ITEMS, type MenuItem } from '../constants';
+import { ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
 import {
   getDeliveryOrders,
   saveDeliveryOrders,
   type DeliveryOrder as DeliveryOrderData,
-} from '../data/delivery';
+} from "../data/delivery";
 
 type Cart = Record<string, number>;
 
@@ -18,14 +18,14 @@ type CustomerDetails = {
   payment: string;
 };
 
-type OrderErrors = Array<'name' | 'phone' | 'address' | 'items'>;
+type OrderErrors = Array<"name" | "phone" | "address" | "items">;
 
 const EMPTY_DETAILS: CustomerDetails = {
-  name: '',
-  phone: '',
-  address: '',
-  notes: '',
-  payment: 'Cash on delivery',
+  name: "",
+  phone: "",
+  address: "",
+  notes: "",
+  payment: "Cash on delivery",
 };
 
 const DELIVERY_FEE = 60;
@@ -35,7 +35,9 @@ export function DeliveryOrder() {
   const [cart, setCart] = useState<Cart>({});
   const [details, setDetails] = useState<CustomerDetails>(EMPTY_DETAILS);
   const [errors, setErrors] = useState<OrderErrors>([]);
-  const [submittedReference, setSubmittedReference] = useState<string | null>(null);
+  const [submittedReference, setSubmittedReference] = useState<string | null>(
+    null,
+  );
 
   const selectedItems = useMemo(
     () => PACKED_MENU_ITEMS.filter((item) => cart[item.id]),
@@ -66,10 +68,10 @@ export function DeliveryOrder() {
   const submitOrder = () => {
     const nextErrors: OrderErrors = [];
 
-    if (!details.name.trim()) nextErrors.push('name');
-    if (!details.phone.trim()) nextErrors.push('phone');
-    if (!details.address.trim()) nextErrors.push('address');
-    if (!selectedItems.length) nextErrors.push('items');
+    if (!details.name.trim()) nextErrors.push("name");
+    if (!details.phone.trim()) nextErrors.push("phone");
+    if (!details.address.trim()) nextErrors.push("address");
+    if (!selectedItems.length) nextErrors.push("items");
 
     setErrors(nextErrors);
 
@@ -81,10 +83,10 @@ export function DeliveryOrder() {
       reference,
       customer: details.name,
       address: details.address,
-      items: `${selectedItems.length} menu item${selectedItems.length === 1 ? '' : 's'} · ₱${total.toLocaleString()}`,
-      eta: 'Today, 6:30 PM',
-      status: 'Preparing',
-      placedAt: 'Just now',
+      items: `${selectedItems.length} menu item${selectedItems.length === 1 ? "" : "s"} · ₱${total.toLocaleString()}`,
+      eta: "Today, 6:30 PM",
+      status: "Preparing",
+      placedAt: "Just now",
     };
 
     saveDeliveryOrders([...existingOrders, order]);
@@ -96,7 +98,7 @@ export function DeliveryOrder() {
       <OrderConfirmation
         customerName={details.name}
         reference={submittedReference}
-        onPlaceAnother={() => navigate('/delivery/order')}
+        onPlaceAnother={() => navigate("/delivery/order")}
       />
     );
   }
@@ -123,7 +125,8 @@ export function DeliveryOrder() {
                 <h2>Choose your dishes</h2>
               </div>
               <span>
-                {selectedItems.length} item{selectedItems.length === 1 ? '' : 's'} selected
+                {selectedItems.length} item
+                {selectedItems.length === 1 ? "" : "s"} selected
               </span>
             </div>
 
@@ -171,7 +174,9 @@ function MenuOrderCard({
   onChange: (quantity: number) => void;
 }) {
   return (
-    <article className={`order-menu-card ${quantity ? 'order-menu-card--selected' : ''}`}>
+    <article
+      className={`order-menu-card ${quantity ? "order-menu-card--selected" : ""}`}
+    >
       <div>
         <span className="menu-card__category">{item.category}</span>
         <h2>{item.name}</h2>
@@ -230,12 +235,16 @@ function OrderSummary({
                   {quantities[item.id]} × ₱{item.price}
                 </small>
               </span>
-              <strong>₱{(item.price * quantities[item.id]).toLocaleString()}</strong>
+              <strong>
+                ₱{(item.price * quantities[item.id]).toLocaleString()}
+              </strong>
             </div>
           ))}
         </div>
       ) : (
-        <p className="cart-empty">Your cart is empty. Add a dish to get started.</p>
+        <p className="cart-empty">
+          Your cart is empty. Add a dish to get started.
+        </p>
       )}
 
       <SummaryRow label="Subtotal" value={subtotal} />
@@ -255,7 +264,9 @@ function SummaryRow({
   value: number;
 }) {
   return (
-    <div className={`summary-total ${grandTotal ? 'summary-total--grand' : ''}`}>
+    <div
+      className={`summary-total ${grandTotal ? "summary-total--grand" : ""}`}
+    >
       <span>{label}</span>
       <strong>₱{value.toLocaleString()}</strong>
     </div>
@@ -280,7 +291,7 @@ function CustomerForm({
       <h2>Delivery details</h2>
 
       <FormField
-        error={errors.includes('name')}
+        error={errors.includes("name")}
         label="Full Name"
         name="name"
         placeholder="Juan dela Cruz"
@@ -288,7 +299,7 @@ function CustomerForm({
         onChange={onChange}
       />
       <FormField
-        error={errors.includes('phone')}
+        error={errors.includes("phone")}
         label="Contact Number"
         name="phone"
         placeholder="09XX XXX XXXX"
@@ -296,14 +307,16 @@ function CustomerForm({
         onChange={onChange}
       />
 
-      <label className={`form-field ${errors.includes('address') ? 'form-field--error' : ''}`}>
+      <label
+        className={`form-field ${errors.includes("address") ? "form-field--error" : ""}`}
+      >
         <span>Delivery Address</span>
         <textarea
           className="input"
           placeholder="House number, street, barangay, city"
           rows={3}
           value={details.address}
-          onChange={(event) => onChange('address', event.target.value)}
+          onChange={(event) => onChange("address", event.target.value)}
         />
       </label>
 
@@ -312,7 +325,7 @@ function CustomerForm({
         <select
           className="input"
           value={details.payment}
-          onChange={(event) => onChange('payment', event.target.value)}
+          onChange={(event) => onChange("payment", event.target.value)}
         >
           <option>Cash on delivery</option>
           <option>GCash (mock)</option>
@@ -329,17 +342,22 @@ function CustomerForm({
           placeholder="Delivery instructions"
           rows={2}
           value={details.notes}
-          onChange={(event) => onChange('notes', event.target.value)}
+          onChange={(event) => onChange("notes", event.target.value)}
         />
       </label>
 
       {errors.length > 0 && (
         <p className="field-error">
-          Please select at least one item and complete the required delivery details.
+          Please select at least one item and complete the required delivery
+          details.
         </p>
       )}
 
-      <button className="button button--red order-submit" onClick={onSubmit} type="button">
+      <button
+        className="button button--red order-submit"
+        onClick={onSubmit}
+        type="button"
+      >
         Place order · ₱{total.toLocaleString()}
       </button>
     </div>
@@ -356,13 +374,13 @@ function FormField({
 }: {
   error: boolean;
   label: string;
-  name: 'name' | 'phone';
+  name: "name" | "phone";
   placeholder: string;
   value: string;
   onChange: (key: keyof CustomerDetails, value: string) => void;
 }) {
   return (
-    <label className={`form-field ${error ? 'form-field--error' : ''}`}>
+    <label className={`form-field ${error ? "form-field--error" : ""}`}>
       <span>{label}</span>
       <input
         className="input"
@@ -388,7 +406,9 @@ function OrderConfirmation({
       <section className="page-hero">
         <p className="eyebrow">Order confirmed</p>
         <h1>Thank you, {customerName}.</h1>
-        <p>Your Capitol delivery request has been added to the demo order queue.</p>
+        <p>
+          Your Capitol delivery request has been added to the demo order queue.
+        </p>
       </section>
 
       <section className="section order-confirmation">
@@ -398,11 +418,14 @@ function OrderConfirmation({
         <p className="eyebrow">Your tracking reference</p>
         <strong>{reference}</strong>
         <p>
-          Keep this reference to check your order progress. In this demo, the staff
-          page can update its status.
+          Keep this reference to check your order progress. In this demo, the
+          staff page can update its status.
         </p>
         <div className="confirmation-actions">
-          <Link className="button button--red" to={`/delivery?reference=${reference}`}>
+          <Link
+            className="button button--red"
+            to={`/delivery?reference=${reference}`}
+          >
             Track this order
           </Link>
           <button
