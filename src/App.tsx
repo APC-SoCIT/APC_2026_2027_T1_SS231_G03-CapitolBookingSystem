@@ -4,6 +4,8 @@ import { Catering } from './pages/Catering';
 import { CateringBuffet } from './pages/CateringBuffet';
 import { CateringPacked } from './pages/CateringPacked';
 import { FunctionRooms } from './pages/FunctionRooms';
+import { Delivery } from './pages/Delivery';
+import { DeliveryStaff } from './pages/DeliveryStaff';
 import { Home } from './pages/Home';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
@@ -26,8 +28,8 @@ export default function App() {
       <Route path="/catering/packed" element={<CateringPacked />} />
       <Route path="/function-rooms" element={<FunctionRooms />} />
       <Route path="/inquiries" element={<Placeholder title="Inquiries" />} />
-      <Route path="/delivery" element={<Placeholder title="Delivery" />} />
-      <Route path="/delivery/staff" element={<Placeholder title="Delivery Staff Demo" />} />
+      <Route path="/delivery" element={<Delivery />} />
+      <Route path="/delivery/staff" element={<DeliveryStaff />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
