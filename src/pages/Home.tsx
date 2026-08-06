@@ -26,10 +26,6 @@ export function Home() {
         </div>
       </section>
 
-      <div className="food-strip" aria-label="Capitol food categories">
-        {['Rice', 'Meat', 'Seafood', 'Desserts'].map((label, index) => <span className={index % 2 ? 'food-strip__item food-strip__item--dark' : 'food-strip__item'} key={label}>{label}</span>)}
-      </div>
-
       <section className="section section--services">
         <div className="section-heading">
           <p className="eyebrow">What We Offer</p>
