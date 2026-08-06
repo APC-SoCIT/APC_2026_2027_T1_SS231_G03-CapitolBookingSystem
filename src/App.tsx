@@ -3,6 +3,7 @@ import { AboutUs } from './pages/AboutUs';
 import { Catering } from './pages/Catering';
 import { CateringBuffet } from './pages/CateringBuffet';
 import { CateringPacked } from './pages/CateringPacked';
+import { FunctionRooms } from './pages/FunctionRooms';
 import { Home } from './pages/Home';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
@@ -23,7 +24,7 @@ export default function App() {
       <Route path="/catering" element={<Catering />} />
       <Route path="/catering/buffet" element={<CateringBuffet />} />
       <Route path="/catering/packed" element={<CateringPacked />} />
-      <Route path="/function-rooms" element={<Placeholder title="Function Rooms" />} />
+      <Route path="/function-rooms" element={<FunctionRooms />} />
       <Route path="/inquiries" element={<Placeholder title="Inquiries" />} />
       <Route path="/delivery" element={<Placeholder title="Delivery" />} />
       <Route path="/delivery/staff" element={<Placeholder title="Delivery Staff Demo" />} />
