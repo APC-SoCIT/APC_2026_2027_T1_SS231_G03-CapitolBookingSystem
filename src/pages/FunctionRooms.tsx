@@ -14,30 +14,18 @@ const EVENT_TYPES = [
 ];
 const rooms = [
   {
-    title: "Main Hall",
-    detail:
-      "Our largest space, comfortably accommodating up to 200 guests. Ideal for grand celebrations, weddings, and company events. Equipped with a stage, sound system, and full A/V setup.",
-  },
-  {
     title: "Private Dining Room",
     detail:
-      "An intimate space for up to 30 guests. Perfect for board meetings, small family celebrations, or private dinners. Climate-controlled with premium furnishings.",
-  },
-  {
-    title: "Mezzanine Lounge",
-    detail:
-      "A semi-open venue for up to 60 guests. A versatile space for cocktail parties, product launches, and casual celebrations.",
-  },
+      "An intimate space for up to 30 guests. Perfect for board meetings, small family celebrations, birthdays, baptisms, or private dinners."
+  }
 ];
 const amenities = [
   "Tables & Chairs",
   "Air Conditioning",
   "Sound System",
   "Projector & Screen",
-  "Basic Lighting",
   "Event Coordination",
   "Parking Space",
-  "Wi-Fi Access",
 ];
 
 type FormData = {
