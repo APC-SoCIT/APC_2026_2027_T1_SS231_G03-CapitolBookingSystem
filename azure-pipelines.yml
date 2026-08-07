@@ -7,9 +7,7 @@ trigger:
 - main
 
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+  buildConfiguration: 'production'
 
 stages:
 
@@ -18,44 +16,30 @@ stages:
 # =====================================
 - stage: Build
   displayName: Build
-
   jobs:
   - job: Build
-    displayName: Build Solution
-
+    displayName: Build Frontend
     pool:
       vmImage: windows-latest
 
     steps:
-
-    - task: NuGetToolInstaller@1
-
-    - task: NuGetCommand@2
-      displayName: Restore NuGet Packages
+    - task: NodeTool@0
       inputs:
-        restoreSolution: '$(solution)'
+        versionSpec: '20.x'
+      displayName: 'Install Node.js'
 
-    - task: VSBuild@1
-      displayName: Build and Publish
-      inputs:
-        solution: '$(solution)'
-        platform: '$(buildPlatform)'
-        configuration: '$(buildConfiguration)'
-        msbuildArgs: >
-          /p:DeployOnBuild=true
-          /p:WebPublishMethod=FileSystem
-          /p:PublishUrl="$(Build.ArtifactStagingDirectory)\Publish"
+    - script: |
+        npm install
+      displayName: 'npm install'
 
-    - task: VSTest@2
-      displayName: Run Tests
-      inputs:
-        platform: '$(buildPlatform)'
-        configuration: '$(buildConfiguration)'
+    - script: |
+        npm run build
+      displayName: 'npm run build'
 
     - task: PublishBuildArtifacts@1
       displayName: Publish Build Artifact
       inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)\Publish'
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist'
         ArtifactName: drop
         publishLocation: Container
 
