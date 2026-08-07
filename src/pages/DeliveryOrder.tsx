@@ -328,8 +328,8 @@ function CustomerForm({
           onChange={(event) => onChange("payment", event.target.value)}
         >
           <option>Cash on delivery</option>
-          <option>GCash (mock)</option>
-          <option>Card (mock)</option>
+          <option>GCash</option>
+          <option>Card</option>
         </select>
       </label>
 
@@ -406,9 +406,7 @@ function OrderConfirmation({
       <section className="page-hero">
         <p className="eyebrow">Order confirmed</p>
         <h1>Thank you, {customerName}.</h1>
-        <p>
-          Your Capitol delivery request has been added to the demo order queue.
-        </p>
+        <p>Your Capitol delivery request has been added to the order queue.</p>
       </section>
 
       <section className="section order-confirmation">
@@ -418,8 +416,8 @@ function OrderConfirmation({
         <p className="eyebrow">Your tracking reference</p>
         <strong>{reference}</strong>
         <p>
-          Keep this reference to check your order progress. In this demo, the
-          staff page can update its status.
+          Keep this reference to check your order progress. Capitol&apos;s staff
+          will update its status as it moves through delivery.
         </p>
         <div className="confirmation-actions">
           <Link

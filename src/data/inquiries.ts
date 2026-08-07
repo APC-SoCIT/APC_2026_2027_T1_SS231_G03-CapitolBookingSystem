@@ -16,7 +16,7 @@ export const INQUIRY_STATUSES: InquiryStatus[] = [
   "Resolved",
 ];
 
-export const DEMO_INQUIRIES: Inquiry[] = [
+export const INITIAL_INQUIRIES: Inquiry[] = [
   {
     id: "INQ-001",
     name: "Rosa Mendoza",
@@ -39,16 +39,16 @@ export const DEMO_INQUIRIES: Inquiry[] = [
   },
 ];
 
-const STORAGE_KEY = "capitol-demo-inquiries";
+const STORAGE_KEY = "capitol-inquiries";
 
 export function getInquiries(): Inquiry[] {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return DEMO_INQUIRIES;
+  if (!stored) return INITIAL_INQUIRIES;
 
   try {
     return JSON.parse(stored) as Inquiry[];
   } catch {
-    return DEMO_INQUIRIES;
+    return INITIAL_INQUIRIES;
   }
 }
 

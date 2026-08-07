@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   DELIVERY_STATUSES,
   getDeliveryOrders,
+  resetDeliveryOrders,
   saveDeliveryOrders,
   type DeliveryOrder,
   type DeliveryStatus,
@@ -20,16 +21,16 @@ export function DeliveryStaff() {
     setSelected(next.find((order) => order.reference === reference) ?? null);
   };
   const reset = () => {
-    localStorage.removeItem("capitol-demo-delivery-orders");
+    resetDeliveryOrders();
     setOrders(getDeliveryOrders());
     setSelected(null);
   };
   return (
     <div>
       <section className="page-hero">
-        <p className="eyebrow">Internal demo</p>
+        <p className="eyebrow">Staff workspace</p>
         <h1>Delivery Operations</h1>
-        <p>Update mock delivery statuses to demonstrate the staff workflow.</p>
+        <p>Review active orders and update their delivery status.</p>
       </section>
       <section className="section staff-section">
         <div className="staff-toolbar">
@@ -38,7 +39,7 @@ export function DeliveryStaff() {
             <h2>Active deliveries</h2>
           </div>
           <button className="reset-button" onClick={reset} type="button">
-            <RefreshCw size={15} /> Reset demo data
+            <RefreshCw size={15} /> Reset order data
           </button>
         </div>
         <div className="staff-table">
@@ -74,8 +75,8 @@ export function DeliveryStaff() {
               {selected.reference} · {selected.customer}
             </h2>
             <p>
-              Choose a new status. The customer tracking page will read the same
-              demo state.
+              Choose a new status. The customer tracking page will show the
+              updated order progress.
             </p>
             <div className="status-options">
               {DELIVERY_STATUSES.map((status) => (

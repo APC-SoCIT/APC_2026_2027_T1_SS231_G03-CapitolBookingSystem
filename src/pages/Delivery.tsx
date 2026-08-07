@@ -87,7 +87,7 @@ export function Delivery() {
           </div>
         </div>
         {!searchedReference && (
-          <DemoReferenceHint
+          <ReferenceHint
             onSelect={(value) => {
               setReference(value);
               setSearchedReference(value);
@@ -99,7 +99,8 @@ export function Delivery() {
             <Package size={28} />
             <strong>We could not find that reference.</strong>
             <span>
-              Try one of the demo references: CAP-1042, CAP-1043, or CAP-1044.
+              Try one of the available references: CAP-1042, CAP-1043, or
+              CAP-1044.
             </span>
           </div>
         )}
@@ -109,14 +110,10 @@ export function Delivery() {
   );
 }
 
-function DemoReferenceHint({
-  onSelect,
-}: {
-  onSelect: (value: string) => void;
-}) {
+function ReferenceHint({ onSelect }: { onSelect: (value: string) => void }) {
   return (
-    <div className="demo-reference">
-      <span>Try a demo order:</span>
+    <div className="reference-hint">
+      <span>Try an available order:</span>
       {["CAP-1042", "CAP-1043", "CAP-1044"].map((reference) => (
         <button
           key={reference}
@@ -181,7 +178,7 @@ function TrackingResult({ order }: { order: DeliveryOrder }) {
             </div>
           ))}
         </div>
-        <MockMap order={order} />
+        <DeliveryMap order={order} />
       </div>
       <div className="delivery-details">
         <span>
@@ -195,13 +192,13 @@ function TrackingResult({ order }: { order: DeliveryOrder }) {
   );
 }
 
-function MockMap({ order }: { order: DeliveryOrder }) {
+function DeliveryMap({ order }: { order: DeliveryOrder }) {
   const delivered = order.status === "Delivered";
   return (
-    <div className="mock-map">
-      <div className="mock-map__grid" />
-      <span className="mock-map__road mock-map__road--one" />
-      <span className="mock-map__road mock-map__road--two" />
+    <div className="delivery-map">
+      <div className="delivery-map__grid" />
+      <span className="delivery-map__road delivery-map__road--one" />
+      <span className="delivery-map__road delivery-map__road--two" />
       <div className="map-marker map-marker--restaurant">
         <Package size={16} />
       </div>
@@ -210,8 +207,8 @@ function MockMap({ order }: { order: DeliveryOrder }) {
       >
         <MapPin size={17} />
       </div>
-      <span className="mock-map__label">
-        {delivered ? "Delivered" : "Demo route"}
+      <span className="delivery-map__label">
+        {delivered ? "Delivered" : "Delivery route"}
       </span>
     </div>
   );

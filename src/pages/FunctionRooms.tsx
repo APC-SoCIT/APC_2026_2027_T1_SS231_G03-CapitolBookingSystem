@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { useState } from "react";
+import { CalendarModal } from "../components/common";
 
 const EVENT_TYPES = [
   "Birthday Celebration",
@@ -62,6 +63,7 @@ export function FunctionRooms() {
     {},
   );
   const [submitted, setSubmitted] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const update = (key: keyof FormData, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
   const validate = () => {
@@ -73,7 +75,7 @@ export function FunctionRooms() {
       next.guests = "Please enter expected guest count";
     if (!form.eventType) next.eventType = "Please select an event type";
     setErrors(next);
-    if (!Object.keys(next).length) setSubmitted(true);
+    if (!Object.keys(next).length) setModalOpen(true);
   };
   return (
     <div>
@@ -178,7 +180,7 @@ export function FunctionRooms() {
             </button>
             {submitted && (
               <div className="success-message">
-                <strong>Inquiry received for the demo.</strong>
+                <strong>Reservation request received.</strong>
                 <span>
                   Our team would confirm availability for your{" "}
                   {form.eventType.toLowerCase()} request.
@@ -188,6 +190,14 @@ export function FunctionRooms() {
           </div>
         </div>
       </section>
+      <CalendarModal
+        initialContact={form.contact}
+        initialName={form.name}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={() => setSubmitted(true)}
+        title="Select Your Event Date"
+      />
     </div>
   );
 }

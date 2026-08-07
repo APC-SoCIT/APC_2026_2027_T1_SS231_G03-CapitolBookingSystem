@@ -156,8 +156,8 @@ export function Inquiries() {
             <div className="success-message">
               <strong>Thank you for your inquiry.</strong>
               <span>
-                This demo submission has been recorded locally and is now
-                visible in the staff dashboard.
+                Your submission has been recorded and is now visible in the
+                staff dashboard.
               </span>
             </div>
           )}

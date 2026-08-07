@@ -1,10 +1,12 @@
 import { Check, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { CalendarModal } from "../components/common";
 import { CATERING_PACKAGES, type CateringPackage } from "../constants";
 
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   return (
     <div>
@@ -65,19 +67,25 @@ export function CateringBuffet() {
           <button
             className="button button--red"
             disabled={!selected}
-            onClick={() => setSubmitted(true)}
+            onClick={() => setModalOpen(true)}
             type="button"
           >
             Proceed →
           </button>
         </div>
         {submitted && (
-          <p className="demo-notice">
-            Demo reservation started for {selected?.name}. Date and guest
-            details will be added in the next booking chunk.
+          <p className="booking-notice">
+            Reservation request submitted for {selected?.name}. Capitol&apos;s
+            staff will contact you to confirm availability.
           </p>
         )}
       </section>
+      <CalendarModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={() => setSubmitted(true)}
+        title={`Reserve ${selected?.name ?? "Buffet Catering"}`}
+      />
     </div>
   );
 }

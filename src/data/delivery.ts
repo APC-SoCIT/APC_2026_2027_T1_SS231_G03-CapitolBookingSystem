@@ -18,7 +18,7 @@ export const DELIVERY_STATUSES: DeliveryStatus[] = [
   "Delivered",
 ];
 
-export const DEMO_ORDERS: DeliveryOrder[] = [
+export const INITIAL_ORDERS: DeliveryOrder[] = [
   {
     reference: "CAP-1042",
     customer: "Maria Santos",
@@ -48,18 +48,22 @@ export const DEMO_ORDERS: DeliveryOrder[] = [
   },
 ];
 
-const STORAGE_KEY = "capitol-demo-delivery-orders";
+const STORAGE_KEY = "capitol-delivery-orders";
 
 export function getDeliveryOrders(): DeliveryOrder[] {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return DEMO_ORDERS;
+  if (!stored) return INITIAL_ORDERS;
   try {
     return JSON.parse(stored) as DeliveryOrder[];
   } catch {
-    return DEMO_ORDERS;
+    return INITIAL_ORDERS;
   }
 }
 
 export function saveDeliveryOrders(orders: DeliveryOrder[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+}
+
+export function resetDeliveryOrders() {
+  localStorage.removeItem(STORAGE_KEY);
 }

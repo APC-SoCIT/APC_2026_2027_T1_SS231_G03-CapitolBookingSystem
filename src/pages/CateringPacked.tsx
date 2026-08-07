@@ -1,6 +1,7 @@
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { CalendarModal } from "../components/common";
 import { PACKED_MENU_ITEMS } from "../constants";
 
 export function CateringPacked() {
@@ -9,6 +10,7 @@ export function CateringPacked() {
     ...new Set(PACKED_MENU_ITEMS.map((item) => item.category)),
   ];
   const [activeCategory, setActiveCategory] = useState("All");
+  const [modalOpen, setModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const displayItems = useMemo(
     () =>
@@ -64,19 +66,25 @@ export function CateringPacked() {
           <p>Ready to reserve your packed meal catering?</p>
           <button
             className="button button--red"
-            onClick={() => setSubmitted(true)}
+            onClick={() => setModalOpen(true)}
             type="button"
           >
             Proceed <ArrowRight size={16} />
           </button>
         </div>
         {submitted && (
-          <p className="demo-notice">
-            Demo reservation started for packed meals. Date and guest details
-            will be added in the next booking chunk.
+          <p className="booking-notice">
+            Reservation request submitted for packed meals. Capitol&apos;s staff
+            will contact you to confirm availability.
           </p>
         )}
       </section>
+      <CalendarModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={() => setSubmitted(true)}
+        title="Reserve Packed Meals Catering"
+      />
     </div>
   );
 }
