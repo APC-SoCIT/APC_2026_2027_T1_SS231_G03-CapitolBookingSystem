@@ -6,16 +6,119 @@
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
 
-steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '20.x'
-  displayName: 'Install Node.js'
+stages:
 
-- script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+# =====================================
+# BUILD STAGE
+# =====================================
+- stage: Build
+  displayName: Build
+
+  jobs:
+  - job: Build
+    displayName: Build Solution
+
+    pool:
+      vmImage: windows-latest
+
+    steps:
+
+    - task: NuGetToolInstaller@1
+
+    - task: NuGetCommand@2
+      displayName: Restore NuGet Packages
+      inputs:
+        restoreSolution: '$(solution)'
+
+    - task: VSBuild@1
+      displayName: Build and Publish
+      inputs:
+        solution: '$(solution)'
+        platform: '$(buildPlatform)'
+        configuration: '$(buildConfiguration)'
+        msbuildArgs: >
+          /p:DeployOnBuild=true
+          /p:WebPublishMethod=FileSystem
+          /p:PublishUrl="$(Build.ArtifactStagingDirectory)\Publish"
+
+    - task: VSTest@2
+      displayName: Run Tests
+      inputs:
+        platform: '$(buildPlatform)'
+        configuration: '$(buildConfiguration)'
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Build Artifact
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)\Publish'
+        ArtifactName: drop
+        publishLocation: Container
+
+# =====================================
+# DEPLOY STAGE
+# =====================================
+- stage: Deploy
+  displayName: Deploy to Staging
+  dependsOn: Build
+
+  jobs:
+  - deployment: DeployToStaging
+    displayName: Deploy to Staging VM
+
+    environment:
+      name: Staging
+      resourceType: VirtualMachine
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - checkout: none
+
+          - download: current
+            artifact: drop
+
+          # Verify where this job is running
+          - powershell: |
+              Write-Host "===== Environment Information ====="
+              hostname
+              $env:COMPUTERNAME
+              [System.Environment]::OSVersion
+              $PSVersionTable.PSVersion
+            displayName: Verify Deployment Target
+
+          # Stop IIS
+          - powershell: |
+              Import-Module WebAdministration
+              Stop-WebSite "Default Web Site"
+            displayName: Stop IIS
+
+          # Deploy files
+          - powershell: |
+              $sitePath = "C:\inetpub\wwwroot"
+
+              if (!(Test-Path $sitePath)) {
+                  New-Item -ItemType Directory -Path $sitePath -Force
+              }
+
+              Remove-Item "$sitePath\*" -Recurse -Force -ErrorAction SilentlyContinue
+
+              Copy-Item "$(Pipeline.Workspace)\drop\*" `
+                        "$sitePath" `
+                        -Recurse `
+                        -Force
+
+              Write-Host "Deployment completed."
+            displayName: Copy Files
+
+          # Start IIS
+          - powershell: |
+              Import-Module WebAdministration
+              Start-WebSite "Default Web Site"
+            displayName: Start IIS
