@@ -8,6 +8,9 @@ Members:
 - Suzanne Marie Rosco
 - Maria Sophea Balidio
 
+### About the Project
+A continuation from our PROJMAN class to our current one (SOFTDEV). **Capitol Booking System** is a web-based platform that modernizes Capitol Restaurant's reservation and inquiry management. It consolidates catering inquiries, function room reservations, and food delivery orders into a single, unified interface with real-time availability and automated conflict detection.
+
 ### Commit Reference Table
 
 | Type       | Description                                                                 | Example Subject                                           |
