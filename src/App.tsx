@@ -7,7 +7,7 @@ import { FunctionRooms } from "./pages/FunctionRooms";
 import { Delivery } from "./pages/Delivery";
 import { DeliveryStaff } from "./pages/DeliveryStaff";
 import { DeliveryOrder } from "./pages/DeliveryOrder";
-import { Dashboard } from "./pages/Dashboard";
+import { Operations } from "./pages/Operations";
 import { Home } from "./pages/Home";
 import { Inquiries } from "./pages/Inquiries";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -26,7 +26,7 @@ export default function App() {
         <Route path="/delivery" element={<Delivery />} />
         <Route path="/delivery/order" element={<DeliveryOrder />} />
         <Route path="/delivery/staff" element={<DeliveryStaff />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/operations" element={<Operations />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

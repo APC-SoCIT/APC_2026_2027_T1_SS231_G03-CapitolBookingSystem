@@ -15,7 +15,7 @@ import {
   type InquiryStatus,
 } from "../data/inquiries";
 
-export function Dashboard() {
+export function Operations() {
   const [orders, setOrders] = useState<DeliveryOrder[]>(getDeliveryOrders);
   const [inquiries, setInquiries] = useState<Inquiry[]>(getInquiries);
   const [search, setSearch] = useState("");
@@ -66,7 +66,7 @@ export function Dashboard() {
     <div>
       <section className="page-hero dashboard-hero">
         <p className="eyebrow">Staff workspace</p>
-        <h1>Operations Dashboard</h1>
+        <h1>Operations</h1>
         <p>Review delivery orders and respond to customer inquiries.</p>
       </section>
 
