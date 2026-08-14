@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -7,12 +8,15 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
+import { RESERVED_DATES } from "../../constants";
 
 export type BookingDetails = {
   date: string;
   time: string;
   name: string;
   contact: string;
+  pax: number;
 };
 
 type CalendarModalProps = {
@@ -22,45 +26,48 @@ type CalendarModalProps = {
   title?: string;
   initialName?: string;
   initialContact?: string;
+  minPax?: number;
+  maxPax?: number;
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
+
+/* 30-minute increments 9:00 AM – 7:30 PM */
 const TIME_OPTIONS = [
-  "9:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "12:00 PM",
-  "1:00 PM",
-  "2:00 PM",
-  "3:00 PM",
-  "4:00 PM",
-  "5:00 PM",
-  "6:00 PM",
-  "7:00 PM",
+  "9:00 AM", "9:30 AM",
+  "10:00 AM", "10:30 AM",
+  "11:00 AM", "11:30 AM",
+  "12:00 PM", "12:30 PM",
+  "1:00 PM", "1:30 PM",
+  "2:00 PM", "2:30 PM",
+  "3:00 PM", "3:30 PM",
+  "4:00 PM", "4:30 PM",
+  "5:00 PM", "5:30 PM",
+  "6:00 PM", "6:30 PM",
+  "7:00 PM", "7:30 PM",
 ];
+
+/** Full-name: letters, spaces, dots, hyphens, apostrophes; 3–60 chars. */
+const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'\\-]{3,60}$/;
+/** PH mobile: 09XXXXXXXXX or +639XXXXXXXXX (spaces/hyphens stripped). */
+const CONTACT_REGEX = /^(09|\+639)\d{9}$/;
 
 function toDateKey(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function formatSelectedDate(dateKey: string) {
-  return new Intl.DateTimeFormat("en-PH", {
-    dateStyle: "long",
-  }).format(new Date(`${dateKey}T00:00:00`));
+  return new Intl.DateTimeFormat("en-PH", { dateStyle: "long" }).format(
+    new Date(`${dateKey}T00:00:00`),
+  );
+}
+
+function generateBookingRef() {
+  return `CAP-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 export function CalendarModal({
@@ -70,44 +77,50 @@ export function CalendarModal({
   title = "Reserve a Date",
   initialName = "",
   initialContact = "",
+  minPax = 1,
+  maxPax,
 }: CalendarModalProps) {
   const today = useMemo(() => new Date(), []);
+  const navigate = useNavigate();
+
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState("");
   const [time, setTime] = useState(TIME_OPTIONS[0]);
   const [name, setName] = useState(initialName);
   const [contact, setContact] = useState(initialContact);
+  const [pax, setPax] = useState(String(minPax));
   const [submitted, setSubmitted] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const [bookingRef, setBookingRef] = useState("");
 
   const resetAndClose = useCallback(() => {
     setSelectedDate("");
     setTime(TIME_OPTIONS[0]);
     setName(initialName);
     setContact(initialContact);
+    setPax(String(minPax));
     setSubmitted(false);
     setShowErrors(false);
+    setBookingRef("");
     onClose();
-  }, [initialContact, initialName, onClose]);
+  }, [initialContact, initialName, minPax, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
-
     setName(initialName);
     setContact(initialContact);
+    setPax(String(minPax));
     document.body.classList.add("modal-open");
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") resetAndClose();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") resetAndClose();
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.classList.remove("modal-open");
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [initialContact, initialName, isOpen, resetAndClose]);
+  }, [initialContact, initialName, minPax, isOpen, resetAndClose]);
 
   if (!isOpen) return null;
 
@@ -116,15 +129,18 @@ export function CalendarModal({
   const currentMonthKey = today.getFullYear() * 12 + today.getMonth();
   const viewedMonthKey = viewYear * 12 + viewMonth;
 
-  const isPastDate = (day: number) => {
+  /** Block today + tomorrow — reservation must be ≥ 2 days ahead. */
+  const isBlockedDate = (day: number) => {
     const candidate = new Date(viewYear, viewMonth, day);
-    const startOfToday = new Date(
+    const minDate = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate(),
+      today.getDate() + 2,
     );
-    return candidate < startOfToday;
+    return candidate < minDate;
   };
+
+  const isReserved = (dateKey: string) => RESERVED_DATES.includes(dateKey);
 
   const moveMonth = (direction: -1 | 1) => {
     const next = new Date(viewYear, viewMonth + direction, 1);
@@ -132,27 +148,28 @@ export function CalendarModal({
     setViewMonth(next.getMonth());
   };
 
+  /* ── Validation ────────────────────────────────────────────────── */
+  const nameValid = NAME_REGEX.test(name.trim());
+  const contactValid = CONTACT_REGEX.test(contact.trim().replace(/[\s-]/g, ""));
+  const paxNum = parseInt(pax, 10);
+  const paxValid =
+    !isNaN(paxNum) && paxNum >= minPax && (maxPax === undefined || paxNum <= maxPax);
+
   const submitBooking = () => {
-    if (!selectedDate || !name.trim() || !contact.trim()) {
+    if (!selectedDate || !nameValid || !contactValid || !paxValid) {
       setShowErrors(true);
       return;
     }
-
-    onConfirm({
-      date: selectedDate,
-      time,
-      name: name.trim(),
-      contact: contact.trim(),
-    });
+    const ref = generateBookingRef();
+    setBookingRef(ref);
+    onConfirm({ date: selectedDate, time, name: name.trim(), contact: contact.trim(), pax: paxNum });
     setSubmitted(true);
   };
 
   return createPortal(
     <div
       className="calendar-modal-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) resetAndClose();
-      }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) resetAndClose(); }}
     >
       <div
         aria-labelledby="calendar-modal-title"
@@ -169,27 +186,61 @@ export function CalendarModal({
           <X size={20} />
         </button>
 
+        {/* ── SUCCESS STATE ─────────────────────────────────────────── */}
         {submitted ? (
           <div className="calendar-modal__success">
             <span className="calendar-modal__success-icon">
-              <Check size={28} />
+              <Check size={38} />
             </span>
-            <p className="eyebrow">Request received</p>
-            <h2>Reservation submitted</h2>
-            <p>
-              Your request for {formatSelectedDate(selectedDate)} at {time} has
-              been recorded. Capitol&apos;s staff will contact you to confirm
-              availability.
+
+            {/* Booking reference — hero display */}
+            <div className="success-ref-block">
+              <span className="success-ref-label">Booking Reference</span>
+              <span className="success-ref-number">{bookingRef}</span>
+              <span className="success-ref-divider" />
+            </div>
+
+            <h2>Reservation Submitted!</h2>
+
+            <div className="booking-summary" style={{ animationDelay: "0.18s" }}>
+              <div className="booking-summary__row">
+                <span>Date</span>
+                <strong>{formatSelectedDate(selectedDate)}</strong>
+              </div>
+              <div className="booking-summary__row">
+                <span>Time</span>
+                <strong>{time}</strong>
+              </div>
+              <div className="booking-summary__row">
+                <span>Guests</span>
+                <strong>{paxNum} guest{paxNum !== 1 ? "s" : ""}</strong>
+              </div>
+            </div>
+
+            <p className="success-next-steps" style={{ animationDelay: "0.24s" }}>
+              Capitol's team will contact you within <strong>24 hours</strong> to confirm
+              your reservation and discuss event details.
             </p>
-            <button
-              className="button button--red"
-              onClick={resetAndClose}
-              type="button"
-            >
-              Done
-            </button>
+
+            <div className="success-actions" style={{ animationDelay: "0.3s" }}>
+              <button
+                className="button button--red"
+                onClick={resetAndClose}
+                type="button"
+              >
+                Make Another Booking
+              </button>
+              <button
+                className="button button--red"
+                onClick={() => { resetAndClose(); navigate("/"); }}
+                type="button"
+              >
+                Back to Home
+              </button>
+            </div>
           </div>
         ) : (
+          /* ── BOOKING FORM ───────────────────────────────────────── */
           <>
             <div className="calendar-modal__header">
               <span className="calendar-modal__header-icon">
@@ -202,64 +253,81 @@ export function CalendarModal({
             </div>
 
             <div className="calendar-modal__body">
-              <div className="booking-calendar">
-                <div className="booking-calendar__toolbar">
-                  <button
-                    aria-label="Previous month"
-                    disabled={viewedMonthKey <= currentMonthKey}
-                    onClick={() => moveMonth(-1)}
-                    type="button"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <strong>
-                    {MONTHS[viewMonth]} {viewYear}
-                  </strong>
-                  <button
-                    aria-label="Next month"
-                    onClick={() => moveMonth(1)}
-                    type="button"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
+              {/* Left column — calendar */}
+              <div className="booking-calendar-col">
+                <div className="booking-calendar">
+                  <div className="booking-calendar__toolbar">
+                    <button
+                      aria-label="Previous month"
+                      disabled={viewedMonthKey <= currentMonthKey}
+                      onClick={() => moveMonth(-1)}
+                      type="button"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    <strong>{MONTHS[viewMonth]} {viewYear}</strong>
+                    <button aria-label="Next month" onClick={() => moveMonth(1)} type="button">
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+
+                  <div className="booking-calendar__weekdays">
+                    {WEEKDAYS.map((d) => <span key={d}>{d}</span>)}
+                  </div>
+
+                  <div className="booking-calendar__days">
+                    {Array.from({ length: firstWeekday }).map((_, i) => (
+                      <span aria-hidden="true" key={`blank-${i}`} />
+                    ))}
+                    {Array.from({ length: daysInMonth }, (_, idx) => {
+                      const day = idx + 1;
+                      const dateKey = toDateKey(viewYear, viewMonth, day);
+                      const blocked = isBlockedDate(day);
+                      const reserved = isReserved(dateKey);
+                      const isSelected = selectedDate === dateKey;
+
+                      const cls = isSelected
+                        ? "booking-day booking-day--selected"
+                        : reserved
+                        ? "booking-day booking-day--reserved"
+                        : "booking-day";
+
+                      return (
+                        <button
+                          aria-label={`${MONTHS[viewMonth]} ${day}, ${viewYear}${reserved ? " – unavailable" : ""}`}
+                          className={cls}
+                          disabled={blocked || reserved}
+                          key={dateKey}
+                          onClick={() => setSelectedDate(dateKey)}
+                          type="button"
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="booking-calendar__weekdays">
-                  {WEEKDAYS.map((weekday) => (
-                    <span key={weekday}>{weekday}</span>
-                  ))}
+                {/* Legend — only Reserved + Your Selection */}
+                <div className="calendar-legend">
+                  <span className="calendar-legend__item">
+                    <span className="calendar-legend__swatch calendar-legend__swatch--reserved" />
+                    Reserved
+                  </span>
+                  <span className="calendar-legend__item">
+                    <span className="calendar-legend__swatch calendar-legend__swatch--selected" />
+                    Your Selection
+                  </span>
                 </div>
 
-                <div className="booking-calendar__days">
-                  {Array.from({ length: firstWeekday }).map((_, index) => (
-                    <span aria-hidden="true" key={`blank-${index}`} />
-                  ))}
-                  {Array.from({ length: daysInMonth }, (_, index) => {
-                    const day = index + 1;
-                    const dateKey = toDateKey(viewYear, viewMonth, day);
-                    const disabled = isPastDate(day);
-                    const selected = selectedDate === dateKey;
-
-                    return (
-                      <button
-                        aria-label={`${MONTHS[viewMonth]} ${day}, ${viewYear}`}
-                        className={
-                          selected
-                            ? "booking-day booking-day--selected"
-                            : "booking-day"
-                        }
-                        disabled={disabled}
-                        key={dateKey}
-                        onClick={() => setSelectedDate(dateKey)}
-                        type="button"
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* 2-day policy note */}
+                <p className="calendar-policy-note">
+                  <AlertCircle size={13} />
+                  Reservations must be made at least 2 days in advance.
+                </p>
               </div>
 
+              {/* Right column — booking fields */}
               <div className="booking-fields">
                 <label className="form-field">
                   <span>Selected Date</span>
@@ -281,10 +349,10 @@ export function CalendarModal({
                   <select
                     className="input"
                     value={time}
-                    onChange={(event) => setTime(event.target.value)}
+                    onChange={(e) => setTime(e.target.value)}
                   >
-                    {TIME_OPTIONS.map((option) => (
-                      <option key={option}>{option}</option>
+                    {TIME_OPTIONS.map((opt) => (
+                      <option key={opt}>{opt}</option>
                     ))}
                   </select>
                 </label>
@@ -292,37 +360,59 @@ export function CalendarModal({
                 <label className="form-field">
                   <span>Full Name</span>
                   <input
-                    className={
-                      showErrors && !name.trim()
-                        ? "input input--error"
-                        : "input"
-                    }
+                    className={showErrors && !nameValid ? "input input--error" : "input"}
                     placeholder="Juan dela Cruz"
                     value={name}
-                    onChange={(event) => setName(event.target.value)}
+                    onChange={(e) => setName(e.target.value)}
                   />
+                  {showErrors && !nameValid && (
+                    <span className="field-error">
+                      Letters only, min. 3 characters (e.g. Juan dela Cruz)
+                    </span>
+                  )}
                 </label>
 
                 <label className="form-field">
                   <span>Contact Number</span>
                   <input
-                    className={
-                      showErrors && !contact.trim()
-                        ? "input input--error"
-                        : "input"
-                    }
+                    className={showErrors && !contactValid ? "input input--error" : "input"}
                     placeholder="09XX XXX XXXX"
                     value={contact}
-                    onChange={(event) => setContact(event.target.value)}
+                    onChange={(e) => setContact(e.target.value)}
                   />
+                  {showErrors && !contactValid && (
+                    <span className="field-error">
+                      Enter a valid PH mobile number (e.g. 09XX XXX XXXX)
+                    </span>
+                  )}
                 </label>
 
-                {showErrors &&
-                  (!selectedDate || !name.trim() || !contact.trim()) && (
-                    <p className="field-error">
-                      Select a date and complete the required contact details.
-                    </p>
+                <label className="form-field">
+                  <span>
+                    Number of Guests{" "}
+                    {minPax > 1 && (
+                      <em>
+                        (min. {minPax}{maxPax ? `, max. ${maxPax}` : ""})
+                      </em>
+                    )}
+                  </span>
+                  <input
+                    className={showErrors && !paxValid ? "input input--error" : "input"}
+                    min={minPax}
+                    max={maxPax}
+                    placeholder={String(minPax)}
+                    type="number"
+                    value={pax}
+                    onChange={(e) => setPax(e.target.value)}
+                  />
+                  {showErrors && !paxValid && (
+                    <span className="field-error">
+                      {maxPax
+                        ? `Guests must be between ${minPax} and ${maxPax}`
+                        : `Minimum ${minPax} guests required`}
+                    </span>
                   )}
+                </label>
 
                 <button
                   className="button button--red calendar-modal__submit"

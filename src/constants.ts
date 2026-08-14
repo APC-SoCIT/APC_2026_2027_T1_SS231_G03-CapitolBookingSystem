@@ -20,9 +20,24 @@ export type CateringPackage = {
   name: string;
   pricePerPax: number;
   minPax: number;
+  maxPax: number;
   description: string;
   inclusions: string[];
 };
+
+/** Dates already reserved — blocked in the booking calendar (YYYY-MM-DD). */
+export const RESERVED_DATES: string[] = [
+  "2026-08-19",
+  "2026-08-22",
+  "2026-08-28",
+  "2026-09-03",
+  "2026-09-10",
+  "2026-09-15",
+  "2026-09-20",
+  "2026-09-25",
+  "2026-10-04",
+  "2026-10-11",
+];
 export type MenuItem = {
   id: string;
   name: string;
@@ -37,6 +52,7 @@ export const CATERING_PACKAGES: CateringPackage[] = [
     name: "Package 1",
     pricePerPax: 350,
     minPax: 50,
+    maxPax: 100,
     description:
       "Our starter package for intimate gatherings and small celebrations.",
     inclusions: [
@@ -53,6 +69,7 @@ export const CATERING_PACKAGES: CateringPackage[] = [
     name: "Package 2",
     pricePerPax: 500,
     minPax: 50,
+    maxPax: 200,
     description:
       "A wider selection ideal for corporate events and family gatherings.",
     inclusions: [
@@ -71,6 +88,7 @@ export const CATERING_PACKAGES: CateringPackage[] = [
     name: "Package 3",
     pricePerPax: 750,
     minPax: 50,
+    maxPax: 500,
     description:
       "Full-service catering for grand celebrations and special occasions.",
     inclusions: [

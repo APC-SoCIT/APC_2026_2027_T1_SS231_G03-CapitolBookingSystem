@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarModal } from "../components/common";
@@ -11,7 +11,7 @@ export function CateringPacked() {
   ];
   const [activeCategory, setActiveCategory] = useState("All");
   const [modalOpen, setModalOpen] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+
   const displayItems = useMemo(
     () =>
       activeCategory === "All"
@@ -19,6 +19,7 @@ export function CateringPacked() {
         : PACKED_MENU_ITEMS.filter((item) => item.category === activeCategory),
     [activeCategory],
   );
+
   return (
     <div>
       <div className="breadcrumb">
@@ -26,13 +27,12 @@ export function CateringPacked() {
         <ChevronRight size={14} />
         <span>Individually Packed Meals</span>
       </div>
+
       <section className="subpage-hero">
         <h1>Individually Packed Meals</h1>
-        <p>
-          Browse our menu, then proceed to select your reservation date and
-          time.
-        </p>
+        <p>Browse our menu, then proceed to select your reservation date and time.</p>
       </section>
+
       <section className="section packed-section">
         <div className="filter-row">
           {categories.map((category) => (
@@ -50,6 +50,7 @@ export function CateringPacked() {
             </button>
           ))}
         </div>
+
         <div className="menu-grid">
           {displayItems.map((item) => (
             <article className="menu-card" key={item.id}>
@@ -62,27 +63,30 @@ export function CateringPacked() {
             </article>
           ))}
         </div>
-        <div className="proceed-bar">
-          <p>Ready to reserve your packed meal catering?</p>
+
+        {/* ── Proceed bar ─────────────────────────────────────────── */}
+        <div className="proceed-bar-v2">
+          <div className="proceed-bar-v2__info">
+            <span className="proceed-bar-v2__label">Ready to Book</span>
+            <span className="proceed-bar-v2__package">Individually Packed Meals</span>
+            <span className="proceed-bar-v2__price">
+              Our staff will confirm quantities and pricing after booking.
+            </span>
+          </div>
           <button
-            className="button button--red"
+            className="button button--gold proceed-bar-v2__btn"
             onClick={() => setModalOpen(true)}
             type="button"
           >
-            Proceed <ArrowRight size={16} />
+            Book Now →
           </button>
         </div>
-        {submitted && (
-          <p className="booking-notice">
-            Reservation request submitted for packed meals. Capitol&apos;s staff
-            will contact you to confirm availability.
-          </p>
-        )}
       </section>
+
       <CalendarModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onConfirm={() => setSubmitted(true)}
+        onConfirm={() => {}}
         title="Reserve Packed Meals Catering"
       />
     </div>
