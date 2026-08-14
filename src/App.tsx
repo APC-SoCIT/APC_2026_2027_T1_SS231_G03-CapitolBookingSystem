@@ -11,6 +11,12 @@ import { Dashboard } from "./pages/Dashboard";
 import { Home } from "./pages/Home";
 import { Inquiries } from "./pages/Inquiries";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+
+function ProtectedDashboard() {
+  const { isAdmin } = useAuth();
+  return isAdmin ? <Dashboard /> : <Navigate to="/" replace />;
+}
 
 export default function App() {
   return (
@@ -26,7 +32,7 @@ export default function App() {
         <Route path="/delivery" element={<Delivery />} />
         <Route path="/delivery/order" element={<DeliveryOrder />} />
         <Route path="/delivery/staff" element={<DeliveryStaff />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<ProtectedDashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
