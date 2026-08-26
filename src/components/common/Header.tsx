@@ -10,7 +10,9 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { user, logout, isAdmin } = useAuth();
+  const [logoutError, setLogoutError] = useState("");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user, loading, logout, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -32,17 +34,17 @@ export function Header() {
     return () => document.body.classList.remove("modal-open");
   }, [showSignIn, showLogoutConfirm]);
 
-  const handleLoginSuccess = (role: "admin" | "customer") => {
-    setShowSignIn(false);
-    if (role === "admin") {
-      navigate("/dashboard");
+  const handleLogout = async () => {
+    setLogoutError("");
+    setIsLoggingOut(true);
+    const result = await logout();
+    if (result.success) {
+      setShowLogoutConfirm(false);
+      navigate("/");
+    } else {
+      setLogoutError(result.error || "Unable to sign out");
     }
-  };
-
-  const handleLogout = () => {
-    setShowLogoutConfirm(false);
-    logout();
-    navigate("/");
+    setIsLoggingOut(false);
   };
 
   return (
@@ -84,7 +86,7 @@ export function Header() {
 
           {/* Right side: Sign In / User badge */}
           <div className="header-auth">
-            {user ? (
+            {loading ? null : user ? (
               <div className="auth-user-badge">
                 <span className="auth-user-avatar">
                   {isAdmin ? <ShieldCheck size={14} /> : <User size={14} />}
@@ -95,7 +97,10 @@ export function Header() {
                 </span>
                 <button
                   className="auth-logout-btn"
-                  onClick={() => setShowLogoutConfirm(true)}
+                  onClick={() => {
+                    setLogoutError("");
+                    setShowLogoutConfirm(true);
+                  }}
                   type="button"
                   aria-label="Sign out"
                   title="Sign out"
@@ -156,10 +161,7 @@ export function Header() {
       </header>
 
       {showSignIn && (
-        <SignInModal
-          onClose={() => setShowSignIn(false)}
-          onSuccess={handleLoginSuccess}
-        />
+        <SignInModal onClose={() => setShowSignIn(false)} />
       )}
 
       {showLogoutConfirm && (
@@ -176,11 +178,17 @@ export function Header() {
             </div>
             <h3>Are you sure?</h3>
             <p>You will be signed out and redirected to the homepage.</p>
+            {logoutError && (
+              <p className="signin-error" role="alert">
+                {logoutError}
+              </p>
+            )}
             <div className="logout-confirm__actions">
               <button
                 className="button button--outline-dark logout-confirm__cancel"
                 onClick={() => setShowLogoutConfirm(false)}
                 type="button"
+                disabled={isLoggingOut}
               >
                 Cancel
               </button>
@@ -188,9 +196,14 @@ export function Header() {
                 className="button button--red logout-confirm__yes"
                 onClick={handleLogout}
                 type="button"
+                disabled={isLoggingOut}
               >
-                <LogOut size={15} />
-                Sign Out
+                {isLoggingOut ? (
+                  <span className="signin-spinner" />
+                ) : (
+                  <LogOut size={15} />
+                )}
+                {isLoggingOut ? "Signing Out..." : "Sign Out"}
               </button>
             </div>
           </div>

@@ -1,44 +1,50 @@
-import { Eye, EyeOff, LogIn, X } from "lucide-react";
+import { Chrome, LogIn, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
 
 interface SignInModalProps {
   onClose: () => void;
-  onSuccess: (role: "admin" | "customer") => void;
 }
 
-export function SignInModal({ onClose, onSuccess }: SignInModalProps) {
-  const { login } = useAuth();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+export function SignInModal({ onClose }: SignInModalProps) {
+  const { sendMagicLink, signInWithGoogle } = useAuth();
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setMessage("");
 
-    if (!username.trim() || !password.trim()) {
-      setError("Please fill in all fields");
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      setError("Enter your email address");
       return;
     }
 
-    setIsLoading(true);
+    setIsEmailLoading(true);
+    const result = await sendMagicLink(normalizedEmail);
+    if (result.success) {
+      setMessage("Magic link sent. Check your inbox to finish signing in.");
+    } else {
+      setError(result.error || "Unable to send magic link");
+    }
+    setIsEmailLoading(false);
+  };
 
-    // Simulate a brief loading state for polish
-    setTimeout(() => {
-      const result = login(username.trim(), password);
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setMessage("");
+    setIsGoogleLoading(true);
 
-      if (result.success) {
-        // Determine which account just logged in
-        const role = username.trim().toLowerCase() === "admin" ? "admin" : "customer";
-        onSuccess(role);
-      } else {
-        setError(result.error || "Login failed");
-        setIsLoading(false);
-      }
-    }, 600);
+    const result = await signInWithGoogle();
+    if (!result.success) {
+      setError(result.error || "Unable to sign in with Google");
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
@@ -71,46 +77,22 @@ export function SignInModal({ onClose, onSuccess }: SignInModalProps) {
 
         <form className="signin-modal__body" onSubmit={handleSubmit}>
           <div className="signin-field">
-            <label htmlFor="signin-username">Username / Email</label>
+            <label htmlFor="signin-email">Email address</label>
             <input
-              id="signin-username"
+              id="signin-email"
               className={`input ${error ? "input--error" : ""}`}
-              type="text"
-              placeholder="Enter your username or email"
-              value={username}
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              required
               onChange={(e) => {
-                setUsername(e.target.value);
+                setEmail(e.target.value);
                 setError("");
+                setMessage("");
               }}
               autoFocus
-              autoComplete="username"
+              autoComplete="email"
             />
-          </div>
-
-          <div className="signin-field">
-            <label htmlFor="signin-password">Password</label>
-            <div className="signin-password-wrap">
-              <input
-                id="signin-password"
-                className={`input ${error ? "input--error" : ""}`}
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError("");
-                }}
-                autoComplete="current-password"
-              />
-              <button
-                className="signin-password-toggle"
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
           </div>
 
           {error && (
@@ -118,20 +100,45 @@ export function SignInModal({ onClose, onSuccess }: SignInModalProps) {
               {error}
             </p>
           )}
+          {message && (
+            <p className="signin-message" role="status" aria-live="polite">
+              {message}
+            </p>
+          )}
 
           <button
             className="button button--red signin-submit"
             type="submit"
-            disabled={isLoading}
+            disabled={isEmailLoading || isGoogleLoading}
+            aria-busy={isEmailLoading}
           >
-            {isLoading ? (
+            {isEmailLoading ? (
               <span className="signin-spinner" />
             ) : (
               <>
                 <LogIn size={16} />
-                Sign In
+                Email me a magic link
               </>
             )}
+          </button>
+
+          <div className="signin-divider" aria-hidden="true">
+            <span>or</span>
+          </div>
+
+          <button
+            className="button button--outline-dark signin-google"
+            type="button"
+            onClick={() => void handleGoogleSignIn()}
+            disabled={isEmailLoading || isGoogleLoading}
+            aria-busy={isGoogleLoading}
+          >
+            {isGoogleLoading ? (
+              <span className="signin-spinner signin-spinner--dark" />
+            ) : (
+              <Chrome size={16} />
+            )}
+            Continue with Google
           </button>
         </form>
       </div>

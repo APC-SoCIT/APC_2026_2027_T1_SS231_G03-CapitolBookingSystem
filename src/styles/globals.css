@@ -435,16 +435,6 @@ button, input, textarea, select { font: inherit; }
   letter-spacing: 0.05em; text-transform: uppercase;
 }
 
-.signin-password-wrap { position: relative; }
-.signin-password-wrap .input { padding-right: 2.5rem; }
-.signin-password-toggle {
-  position: absolute; top: 50%; right: 0.65rem; transform: translateY(-50%);
-  display: grid; place-items: center; width: 28px; height: 28px;
-  border: 0; border-radius: 4px; background: transparent;
-  color: #8a5a5a; cursor: pointer; transition: color 180ms ease;
-}
-.signin-password-toggle:hover { color: #640000; }
-
 .signin-error {
   margin: 0; padding: 0.6rem 0.85rem; border-radius: 6px;
   background: rgba(175, 1, 0, 0.08); color: #af0100;
@@ -452,6 +442,23 @@ button, input, textarea, select { font: inherit; }
   animation: shakeError 350ms ease;
 }
 @keyframes shakeError { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+
+.signin-message {
+  margin: 0; padding: 0.6rem 0.85rem; border-radius: 6px;
+  background: rgba(8, 116, 67, 0.1); color: #087443;
+  font-size: 0.82rem; font-weight: 600;
+}
+
+.signin-divider {
+  display: flex; align-items: center; gap: 0.75rem;
+  color: #8a5a5a; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.signin-divider::before, .signin-divider::after { flex: 1; height: 1px; background: rgba(100, 0, 0, 0.14); content: ""; }
+
+.signin-google {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 0.45rem; width: 100%; min-height: 44px;
+}
 
 .signin-submit {
   display: inline-flex; align-items: center; justify-content: center;
@@ -465,6 +472,9 @@ button, input, textarea, select { font: inherit; }
   animation: spinnerRotate 700ms linear infinite;
 }
 @keyframes spinnerRotate { to { transform: rotate(360deg); } }
+.signin-spinner--dark { border-color: rgba(100, 0, 0, 0.18); border-top-color: #640000; }
+
+.auth-loading { min-height: 55vh; display: grid; place-items: center; color: #640000; font-size: 0.9rem; }
 
 /* Logout Confirmation */
 .logout-confirm {
@@ -534,4 +544,3 @@ button, input, textarea, select { font: inherit; }
   .signin-backdrop { align-items: end; padding: 0; }
   .signin-modal { width: 100%; border-radius: 14px 14px 0 0; }
 }
-

@@ -14,7 +14,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
 function ProtectedDashboard() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, loading } = useAuth();
+  if (loading) return <div className="auth-loading">Loading account...</div>;
   return isAdmin ? <Dashboard /> : <Navigate to="/" replace />;
 }
 
