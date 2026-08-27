@@ -40,6 +40,7 @@ export type CateringBooking = {
   notes: string;
   packageId?: string;
   packageName?: string;
+  packagePrice?: number;
   pax?: number;
   pricePerPax?: number;
   itemsList?: OrderItem[];
@@ -119,12 +120,13 @@ const INITIAL_CATERING: CateringBooking[] = [
     timeline: [{ status: "Pending", at: "Today, 2:15 PM" }],
     notes: "Round-trip delivery within Pasay",
     packageId: "pkg-2",
-    packageName: "Package 2",
-    pax: 50,
-    pricePerPax: 500,
-    guestCount: 50,
-    subtotal: 25000,
-    total: 25000,
+    packageName: "Package B",
+    packagePrice: 3150,
+    pax: 10,
+    pricePerPax: 315,
+    guestCount: 10,
+    subtotal: 3150,
+    total: 3150,
   },
   {
     id: "BK-C202",
@@ -142,13 +144,13 @@ const INITIAL_CATERING: CateringBooking[] = [
     ],
     notes: "Extra utensils for 20 guests",
     itemsList: [
-      { id: "pm-01", type: "packed_meal", name: "Adobong Manok", quantity: 8, price: 120, category: "Chicken" },
-      { id: "pm-02", type: "packed_meal", name: "Lechon Kawali", quantity: 6, price: 145, category: "Pork" },
-      { id: "pm-09", type: "packed_meal", name: "Steamed Rice", quantity: 6, price: 35, category: "Sides" },
+      { id: "pm-01", type: "packed_meal", name: "Buttered Chicken", quantity: 8, price: 100, category: "Solo meals" },
+      { id: "pm-02", type: "packed_meal", name: "Capitol Chicken", quantity: 6, price: 100, category: "Solo meals" },
+      { id: "pm-09", type: "packed_meal", name: "Sweet & Sour Fish", quantity: 6, price: 100, category: "Solo meals" },
     ],
     guestCount: 20,
-    subtotal: 2040,
-    total: 2040,
+    subtotal: 2000,
+    total: 2000,
   },
 ];
 

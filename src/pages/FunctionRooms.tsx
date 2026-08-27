@@ -1,7 +1,12 @@
 import { Check } from "lucide-react";
 import { useState } from "react";
-import { CalendarModal, type BookingDetails } from "../components/common";
+import {
+  CalendarModal,
+  SignInModal,
+  type BookingDetails,
+} from "../components/common";
 import { addFunctionBooking, nextFunctionId } from "../data/reservations";
+import { useAuthGate } from "../hooks/useAuthGate";
 
 const EVENT_TYPES = [
   "Birthday Celebration",
@@ -57,6 +62,7 @@ export function FunctionRooms() {
   );
   const [submitted, setSubmitted] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
   const update = (key: keyof FormData, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
     setErrors((current) => {
@@ -82,7 +88,7 @@ export function FunctionRooms() {
       next.guests = "Please enter expected guest count";
     if (!form.eventType) next.eventType = "Please select an event type";
     setErrors(next);
-    if (!Object.keys(next).length) setModalOpen(true);
+    if (!Object.keys(next).length && requireAuth()) setModalOpen(true);
   };
   return (
     <div className="function-rooms-page">
@@ -240,6 +246,7 @@ export function FunctionRooms() {
         }}
         title="Select Your Event Date"
       />
+      {showSignIn && <SignInModal onClose={closeSignIn} />}
     </div>
   );
 }

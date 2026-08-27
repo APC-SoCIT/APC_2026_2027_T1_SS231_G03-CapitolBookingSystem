@@ -1,12 +1,14 @@
 import { ArrowLeft, Check, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { SignInModal } from "../components/common";
 import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
 import {
   getDeliveryOrders,
   saveDeliveryOrders,
   type DeliveryOrder as DeliveryOrderData,
 } from "../data/delivery";
+import { useAuthGate } from "../hooks/useAuthGate";
 
 type Cart = Record<string, number>;
 
@@ -32,6 +34,7 @@ const DELIVERY_FEE = 60;
 
 export function DeliveryOrder() {
   const navigate = useNavigate();
+  const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
   const [cart, setCart] = useState<Cart>({});
   const [details, setDetails] = useState<CustomerDetails>(EMPTY_DETAILS);
   const [errors, setErrors] = useState<OrderErrors>([]);
@@ -44,11 +47,10 @@ export function DeliveryOrder() {
     [cart],
   );
 
-  // Enforce max 1 selection
-  const isAtMaxSelection = selectedItems.length >= 1;
-  const selectedMeal = selectedItems[0] || null;
-
-  const subtotal = selectedMeal ? selectedMeal.price : 0;
+  const subtotal = selectedItems.reduce(
+    (sum, item) => sum + item.price * (cart[item.id] ?? 0),
+    0,
+  );
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
   const total = subtotal + deliveryFee;
 
@@ -77,6 +79,7 @@ export function DeliveryOrder() {
     setErrors(nextErrors);
 
     if (nextErrors.length > 0) return;
+    if (!requireAuth()) return;
 
     const existingOrders = getDeliveryOrders();
     const reference = `CAP-${1050 + existingOrders.length}`;
@@ -143,7 +146,7 @@ export function DeliveryOrder() {
                 <h2>Choose your dishes</h2>
               </div>
               <span>
-                {selectedMeal ? "1 item selected" : "0 items selected"}
+                {selectedItems.length} {selectedItems.length === 1 ? "item" : "items"} selected
               </span>
             </div>
 
@@ -161,7 +164,8 @@ export function DeliveryOrder() {
 
           <aside className="order-sidebar">
             <OrderSummaryCard
-              selectedMeal={selectedMeal}
+              cart={cart}
+              selectedItems={selectedItems}
               subtotal={subtotal}
               deliveryFee={deliveryFee}
               total={total}
@@ -176,6 +180,7 @@ export function DeliveryOrder() {
           </aside>
         </div>
       </section>
+      {showSignIn && <SignInModal onClose={closeSignIn} />}
     </div>
   );
 }
@@ -212,12 +217,14 @@ function MenuOrderCard({
 }
 
 function OrderSummaryCard({
-  selectedMeal,
+  cart,
+  selectedItems,
   subtotal,
   deliveryFee,
   total,
 }: {
-  selectedMeal: MenuItem | null;
+  cart: Cart;
+  selectedItems: MenuItem[];
   subtotal: number;
   deliveryFee: number;
   total: number;
@@ -226,15 +233,20 @@ function OrderSummaryCard({
     <div className="order-summary-card">
       <h2>Your order</h2>
 
-      {selectedMeal ? (
+      {selectedItems.length > 0 ? (
         <div className="cart-lines">
-          <div className="cart-line">
-            <span>
-              {selectedMeal.name}
-              <small>{selectedMeal.category} · 1 serving</small>
-            </span>
-            <strong>₱{selectedMeal.price}</strong>
-          </div>
+          {selectedItems.map((item) => {
+            const quantity = cart[item.id] ?? 0;
+            return (
+              <div className="cart-line" key={item.id}>
+                <span>
+                  {item.name}
+                  <small>{item.category} · {quantity} serving{quantity === 1 ? "" : "s"}</small>
+                </span>
+                <strong>₱{item.price * quantity}</strong>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <p className="cart-empty">Your cart is empty. Add a dish to get started.</p>

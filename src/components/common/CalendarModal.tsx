@@ -29,6 +29,9 @@ type CalendarModalProps = {
   initialPax?: number;
   minPax?: number;
   maxPax?: number;
+  countLabel?: string;
+  countUnit?: string;
+  showCount?: boolean;
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -100,6 +103,9 @@ export function CalendarModal({
   initialPax,
   minPax = 1,
   maxPax,
+  countLabel = "Number of Guests",
+  countUnit = "guest",
+  showCount = true,
 }: CalendarModalProps) {
   const today = useMemo(() => new Date(), []);
   const navigate = useNavigate();
@@ -242,12 +248,14 @@ export function CalendarModal({
                 <span>Time</span>
                 <strong>{time}</strong>
               </div>
-              <div className="booking-summary__row">
-                <span>Guests</span>
-                <strong>
-                  {paxNum} guest{paxNum !== 1 ? "s" : ""}
-                </strong>
-              </div>
+              {showCount && (
+                <div className="booking-summary__row">
+                  <span>{countLabel}</span>
+                  <strong>
+                    {paxNum} {countUnit}{paxNum !== 1 ? "s" : ""}
+                  </strong>
+                </div>
+              )}
             </div>
 
             <p className="success-next-steps">
@@ -427,32 +435,34 @@ export function CalendarModal({
                   )}
                 </label>
 
-                <label className="form-field">
-                  <span>
-                    Number of Guests{" "}
-                    {minPax > 1 && (
-                      <em>
-                        (min. {minPax}{maxPax ? `, max. ${maxPax}` : ""})
-                      </em>
-                    )}
-                  </span>
-                  <input
-                    className={showErrors && !paxValid ? "input input--error" : "input"}
-                    min={minPax}
-                    max={maxPax}
-                    placeholder={String(minPax)}
-                    type="number"
-                    value={pax}
-                    onChange={(event) => setPax(event.target.value)}
-                  />
-                  {showErrors && !paxValid && (
-                    <span className="field-error">
-                      {maxPax
-                        ? `Guests must be between ${minPax} and ${maxPax}`
-                        : `Minimum ${minPax} guests required`}
+                {showCount && (
+                  <label className="form-field">
+                    <span>
+                      {countLabel}{" "}
+                      {minPax > 1 && (
+                        <em>
+                          (min. {minPax}{maxPax ? `, max. ${maxPax}` : ""})
+                        </em>
+                      )}
                     </span>
-                  )}
-                </label>
+                    <input
+                      className={showErrors && !paxValid ? "input input--error" : "input"}
+                      min={minPax}
+                      max={maxPax}
+                      placeholder={String(minPax)}
+                      type="number"
+                      value={pax}
+                      onChange={(event) => setPax(event.target.value)}
+                    />
+                    {showErrors && !paxValid && (
+                      <span className="field-error">
+                        {maxPax
+                          ? `${countLabel} must be between ${minPax} and ${maxPax}`
+                          : `Minimum ${minPax} ${countUnit}s required`}
+                      </span>
+                    )}
+                  </label>
+                )}
 
                 <button
                   className="button button--red calendar-modal__submit"

@@ -78,11 +78,11 @@ export function Inquiries() {
                 reservations@capitolrestaurant.com
               </span>
             </a>
-            <a href="tel:+6328XXXXXXX">
+            <a href="tel:8556-1313">
               <Phone size={18} />
               <span>
                 <small>Call us</small>
-                +63 (2) 8XXX-XXXX
+                8556-1313
               </span>
             </a>
             <div>
