@@ -7,7 +7,9 @@ trigger:
 - main
 
 variables:
-  buildConfiguration: 'production'
+- group: supabase-secrets
+- name: buildConfiguration
+  value: 'production'
 
 stages:
 
