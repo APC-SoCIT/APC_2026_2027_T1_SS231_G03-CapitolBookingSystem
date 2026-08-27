@@ -8,6 +8,8 @@ trigger:
 
 variables:
   buildConfiguration: 'production'
+  VITE_SUPABASE_URL: 'https://adtxjbibmbbcgluzhtzf.supabase.co'
+  VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_03mLwXDkQBzQeflgX3H7dw_1mrrzaMx'
 
 stages:
 
@@ -25,7 +27,7 @@ stages:
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '20.x'
+        versionSpec: '22.x'
       displayName: 'Install Node.js'
 
     - script: |
@@ -34,6 +36,9 @@ stages:
 
     - script: |
         npm run build
+      env:
+        VITE_SUPABASE_URL: $(VITE_SUPABASE_URL)
+        VITE_SUPABASE_PUBLISHABLE_KEY: $(VITE_SUPABASE_PUBLISHABLE_KEY)
       displayName: 'npm run build'
 
     - task: PublishBuildArtifacts@1
