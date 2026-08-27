@@ -130,7 +130,7 @@ button, input, textarea, select { font: inherit; }
 /* Unselected — hover only */
 .package-card:hover:not(.package-card--selected) { border-color: #af0100; box-shadow: 0 8px 24px rgba(175, 1, 0, 0.15); transform: translateY(-2px); }
 /* Selected — locked crimson state, no hover change */
-.package-card--selected { border-color: #640000 !important; background: #640000 !important; box-shadow: 0 10px 32px rgba(100, 0, 0, 0.28) !important; transform: translateY(-3px) !important; }
+.package-card--selected { border-color: #640000 !important; background: #640000 !important; box-shadow: 0 10px 32px rgba(100, 0, 0, 0.28) !important; transform: none !important; }
 .package-card--selected h2 { color: #f2e7a9 !important; }
 .package-card--selected .package-card__price { color: #f2e7a9 !important; }
 .package-card--selected .package-card__price small { color: rgba(242, 231, 169, 0.65) !important; }

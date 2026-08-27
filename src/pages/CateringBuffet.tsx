@@ -1,5 +1,5 @@
 import { Check, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarModal } from "../components/common";
 import { CATERING_PACKAGES, type CateringPackage } from "../constants";
@@ -7,6 +7,25 @@ import { CATERING_PACKAGES, type CateringPackage } from "../constants";
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+
+      if (
+        event.target.closest(".package-card") ||
+        event.target.closest(".proceed-bar-v2") ||
+        event.target.closest(".calendar-modal-backdrop")
+      ) {
+        return;
+      }
+
+      setSelected(null);
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
 
   return (
     <div>
