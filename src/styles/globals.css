@@ -540,6 +540,11 @@ button, input, textarea, select { font: inherit; }
 .signin-modal__header .eyebrow { margin: 0 0 0.2rem; color: rgba(242, 231, 169, 0.65); }
 .signin-modal__header h2 { margin: 0; padding-right: 2.5rem; color: #f2e7a9; font-family: Georgia, "Times New Roman", serif; font-size: 1.45rem; }
 
+.signin-tabs { display: flex; gap: 0.5rem; padding: 0.75rem 1.5rem 0; background: #fdf6e3; }
+.signin-tab { flex: 1; padding: 0.55rem 1rem; border: 1.5px solid rgba(100, 0, 0, 0.12); border-radius: 6px; background: #fff; color: #640000; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 180ms ease, color 180ms ease, border-color 180ms ease; }
+.signin-tab--active { background: #640000; color: #f2e7a9; border-color: #640000; }
+.signin-hint { color: #8a5a5a; font-size: 0.72rem; margin-top: 0.2rem; }
+
 .signin-modal__body { display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem; }
 
 .signin-field { display: flex; flex-direction: column; gap: 0.35rem; }

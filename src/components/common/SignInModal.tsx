@@ -7,14 +7,17 @@ interface SignInModalProps {
 }
 
 export function SignInModal({ onClose }: SignInModalProps) {
-  const { sendMagicLink, signInWithGoogle } = useAuth();
+  const { sendMagicLink, signInWithPassword, signInWithGoogle } = useAuth();
+  const [mode, setMode] = useState<"signin" | "login">("signin");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleMagicLink = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setMessage("");
@@ -35,6 +38,31 @@ export function SignInModal({ onClose }: SignInModalProps) {
     setIsEmailLoading(false);
   };
 
+  const handlePasswordLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      setError("Enter your email address");
+      return;
+    }
+    if (!password) {
+      setError("Enter your password");
+      return;
+    }
+
+    setIsPasswordLoading(true);
+    const result = await signInWithPassword(normalizedEmail, password);
+    if (result.success) {
+      onClose();
+    } else {
+      setError(result.error || "Invalid email or password");
+    }
+    setIsPasswordLoading(false);
+  };
+
   const handleGoogleSignIn = async () => {
     setError("");
     setMessage("");
@@ -45,6 +73,12 @@ export function SignInModal({ onClose }: SignInModalProps) {
       setError(result.error || "Unable to sign in with Google");
       setIsGoogleLoading(false);
     }
+  };
+
+  const switchMode = (next: "signin" | "login") => {
+    setMode(next);
+    setError("");
+    setMessage("");
   };
 
   return (
@@ -71,76 +105,166 @@ export function SignInModal({ onClose }: SignInModalProps) {
           </div>
           <div>
             <p className="eyebrow">Capitol Restaurant</p>
-            <h2>Sign In</h2>
+            <h2>{mode === "signin" ? "Sign In" : "Log In"}</h2>
           </div>
         </div>
 
-        <form className="signin-modal__body" onSubmit={handleSubmit}>
-          <div className="signin-field">
-            <label htmlFor="signin-email">Email address</label>
-            <input
-              id="signin-email"
-              className={`input ${error ? "input--error" : ""}`}
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              required
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError("");
-                setMessage("");
-              }}
-              autoFocus
-              autoComplete="email"
-            />
-          </div>
-
-          {error && (
-            <p className="signin-error" role="alert">
-              {error}
-            </p>
-          )}
-          {message && (
-            <p className="signin-message" role="status" aria-live="polite">
-              {message}
-            </p>
-          )}
-
+        <div className="signin-tabs" role="tablist" aria-label="Sign in or log in">
           <button
-            className="button button--red signin-submit"
-            type="submit"
-            disabled={isEmailLoading || isGoogleLoading}
-            aria-busy={isEmailLoading}
-          >
-            {isEmailLoading ? (
-              <span className="signin-spinner" />
-            ) : (
-              <>
-                <LogIn size={16} />
-                Email me a magic link
-              </>
-            )}
-          </button>
-
-          <div className="signin-divider" aria-hidden="true">
-            <span>or</span>
-          </div>
-
-          <button
-            className="button button--outline-dark signin-google"
+            className={`signin-tab ${mode === "signin" ? "signin-tab--active" : ""}`}
+            onClick={() => switchMode("signin")}
             type="button"
-            onClick={() => void handleGoogleSignIn()}
-            disabled={isEmailLoading || isGoogleLoading}
-            aria-busy={isGoogleLoading}
+            role="tab"
+            aria-selected={mode === "signin"}
           >
-            {isGoogleLoading ? (
-              <span className="signin-spinner signin-spinner--dark" />
-            ) : (
-              <Chrome size={16} />
-            )}
-            Continue with Google
+            Sign In
           </button>
-        </form>
+          <button
+            className={`signin-tab ${mode === "login" ? "signin-tab--active" : ""}`}
+            onClick={() => switchMode("login")}
+            type="button"
+            role="tab"
+            aria-selected={mode === "login"}
+          >
+            Log In
+          </button>
+        </div>
+
+        {mode === "signin" ? (
+          <form className="signin-modal__body" onSubmit={handleMagicLink}>
+            <div className="signin-field">
+              <label htmlFor="signin-email">Email address</label>
+              <input
+                id="signin-email"
+                className={`input ${error ? "input--error" : ""}`}
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                required
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                  setMessage("");
+                }}
+                autoFocus
+                autoComplete="email"
+              />
+            </div>
+
+            {error && (
+              <p className="signin-error" role="alert">
+                {error}
+              </p>
+            )}
+            {message && (
+              <p className="signin-message" role="status" aria-live="polite">
+                {message}
+              </p>
+            )}
+
+            <button
+              className="button button--red signin-submit"
+              type="submit"
+              disabled={isEmailLoading || isGoogleLoading}
+              aria-busy={isEmailLoading}
+            >
+              {isEmailLoading ? (
+                <span className="signin-spinner" />
+              ) : (
+                <>
+                  <LogIn size={16} />
+                  Email me a magic link
+                </>
+              )}
+            </button>
+
+            <div className="signin-divider" aria-hidden="true">
+              <span>or</span>
+            </div>
+
+            <button
+              className="button button--outline-dark signin-google"
+              type="button"
+              onClick={() => void handleGoogleSignIn()}
+              disabled={isEmailLoading || isGoogleLoading}
+              aria-busy={isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                <span className="signin-spinner signin-spinner--dark" />
+              ) : (
+                <Chrome size={16} />
+              )}
+              Continue with Google
+            </button>
+          </form>
+        ) : (
+          <form className="signin-modal__body" onSubmit={handlePasswordLogin}>
+            <div className="signin-field">
+              <label htmlFor="login-email">Email address</label>
+              <input
+                id="login-email"
+                className={`input ${error ? "input--error" : ""}`}
+                type="email"
+                placeholder="admin@capitol.com"
+                value={email}
+                required
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                  setMessage("");
+                }}
+                autoFocus
+                autoComplete="email"
+              />
+            </div>
+
+            <div className="signin-field">
+              <label htmlFor="login-password">Password</label>
+              <input
+                id="login-password"
+                className={`input ${error ? "input--error" : ""}`}
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                required
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                  setMessage("");
+                }}
+                autoComplete="current-password"
+              />
+              <small className="signin-hint">Demo: admin@capitol.com / 123456</small>
+            </div>
+
+            {error && (
+              <p className="signin-error" role="alert">
+                {error}
+              </p>
+            )}
+            {message && (
+              <p className="signin-message" role="status" aria-live="polite">
+                {message}
+              </p>
+            )}
+
+            <button
+              className="button button--red signin-submit"
+              type="submit"
+              disabled={isPasswordLoading}
+              aria-busy={isPasswordLoading}
+            >
+              {isPasswordLoading ? (
+                <span className="signin-spinner" />
+              ) : (
+                <>
+                  <LogIn size={16} />
+                  Log In
+                </>
+              )}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

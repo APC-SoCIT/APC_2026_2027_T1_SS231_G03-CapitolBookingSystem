@@ -115,7 +115,7 @@ export function Header() {
                 type="button"
               >
                 <LogIn size={15} />
-                Sign In
+                Sign In / Log In
               </button>
             )}
           </div>
