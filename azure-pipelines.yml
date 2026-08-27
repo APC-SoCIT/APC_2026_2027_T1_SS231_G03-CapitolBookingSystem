@@ -10,55 +10,11 @@ variables:
   buildConfiguration: 'production'
 
 stages:
-
-# =====================================
-# BUILD STAGE
-# =====================================
-- stage: Build
-  displayName: Build
-  jobs:
-  - job: Build
-    displayName: Build Frontend
-    # 👇 1. CHANGED: Use self-hosted agent pool instead of Microsoft-hosted vmImage
-    pool:
-      name: 'Default'
-
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '20.x'
-      displayName: 'Install Node.js'
-
-    - script: |
-        npm install
-      displayName: 'npm install'
-
-    # 👇 2. CHANGED: Added env mapping for Supabase variables during Vite build
-    - script: |
-        npm run build
-      env:
-        VITE_SUPABASE_URL: $(VITE_SUPABASE_URL)
-        VITE_SUPABASE_PUBLISHABLE_KEY: $(VITE_SUPABASE_PUBLISHABLE_KEY)
-      displayName: 'npm run build'
-
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Build Artifact
-      inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist'
-        ArtifactName: drop
-        publishLocation: Container
-
-# =====================================
-# DEPLOY STAGE
-# =====================================
-- stage: Deploy
-  displayName: Deploy to Staging
-  dependsOn: Build
-
+- stage: BuildAndDeploy
+  displayName: Build and Deploy to Staging
   jobs:
   - deployment: DeployToStaging
     displayName: Deploy to Staging VM
-
     environment:
       name: Staging
       resourceType: VirtualMachine
@@ -67,28 +23,33 @@ stages:
       runOnce:
         deploy:
           steps:
+          # 1. Fetch repository code
+          - checkout: self
 
-          - checkout: none
+          # 2. Build the frontend on the VM
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+            displayName: 'Install Node.js'
 
-          - download: current
-            artifact: drop
+          - script: |
+              npm install
+            displayName: 'npm install'
 
-          # Verify where this job is running
-          - powershell: |
-              Write-Host "===== Environment Information ====="
-              hostname
-              $env:COMPUTERNAME
-              [System.Environment]::OSVersion
-              $PSVersionTable.PSVersion
-            displayName: Verify Deployment Target
+          - script: |
+              npm run build
+            env:
+              VITE_SUPABASE_URL: $(VITE_SUPABASE_URL)
+              VITE_SUPABASE_PUBLISHABLE_KEY: $(VITE_SUPABASE_PUBLISHABLE_KEY)
+            displayName: 'npm run build'
 
-          # Stop IIS
+          # 3. Stop IIS
           - powershell: |
               Import-Module WebAdministration
               Stop-WebSite "Default Web Site"
             displayName: Stop IIS
 
-          # Deploy files
+          # 4. Copy dist files to wwwroot
           - powershell: |
               $sitePath = "C:\inetpub\wwwroot"
 
@@ -98,7 +59,7 @@ stages:
 
               Remove-Item "$sitePath\*" -Recurse -Force -ErrorAction SilentlyContinue
 
-              Copy-Item "$(Pipeline.Workspace)\drop\*" `
+              Copy-Item "$(System.DefaultWorkingDirectory)\dist\*" `
                         "$sitePath" `
                         -Recurse `
                         -Force
@@ -106,7 +67,7 @@ stages:
               Write-Host "Deployment completed."
             displayName: Copy Files
 
-          # Start IIS
+          # 5. Start IIS
           - powershell: |
               Import-Module WebAdministration
               Start-WebSite "Default Web Site"
