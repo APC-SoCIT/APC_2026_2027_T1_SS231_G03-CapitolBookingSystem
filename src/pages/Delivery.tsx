@@ -40,23 +40,19 @@ export function Delivery() {
         <p>Follow your Capitol order from our kitchen to your doorstep.</p>
       </section>
       <section className="section delivery-section">
-        <div className="delivery-actions">
-          <div>
+        <div className="delivery-hero-cta">
+          <div className="delivery-hero-cta__content">
             <p className="eyebrow">Hungry for Capitol?</p>
-            <h2>Order delivery online</h2>
-            <p>
-              Choose from our packed meals and have Capitol favorites sent to
-              your door.
-            </p>
+            <h1>Order delivery online</h1>
+            <p>Choose from our packed meals and have Capitol favorites sent to your door.</p>
           </div>
-          <Link
-            className="button button--gold delivery-order-link"
-            to="/delivery/order"
-          >
+          <Link className="delivery-hero-cta__button button button--gold" to="/delivery/order">
             <ShoppingBag size={17} /> Start an order <ArrowRight size={16} />
           </Link>
         </div>
-        <div className="tracking-search">
+
+        <div className="delivery-track-section">
+          <div className="tracking-search">
           <div>
             <p className="eyebrow">Where is your order?</p>
             <h2>Track your delivery</h2>
@@ -86,6 +82,7 @@ export function Delivery() {
             </div>
           </div>
         </div>
+      </div>
         {!searchedReference && (
           <ReferenceHint
             onSelect={(value) => {
