@@ -14,9 +14,19 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
 function ProtectedOperations() {
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, loading, user } = useAuth();
   if (loading) return <div className="auth-loading">Loading account...</div>;
-  return isAdmin ? <Operations /> : <Navigate to="/" replace />;
+  if (isAdmin) return <Operations />;
+  return (
+    <div className="placeholder-page">
+      <h1>Admin Only</h1>
+      <p>
+        Current role: <strong>{user?.role ?? "not signed in"}</strong>
+        {user?.email ? <> · {user.email}</> : null}
+      </p>
+      <p>Please sign in with an administrator account to access Operations.</p>
+    </div>
+  );
 }
 
 export default function App() {

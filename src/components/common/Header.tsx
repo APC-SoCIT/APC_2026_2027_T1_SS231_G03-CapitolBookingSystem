@@ -77,9 +77,9 @@ export function Header() {
                 className={({ isActive }) =>
                   `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
                 }
-                to="/dashboard"
+                to="/operations"
               >
-                Dashboard
+                Operations
               </NavLink>
             )}
           </nav>
@@ -151,9 +151,9 @@ export function Header() {
                 className={({ isActive }) =>
                   `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
                 }
-                to="/dashboard"
+                to="/operations"
               >
-                Dashboard
+                Operations
               </NavLink>
             )}
           </nav>
