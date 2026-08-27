@@ -193,17 +193,20 @@ function MenuOrderCard({
 
   return (
     <button
-      className={`menu-card ${isSelected ? "menu-card--selected" : ""}`}
+      className={`order-menu-card ${isSelected ? "order-menu-card--selected" : ""}`}
       key={item.id}
       onClick={() => onChange(isSelected ? 0 : 1)}
       type="button"
     >
-      <div className="menu-card__top">
+      <div className="order-menu-card__image-placeholder" aria-hidden="true" />
+      <div className="order-menu-card__content">
+        <div className="order-menu-card__top">
         <h2>{item.name}</h2>
         <strong>₱{item.price}</strong>
+        </div>
+        <span className="order-menu-card__category">{item.category}</span>
+        <p>{item.description}</p>
       </div>
-      <span className="menu-card__category">{item.category}</span>
-      <p>{item.description}</p>
     </button>
   );
 }

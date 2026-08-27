@@ -33,72 +33,84 @@ export function Delivery() {
   );
 
   return (
-    <div>
-      <section className="page-hero">
-        <p className="eyebrow">Capitol Restaurant</p>
-        <h1>Delivery Tracking</h1>
-        <p>Follow your Capitol order from our kitchen to your doorstep.</p>
-      </section>
-      <section className="delivery-hero-cta">
-        <div className="delivery-hero-cta__content">
-          <p className="eyebrow">Hungry for Capitol?</p>
-          <h1>Order delivery online</h1>
-          <p>Choose from our packed meals and have Capitol favorites sent to your door.</p>
-        </div>
-        <Link className="delivery-hero-cta__button button button--gold" to="/delivery/order">
-          <ShoppingBag size={17} /> Start an order <ArrowRight size={16} />
-        </Link>
-      </section>
-      <section className="section delivery-section">
-        <div className="delivery-track-section">
-          <div className="tracking-search">
-          <div>
-            <p className="eyebrow">Where is your order?</p>
-            <h2>Track your delivery</h2>
-            <p>
-              Enter your booking reference to view the latest delivery status.
-            </p>
+    <div className="delivery-page">
+      <section className="delivery-landing-hero" aria-labelledby="delivery-page-title">
+        <div className="delivery-landing-hero__content">
+          <p className="delivery-kicker">Delivery from Capitol</p>
+          <h1 id="delivery-page-title">Capitol at your door.</h1>
+          <p className="delivery-landing-hero__intro">
+            Packed meals and Capitol favorites, delivered from our kitchen in Pasay City.
+          </p>
+          <div className="delivery-landing-hero__actions">
+            <Link className="button button--red delivery-primary-cta" to="/delivery/order">
+              <ShoppingBag size={17} /> Start an order <ArrowRight size={16} />
+            </Link>
           </div>
-          <div className="search-control">
-            <label htmlFor="delivery-reference">Booking reference</label>
-            <div>
-              <input
-                id="delivery-reference"
-                placeholder="e.g. CAP-1042"
-                value={reference}
-                onChange={(event) => setReference(event.target.value)}
-                onKeyDown={(event) =>
-                  event.key === "Enter" && setSearchedReference(reference)
-                }
-              />
-              <button
-                className="button button--red"
-                onClick={() => setSearchedReference(reference)}
-                type="button"
-              >
-                <Search size={17} /> Track
-              </button>
+        </div>
+        <div
+          className="delivery-landing-hero__visual"
+          role="img"
+          aria-label="Food photo placeholder"
+        />
+      </section>
+
+      <section className="delivery-page__track" id="track-order" aria-labelledby="track-order-title">
+        <div className="delivery-track-section-header">
+          <h2 id="track-order-title">Track your delivery.</h2>
+          <p>Enter your booking reference to see the latest update.</p>
+        </div>
+        <div className="delivery-track-layout">
+          <div className="delivery-track-entry">
+            <div className="tracking-search">
+              <div className="tracking-search__copy">
+                <span className="delivery-form-label">Where is your order?</span>
+                <h3>Follow it from kitchen to door.</h3>
+                <p>Use the reference from your confirmation.</p>
+              </div>
+              <div className="search-control">
+                <label htmlFor="delivery-reference">Booking reference</label>
+                <div>
+                  <input
+                    id="delivery-reference"
+                    placeholder="e.g. CAP-1042"
+                    value={reference}
+                    onChange={(event) => setReference(event.target.value)}
+                    onKeyDown={(event) =>
+                      event.key === "Enter" && setSearchedReference(reference)
+                    }
+                  />
+                  <button
+                    className="button button--red"
+                    onClick={() => setSearchedReference(reference)}
+                    type="button"
+                  >
+                    <Search size={17} /> Track
+                  </button>
+                </div>
+              </div>
             </div>
+            {!searchedReference && (
+              <ReferenceHint
+                onSelect={(value) => {
+                  setReference(value);
+                  setSearchedReference(value);
+                }}
+              />
+            )}
+            {searchedReference && !order && (
+              <div className="empty-state">
+                <Package size={28} />
+                <strong>We could not find that reference.</strong>
+                <span>
+                  Try one of the available references: CAP-1042, CAP-1043, or
+                  CAP-1044.
+                </span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
         {!searchedReference && (
-          <ReferenceHint
-            onSelect={(value) => {
-              setReference(value);
-              setSearchedReference(value);
-            }}
-          />
-        )}
-        {searchedReference && !order && (
-          <div className="empty-state">
-            <Package size={28} />
-            <strong>We could not find that reference.</strong>
-            <span>
-              Try one of the available references: CAP-1042, CAP-1043, or
-              CAP-1044.
-            </span>
-          </div>
+          <span className="delivery-track-note">Need help? Keep your booking reference ready when contacting Capitol.</span>
         )}
         {order && <TrackingResult order={order} />}
       </section>
