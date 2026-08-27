@@ -1,4 +1,4 @@
-import { ArrowRight, Check, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarModal, type BookingDetails } from "../components/common";
@@ -84,11 +84,6 @@ export function CateringPacked() {
               onClick={() => setSelectedMeal((prev) => (prev?.id === item.id ? null : item))}
               type="button"
             >
-              {selectedMeal?.id === item.id && (
-                <span className="menu-card__check">
-                  <Check size={12} /> Selected
-                </span>
-              )}
               <div className="menu-card__top">
                 <h2>{item.name}</h2>
                 <strong>₱{item.price}</strong>
