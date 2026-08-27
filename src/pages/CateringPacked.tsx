@@ -1,8 +1,9 @@
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarModal } from "../components/common";
+import { CalendarModal, type BookingDetails } from "../components/common";
 import { PACKED_MENU_ITEMS } from "../constants";
+import { addCateringBooking, nextCateringId } from "../data/reservations";
 
 export function CateringPacked() {
   const categories = [
@@ -82,7 +83,27 @@ export function CateringPacked() {
       <CalendarModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onConfirm={() => setSubmitted(true)}
+        onConfirm={(details: BookingDetails) => {
+          const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+          addCateringBooking({
+            id: nextCateringId(),
+            kind: "catering_packed",
+            customer: details.name,
+            phone: details.contact,
+            email: "",
+            date: details.date,
+            time: details.time,
+            status: "Pending",
+            placedAt: now,
+            timeline: [{ status: "Pending", at: now }],
+            notes: "Packed meals inquiry — edit items in Operations if needed",
+            itemsList: [],
+            guestCount: 20,
+            subtotal: 0,
+            total: 0,
+          });
+          setSubmitted(true);
+        }}
         title="Reserve Packed Meals Catering"
       />
     </div>

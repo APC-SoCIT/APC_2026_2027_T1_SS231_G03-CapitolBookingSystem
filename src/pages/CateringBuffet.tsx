@@ -1,8 +1,9 @@
 import { Check, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarModal } from "../components/common";
+import { CalendarModal, type BookingDetails } from "../components/common";
 import { CATERING_PACKAGES, type CateringPackage } from "../constants";
+import { addCateringBooking, nextCateringId } from "../data/reservations";
 
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
@@ -83,7 +84,31 @@ export function CateringBuffet() {
       <CalendarModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onConfirm={() => setSubmitted(true)}
+        onConfirm={(details: BookingDetails) => {
+          if (!selected) return;
+          const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+          addCateringBooking({
+            id: nextCateringId(),
+            kind: "catering_buffet",
+            customer: details.name,
+            phone: details.contact,
+            email: "",
+            date: details.date,
+            time: details.time,
+            status: "Pending",
+            placedAt: now,
+            timeline: [{ status: "Pending", at: now }],
+            notes: `${selected.description}`,
+            packageId: selected.id,
+            packageName: selected.name,
+            pax: selected.minPax,
+            pricePerPax: selected.pricePerPax,
+            guestCount: selected.minPax,
+            subtotal: selected.pricePerPax * selected.minPax,
+            total: selected.pricePerPax * selected.minPax,
+          });
+          setSubmitted(true);
+        }}
         title={`Reserve ${selected?.name ?? "Buffet Catering"}`}
       />
     </div>
