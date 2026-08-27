@@ -29,7 +29,7 @@ button, input, textarea, select { font: inherit; }
 .brand__name, .footer-brand { font-family: Georgia, "Times New Roman", serif; font-weight: 700; letter-spacing: 0.04em; }
 .brand__name { font-size: 1.75rem; }
 .brand__meta { margin-top: 0.35rem; color: rgba(242, 231, 169, 0.65); font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; }
-.desktop-nav { display: flex; align-items: center; gap: 0.5rem; }
+.desktop-nav { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
 .nav-link { padding: 0.4rem 1rem; border-bottom: 2px solid transparent; color: rgba(242, 231, 169, 0.92); font-size: 0.9rem; font-weight: 600; letter-spacing: 0.05em; text-decoration: none; transition: 180ms ease; }
 .nav-link:hover, .nav-link--active { color: #f2e7a9; }
 .nav-link--active { border-bottom-color: #f2e7a9; }
