@@ -9,7 +9,6 @@ import { DeliveryStaff } from "./pages/DeliveryStaff";
 import { DeliveryOrder } from "./pages/DeliveryOrder";
 import { Dashboard } from "./pages/Dashboard";
 import { Home } from "./pages/Home";
-import { Analytics } from "./pages/Analytics";
 import { Inquiries } from "./pages/Inquiries";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -28,7 +27,6 @@ export default function App() {
         <Route path="/delivery/order" element={<DeliveryOrder />} />
         <Route path="/delivery/staff" element={<DeliveryStaff />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/analytics" element={<Analytics />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
