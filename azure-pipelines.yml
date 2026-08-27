@@ -8,8 +8,6 @@ trigger:
 
 variables:
   buildConfiguration: 'production'
-  VITE_SUPABASE_URL: 'https://adtxjbibmbbcgluzhtzf.supabase.co'
-  VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_03mLwXDkQBzQeflgX3H7dw_1mrrzaMx'
 
 stages:
 
@@ -19,34 +17,40 @@ stages:
 - stage: Build
   displayName: Build
   jobs:
-  - job: Build
+  - deployment: Build
     displayName: Build Frontend
-    pool:
-      vmImage: windows-latest
+    environment:
+      name: Staging
+      resourceType: VirtualMachine
 
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '22.x'
-      displayName: 'Install Node.js'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
 
-    - script: |
-        npm install
-      displayName: 'npm install'
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+            displayName: 'Install Node.js'
 
-    - script: |
-        npm run build
-      env:
-        VITE_SUPABASE_URL: $(VITE_SUPABASE_URL)
-        VITE_SUPABASE_PUBLISHABLE_KEY: $(VITE_SUPABASE_PUBLISHABLE_KEY)
-      displayName: 'npm run build'
+          - script: |
+              npm install
+            displayName: 'npm install'
 
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Build Artifact
-      inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)/dist'
-        ArtifactName: drop
-        publishLocation: Container
+          - script: |
+              npm run build
+            env:
+              VITE_SUPABASE_URL: $(VITE_SUPABASE_URL)
+              VITE_SUPABASE_PUBLISHABLE_KEY: $(VITE_SUPABASE_PUBLISHABLE_KEY)
+            displayName: 'npm run build'
+
+          - task: PublishBuildArtifacts@1
+            displayName: Publish Build Artifact
+            inputs:
+              PathtoPublish: '$(System.DefaultWorkingDirectory)/dist'
+              ArtifactName: drop
+              publishLocation: Container
 
 # =====================================
 # DEPLOY STAGE
