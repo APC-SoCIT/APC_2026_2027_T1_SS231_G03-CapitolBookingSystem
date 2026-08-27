@@ -1,5 +1,6 @@
 import { Chrome, LogIn, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 interface SignInModalProps {
@@ -7,6 +8,7 @@ interface SignInModalProps {
 }
 
 export function SignInModal({ onClose }: SignInModalProps) {
+  const navigate = useNavigate();
   const { sendMagicLink, signInWithPassword, signInWithGoogle } = useAuth();
   const [mode, setMode] = useState<"signin" | "login">("signin");
   const [email, setEmail] = useState("");
@@ -57,6 +59,9 @@ export function SignInModal({ onClose }: SignInModalProps) {
     const result = await signInWithPassword(normalizedEmail, password);
     if (result.success) {
       onClose();
+      if (normalizedEmail.toLowerCase() === "admin@capitol.com") {
+        navigate("/operations");
+      }
     } else {
       setError(result.error || "Invalid email or password");
     }
@@ -234,7 +239,6 @@ export function SignInModal({ onClose }: SignInModalProps) {
                 }}
                 autoComplete="current-password"
               />
-              <small className="signin-hint">Demo: admin@capitol.com / 123456</small>
             </div>
 
             {error && (

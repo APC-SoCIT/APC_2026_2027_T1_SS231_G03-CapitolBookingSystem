@@ -61,26 +61,37 @@ export function Header() {
           </Link>
 
           <nav className="desktop-nav" aria-label="Main navigation">
-            {NAVIGATION_ITEMS.map((item) => (
-              <NavLink
-                className={({ isActive }) =>
-                  `nav-link ${isActive ? "nav-link--active" : ""}`
-                }
-                key={item.path}
-                to={item.path}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            {isAdmin && (
-              <NavLink
-                className={({ isActive }) =>
-                  `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
-                }
-                to="/operations"
-              >
-                Operations
-              </NavLink>
+            {isAdmin ? (
+              <>
+                <NavLink
+                  className={({ isActive }) =>
+                    `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
+                  }
+                  to="/operations"
+                >
+                  Operations
+                </NavLink>
+                <NavLink
+                  className={({ isActive }) =>
+                    `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
+                  }
+                  to="/dashboard"
+                >
+                  Dashboard
+                </NavLink>
+              </>
+            ) : (
+              NAVIGATION_ITEMS.map((item) => (
+                <NavLink
+                  className={({ isActive }) =>
+                    `nav-link ${isActive ? "nav-link--active" : ""}`
+                  }
+                  key={item.path}
+                  to={item.path}
+                >
+                  {item.label}
+                </NavLink>
+              ))
             )}
           </nav>
 
@@ -135,26 +146,37 @@ export function Header() {
 
         {menuOpen && (
           <nav className="mobile-nav" aria-label="Mobile navigation">
-            {NAVIGATION_ITEMS.map((item) => (
-              <NavLink
-                className={({ isActive }) =>
-                  `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
-                }
-                key={item.path}
-                to={item.path}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            {isAdmin && (
-              <NavLink
-                className={({ isActive }) =>
-                  `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
-                }
-                to="/operations"
-              >
-                Operations
-              </NavLink>
+            {isAdmin ? (
+              <>
+                <NavLink
+                  className={({ isActive }) =>
+                    `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
+                  }
+                  to="/operations"
+                >
+                  Operations
+                </NavLink>
+                <NavLink
+                  className={({ isActive }) =>
+                    `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
+                  }
+                  to="/dashboard"
+                >
+                  Dashboard
+                </NavLink>
+              </>
+            ) : (
+              NAVIGATION_ITEMS.map((item) => (
+                <NavLink
+                  className={({ isActive }) =>
+                    `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
+                  }
+                  key={item.path}
+                  to={item.path}
+                >
+                  {item.label}
+                </NavLink>
+              ))
             )}
           </nav>
         )}

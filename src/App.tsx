@@ -46,20 +46,76 @@ function ProtectedOperations() {
   );
 }
 
+function CustomerOnly({ children }: { children: React.ReactNode }) {
+  const { isAdmin, loading } = useAuth();
+  if (loading) return <div className="auth-loading">Loading account...</div>;
+  if (isAdmin) return <Navigate to="/operations" replace />;
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about-us" element={<AboutUs />} />
-        <Route path="/catering" element={<Catering />} />
-        <Route path="/catering/buffet" element={<CateringBuffet />} />
-        <Route path="/catering/packed" element={<CateringPacked />} />
-        <Route path="/function-rooms" element={<FunctionRooms />} />
+        <Route
+          path="/catering"
+          element={
+            <CustomerOnly>
+              <Catering />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/catering/buffet"
+          element={
+            <CustomerOnly>
+              <CateringBuffet />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/catering/packed"
+          element={
+            <CustomerOnly>
+              <CateringPacked />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/function-rooms"
+          element={
+            <CustomerOnly>
+              <FunctionRooms />
+            </CustomerOnly>
+          }
+        />
         <Route path="/inquiries" element={<Inquiries />} />
-        <Route path="/delivery" element={<Delivery />} />
-        <Route path="/delivery/order" element={<DeliveryOrder />} />
-        <Route path="/delivery/staff" element={<DeliveryStaff />} />
+        <Route
+          path="/delivery"
+          element={
+            <CustomerOnly>
+              <Delivery />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/delivery/order"
+          element={
+            <CustomerOnly>
+              <DeliveryOrder />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/delivery/staff"
+          element={
+            <CustomerOnly>
+              <DeliveryStaff />
+            </CustomerOnly>
+          }
+        />
         <Route path="/dashboard" element={<ProtectedDashboard />} />
         <Route path="/operations" element={<ProtectedOperations />} />
         <Route path="*" element={<Navigate to="/" replace />} />
