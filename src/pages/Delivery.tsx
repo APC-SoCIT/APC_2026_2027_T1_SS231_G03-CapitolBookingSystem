@@ -39,18 +39,17 @@ export function Delivery() {
         <h1>Delivery Tracking</h1>
         <p>Follow your Capitol order from our kitchen to your doorstep.</p>
       </section>
-      <section className="section delivery-section">
-        <div className="delivery-hero-cta">
-          <div className="delivery-hero-cta__content">
-            <p className="eyebrow">Hungry for Capitol?</p>
-            <h1>Order delivery online</h1>
-            <p>Choose from our packed meals and have Capitol favorites sent to your door.</p>
-          </div>
-          <Link className="delivery-hero-cta__button button button--gold" to="/delivery/order">
-            <ShoppingBag size={17} /> Start an order <ArrowRight size={16} />
-          </Link>
+      <section className="delivery-hero-cta">
+        <div className="delivery-hero-cta__content">
+          <p className="eyebrow">Hungry for Capitol?</p>
+          <h1>Order delivery online</h1>
+          <p>Choose from our packed meals and have Capitol favorites sent to your door.</p>
         </div>
-
+        <Link className="delivery-hero-cta__button button button--gold" to="/delivery/order">
+          <ShoppingBag size={17} /> Start an order <ArrowRight size={16} />
+        </Link>
+      </section>
+      <section className="section delivery-section">
         <div className="delivery-track-section">
           <div className="tracking-search">
           <div>

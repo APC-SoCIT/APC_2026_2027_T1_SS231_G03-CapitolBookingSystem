@@ -166,7 +166,6 @@ export function DeliveryOrder() {
               deliveryFee={deliveryFee}
               total={total}
             />
-            <div className="sidebar-divider" />
             <CustomerFormCard
               details={details}
               errors={errors}
@@ -199,11 +198,6 @@ function MenuOrderCard({
       onClick={() => onChange(isSelected ? 0 : 1)}
       type="button"
     >
-      {isSelected && (
-        <span className="menu-card__check">
-          <Check size={12} /> Selected
-        </span>
-      )}
       <div className="menu-card__top">
         <h2>{item.name}</h2>
         <strong>₱{item.price}</strong>
