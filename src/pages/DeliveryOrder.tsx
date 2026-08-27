@@ -79,14 +79,31 @@ export function DeliveryOrder() {
 
     const existingOrders = getDeliveryOrders();
     const reference = `CAP-${1050 + existingOrders.length}`;
+    const itemsList = selectedItems.map((it) => ({
+      id: it.id,
+      type: "packed_meal" as const,
+      name: it.name,
+      quantity: cart[it.id] ?? 1,
+      price: it.price,
+      category: it.category,
+    }));
+    const itemsDisplay = `${selectedItems.length} menu item${selectedItems.length === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
     const order: DeliveryOrderData = {
       reference,
       customer: details.name,
+      phone: details.phone,
       address: details.address,
-      items: `${selectedItems.length} menu item${selectedItems.length === 1 ? "" : "s"} · ₱${total.toLocaleString()}`,
+      items: itemsDisplay,
+      itemsList,
+      subtotal,
+      deliveryFee,
+      total,
+      paymentMethod: details.payment,
+      notes: details.notes,
       eta: "Today, 6:30 PM",
       status: "Preparing",
       placedAt: "Just now",
+      timeline: [{ status: "Preparing", at: "Just now" }],
     };
 
     saveDeliveryOrders([...existingOrders, order]);

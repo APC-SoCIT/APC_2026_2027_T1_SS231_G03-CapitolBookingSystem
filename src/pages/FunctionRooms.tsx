@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import { useState } from "react";
-import { CalendarModal } from "../components/common";
+import { CalendarModal, type BookingDetails } from "../components/common";
+import { addFunctionBooking, nextFunctionId } from "../data/reservations";
 
 const EVENT_TYPES = [
   "Birthday Celebration",
@@ -217,7 +218,26 @@ export function FunctionRooms() {
         initialPax={Number(form.guests)}
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onConfirm={() => setSubmitted(true)}
+        onConfirm={(details: BookingDetails) => {
+          const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+          addFunctionBooking({
+            id: nextFunctionId(),
+            kind: "function_room",
+            room: "Private Dining Room",
+            customer: details.name || form.name,
+            phone: details.contact || form.contact,
+            email: form.email,
+            guests: Number(form.guests) || 30,
+            eventType: form.eventType || "Private Dining",
+            date: details.date,
+            time: details.time,
+            status: "Pending",
+            specialRequests: form.specialRequests,
+            placedAt: now,
+            timeline: [{ status: "Pending", at: now }],
+          });
+          setSubmitted(true);
+        }}
         title="Select Your Event Date"
       />
     </div>

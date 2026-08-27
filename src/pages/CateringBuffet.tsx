@@ -1,32 +1,14 @@
 import { Check, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarModal } from "../components/common";
+import { CalendarModal, type BookingDetails } from "../components/common";
 import { CATERING_PACKAGES, type CateringPackage } from "../constants";
+import { addCateringBooking, nextCateringId } from "../data/reservations";
 
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-
-  useEffect(() => {
-    const handleDocumentClick = (event: MouseEvent) => {
-      if (!(event.target instanceof Element)) return;
-
-      if (
-        event.target.closest(".package-card") ||
-        event.target.closest(".proceed-bar-v2") ||
-        event.target.closest(".calendar-modal-backdrop")
-      ) {
-        return;
-      }
-
-      setSelected(null);
-    };
-
-    document.addEventListener("click", handleDocumentClick);
-    return () => document.removeEventListener("click", handleDocumentClick);
-  }, []);
-
+  const [submitted, setSubmitted] = useState(false);
   return (
     <div>
       <div className="breadcrumb">
@@ -34,12 +16,10 @@ export function CateringBuffet() {
         <ChevronRight size={14} />
         <span>Buffet Style</span>
       </div>
-
       <section className="subpage-hero">
         <h1>Buffet Style Catering</h1>
         <p>Select a package, then proceed to choose your reservation date.</p>
       </section>
-
       <section className="section buffet-section">
         <div className="package-grid">
           {CATERING_PACKAGES.map((pkg) => (
@@ -72,41 +52,63 @@ export function CateringBuffet() {
             </button>
           ))}
         </div>
-
-        {/* ── Proceed bar ─────────────────────────────────────────── */}
-        <div className="proceed-bar-v2">
-          <div className="proceed-bar-v2__info">
+        <div className="proceed-bar">
+          <div>
             {selected ? (
               <>
-                <span className="proceed-bar-v2__label">Selected Package</span>
-                <span className="proceed-bar-v2__package">{selected.name}</span>
-                <span className="proceed-bar-v2__price">
-                  ₱{selected.pricePerPax.toLocaleString()} / pax &middot; {selected.minPax}–{selected.maxPax} guests
-                </span>
+                <small>Selected package:</small>
+                <strong>
+                  {selected.name} — ₱{selected.pricePerPax.toLocaleString()}/pax
+                </strong>
               </>
             ) : (
-              <span className="proceed-bar-v2__hint">
-                Select a package above to continue
-              </span>
+              <em>Please select a package to continue.</em>
             )}
           </div>
           <button
-            className="button button--gold proceed-bar-v2__btn"
+            className="button button--red"
             disabled={!selected}
             onClick={() => setModalOpen(true)}
             type="button"
           >
-            Book This Package
+            Proceed →
           </button>
         </div>
+        {submitted && (
+          <p className="booking-notice">
+            Reservation request submitted for {selected?.name}. Capitol&apos;s
+            staff will contact you to confirm availability.
+          </p>
+        )}
       </section>
-
       <CalendarModal
         isOpen={modalOpen}
-        minPax={selected?.minPax ?? 50}
-        maxPax={selected?.maxPax}
         onClose={() => setModalOpen(false)}
-        onConfirm={() => {}}
+        onConfirm={(details: BookingDetails) => {
+          if (!selected) return;
+          const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+          addCateringBooking({
+            id: nextCateringId(),
+            kind: "catering_buffet",
+            customer: details.name,
+            phone: details.contact,
+            email: "",
+            date: details.date,
+            time: details.time,
+            status: "Pending",
+            placedAt: now,
+            timeline: [{ status: "Pending", at: now }],
+            notes: `${selected.description}`,
+            packageId: selected.id,
+            packageName: selected.name,
+            pax: selected.minPax,
+            pricePerPax: selected.pricePerPax,
+            guestCount: selected.minPax,
+            subtotal: selected.pricePerPax * selected.minPax,
+            total: selected.pricePerPax * selected.minPax,
+          });
+          setSubmitted(true);
+        }}
         title={`Reserve ${selected?.name ?? "Buffet Catering"}`}
       />
     </div>
