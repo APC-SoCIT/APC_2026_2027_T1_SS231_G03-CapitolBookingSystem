@@ -7,7 +7,9 @@ trigger:
 - main
 
 variables:
-  buildConfiguration: 'production'
+- group: supabase-secrets
+- name: buildConfiguration
+  value: 'production'
 
 stages:
 
@@ -34,15 +36,21 @@ stages:
               versionSpec: '20.x'
             displayName: 'Install Node.js'
 
-          - script: |
+          - powershell: |
               npm install
             displayName: 'npm install'
 
-          - script: |
+          - powershell: |
+              if ("$(VITE_SUPABASE_URL)") { Write-Host "VITE_SUPABASE_URL is SET" } else { Write-Host "VITE_SUPABASE_URL is EMPTY"; exit 1 }
+              if ("$(VITE_SUPABASE_PUBLISHABLE_KEY)") { Write-Host "VITE_SUPABASE_PUBLISHABLE_KEY is SET" } else { Write-Host "VITE_SUPABASE_PUBLISHABLE_KEY is EMPTY"; exit 1 }
+            displayName: 'Verify env vars'
+
+          - powershell: |
+              @"
+              VITE_SUPABASE_URL=$(VITE_SUPABASE_URL)
+              VITE_SUPABASE_PUBLISHABLE_KEY=$(VITE_SUPABASE_PUBLISHABLE_KEY)
+              "@ | Out-File -FilePath .env -Encoding utf8
               npm run build
-            env:
-              VITE_SUPABASE_URL: $(VITE_SUPABASE_URL)
-              VITE_SUPABASE_PUBLISHABLE_KEY: $(VITE_SUPABASE_PUBLISHABLE_KEY)
             displayName: 'npm run build'
 
           - task: PublishBuildArtifacts@1
