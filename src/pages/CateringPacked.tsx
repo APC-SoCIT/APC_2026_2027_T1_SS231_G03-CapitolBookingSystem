@@ -1,8 +1,8 @@
-import { ArrowRight, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowRight, Check, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarModal, type BookingDetails } from "../components/common";
-import { PACKED_MENU_ITEMS } from "../constants";
+import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
 import { addCateringBooking, nextCateringId } from "../data/reservations";
 
 export function CateringPacked() {
@@ -11,8 +11,10 @@ export function CateringPacked() {
     ...new Set(PACKED_MENU_ITEMS.map((item) => item.category)),
   ];
   const [activeCategory, setActiveCategory] = useState("All");
+  const [selectedMeal, setSelectedMeal] = useState<MenuItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
   const displayItems = useMemo(
     () =>
       activeCategory === "All"
@@ -20,6 +22,29 @@ export function CateringPacked() {
         : PACKED_MENU_ITEMS.filter((item) => item.category === activeCategory),
     [activeCategory],
   );
+
+  const subtotal = selectedMeal ? selectedMeal.price : 0;
+  const deliveryFee = 0;
+  const total = subtotal + deliveryFee;
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (
+        event.target.closest(".menu-card") ||
+        event.target.closest(".proceed-bar") ||
+        event.target.closest(".calendar-modal-backdrop") ||
+        event.target.closest(".filter-row") ||
+        event.target.closest(".order-summary-card")
+      ) {
+        return;
+      }
+      setSelectedMeal(null);
+    };
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
+
   return (
     <div>
       <div className="breadcrumb">
@@ -53,20 +78,74 @@ export function CateringPacked() {
         </div>
         <div className="menu-grid">
           {displayItems.map((item) => (
-            <article className="menu-card" key={item.id}>
+            <button
+              className={`menu-card ${selectedMeal?.id === item.id ? "menu-card--selected" : ""}`}
+              key={item.id}
+              onClick={() => setSelectedMeal((prev) => (prev?.id === item.id ? null : item))}
+              type="button"
+            >
+              {selectedMeal?.id === item.id && (
+                <span className="menu-card__check">
+                  <Check size={12} /> Selected
+                </span>
+              )}
               <div className="menu-card__top">
                 <h2>{item.name}</h2>
                 <strong>₱{item.price}</strong>
               </div>
               <span className="menu-card__category">{item.category}</span>
               <p>{item.description}</p>
-            </article>
+            </button>
           ))}
         </div>
+
+        <div className="packed-order-summary">
+          <div className="order-summary-card">
+            <h2>Your order</h2>
+            {selectedMeal ? (
+              <div className="cart-lines">
+                <div className="cart-line">
+                  <span>
+                    {selectedMeal.name}
+                    <small>{selectedMeal.category} · 1 serving</small>
+                  </span>
+                  <strong>₱{selectedMeal.price}</strong>
+                </div>
+              </div>
+            ) : (
+              <p className="cart-empty">Your cart is empty. Add a dish to get started.</p>
+            )}
+            <div className="summary-total">
+              <span>Subtotal</span>
+              <span>₱{subtotal}</span>
+            </div>
+            <div className="summary-total">
+              <span>Delivery fee</span>
+              <span>₱{deliveryFee}</span>
+            </div>
+            <div className="summary-total summary-total--grand">
+              <span>Total</span>
+              <strong>₱{total}</strong>
+            </div>
+          </div>
+        </div>
+
         <div className="proceed-bar">
-          <p>Ready to reserve your packed meal catering?</p>
+          <div>
+            {selectedMeal ? (
+              <>
+                <small>Selected meal:</small>
+                <strong>
+                  {selectedMeal.name} — ₱{selectedMeal.price}
+                </strong>
+              </>
+            ) : (
+              <p>Select a meal above to continue (max 1).</p>
+            )}
+          </div>
           <button
             className="button button--red"
+            disabled={!selectedMeal}
             onClick={() => setModalOpen(true)}
             type="button"
           >
@@ -75,7 +154,7 @@ export function CateringPacked() {
         </div>
         {submitted && (
           <p className="booking-notice">
-            Reservation request submitted for packed meals. Capitol&apos;s staff
+            Reservation request submitted for {selectedMeal?.name ?? "packed meals"}. Capitol&apos;s staff
             will contact you to confirm availability.
           </p>
         )}
@@ -84,6 +163,7 @@ export function CateringPacked() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onConfirm={(details: BookingDetails) => {
+          if (!selectedMeal) return;
           const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
           addCateringBooking({
             id: nextCateringId(),
@@ -96,15 +176,15 @@ export function CateringPacked() {
             status: "Pending",
             placedAt: now,
             timeline: [{ status: "Pending", at: now }],
-            notes: "Packed meals inquiry — edit items in Operations if needed",
-            itemsList: [],
-            guestCount: 20,
-            subtotal: 0,
-            total: 0,
+            notes: `Packed meal: ${selectedMeal.name}`,
+            itemsList: [{ id: selectedMeal.id, type: "packed_meal", name: selectedMeal.name, quantity: 1, price: selectedMeal.price, category: selectedMeal.category }],
+            guestCount: 1,
+            subtotal,
+            total,
           });
           setSubmitted(true);
         }}
-        title="Reserve Packed Meals Catering"
+        title={`Reserve ${selectedMeal?.name ?? "Packed Meals"} Catering`}
       />
     </div>
   );
