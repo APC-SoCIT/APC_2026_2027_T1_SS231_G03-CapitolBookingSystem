@@ -14,6 +14,7 @@ export interface User {
 export interface AuthActionResult {
   success: boolean;
   error?: string;
+  user?: User;
 }
 
 interface AuthContextType {
@@ -64,7 +65,8 @@ async function toAppUser(authUser: SupabaseUser): Promise<User> {
 }
 
 function authRedirectUrl() {
-  return new URL("/operations", window.location.origin).toString();
+  const currentRoute = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  return new URL(currentRoute || "/", window.location.origin).toString();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -87,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let syncVersion = 0;
 
-    const syncUser = async (authUser: SupabaseUser | null) => {
+    const syncUser = async (authUser: SupabaseUser | null, redirectAdmin = false) => {
       const version = ++syncVersion;
 
       if (!authUser) {
@@ -116,14 +118,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mounted && version === syncVersion) {
         setUser(nextUser);
         setLoading(false);
+        if (redirectAdmin && nextUser.role === "admin" && window.location.pathname !== "/operations") {
+          window.location.assign("/operations");
+        }
       }
     };
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted) setLoading(true);
-      void syncUser(session?.user ?? null);
+      void syncUser(session?.user ?? null, event === "SIGNED_IN");
     });
 
     void supabase.auth.getSession().then(({ data, error }) => {
@@ -171,11 +176,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem("capitol_mock_admin", JSON.stringify(mockAdmin));
       } catch {}
-      return { success: true };
+      return { success: true, user: mockAdmin };
     }
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       // Fallback for manually inserted admin row that may still hit 500 due to missing identities
       if (error && email.toLowerCase() === "admin@capitol.com" && password === "123456" && error.message.includes("Database error")) {
         const mockAdmin: User = {
@@ -189,9 +194,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           localStorage.setItem("capitol_mock_admin", JSON.stringify(mockAdmin));
         } catch {}
-        return { success: true };
+        return { success: true, user: mockAdmin };
       }
-      return error ? { success: false, error: error.message } : { success: true };
+      if (error) return { success: false, error: error.message };
+
+      const signedInUser = data.user ? await toAppUser(data.user) : undefined;
+      return { success: true, user: signedInUser };
     } catch (error) {
       return {
         success: false,

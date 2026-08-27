@@ -59,7 +59,7 @@ export function SignInModal({ onClose }: SignInModalProps) {
     const result = await signInWithPassword(normalizedEmail, password);
     if (result.success) {
       onClose();
-      if (normalizedEmail.toLowerCase() === "admin@capitol.com") {
+      if (result.user?.role === "admin") {
         navigate("/operations");
       }
     } else {

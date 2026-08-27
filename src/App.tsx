@@ -47,9 +47,8 @@ function ProtectedOperations() {
 }
 
 function CustomerOnly({ children }: { children: React.ReactNode }) {
-  const { isAdmin, loading } = useAuth();
+  const { loading } = useAuth();
   if (loading) return <div className="auth-loading">Loading account...</div>;
-  if (isAdmin) return <Navigate to="/operations" replace />;
   return <>{children}</>;
 }
 
