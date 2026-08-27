@@ -26,33 +26,53 @@ type CalendarModalProps = {
   title?: string;
   initialName?: string;
   initialContact?: string;
+  initialPax?: number;
   minPax?: number;
   maxPax?: number;
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
-
-/* 30-minute increments 9:00 AM – 7:30 PM */
 const TIME_OPTIONS = [
-  "9:00 AM", "9:30 AM",
-  "10:00 AM", "10:30 AM",
-  "11:00 AM", "11:30 AM",
-  "12:00 PM", "12:30 PM",
-  "1:00 PM", "1:30 PM",
-  "2:00 PM", "2:30 PM",
-  "3:00 PM", "3:30 PM",
-  "4:00 PM", "4:30 PM",
-  "5:00 PM", "5:30 PM",
-  "6:00 PM", "6:30 PM",
-  "7:00 PM", "7:30 PM",
+  "9:00 AM",
+  "9:30 AM",
+  "10:00 AM",
+  "10:30 AM",
+  "11:00 AM",
+  "11:30 AM",
+  "12:00 PM",
+  "12:30 PM",
+  "1:00 PM",
+  "1:30 PM",
+  "2:00 PM",
+  "2:30 PM",
+  "3:00 PM",
+  "3:30 PM",
+  "4:00 PM",
+  "4:30 PM",
+  "5:00 PM",
+  "5:30 PM",
+  "6:00 PM",
+  "6:30 PM",
+  "7:00 PM",
+  "7:30 PM",
 ];
 
 /** Full-name: letters, spaces, dots, hyphens, apostrophes; 3–60 chars. */
-const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'\\-]{3,60}$/;
+const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'-]{3,60}$/;
 /** PH mobile: 09XXXXXXXXX or +639XXXXXXXXX (spaces/hyphens stripped). */
 const CONTACT_REGEX = /^(09|\+639)\d{9}$/;
 
@@ -61,9 +81,9 @@ function toDateKey(year: number, month: number, day: number) {
 }
 
 function formatSelectedDate(dateKey: string) {
-  return new Intl.DateTimeFormat("en-PH", { dateStyle: "long" }).format(
-    new Date(`${dateKey}T00:00:00`),
-  );
+  return new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "long",
+  }).format(new Date(`${dateKey}T00:00:00`));
 }
 
 function generateBookingRef() {
@@ -77,19 +97,19 @@ export function CalendarModal({
   title = "Reserve a Date",
   initialName = "",
   initialContact = "",
+  initialPax,
   minPax = 1,
   maxPax,
 }: CalendarModalProps) {
   const today = useMemo(() => new Date(), []);
   const navigate = useNavigate();
-
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState("");
   const [time, setTime] = useState(TIME_OPTIONS[0]);
   const [name, setName] = useState(initialName);
   const [contact, setContact] = useState(initialContact);
-  const [pax, setPax] = useState(String(minPax));
+  const [pax, setPax] = useState(String(initialPax ?? minPax));
   const [submitted, setSubmitted] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
@@ -99,28 +119,31 @@ export function CalendarModal({
     setTime(TIME_OPTIONS[0]);
     setName(initialName);
     setContact(initialContact);
-    setPax(String(minPax));
+    setPax(String(initialPax ?? minPax));
     setSubmitted(false);
     setShowErrors(false);
     setBookingRef("");
     onClose();
-  }, [initialContact, initialName, minPax, onClose]);
+  }, [initialContact, initialName, initialPax, minPax, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
+
     setName(initialName);
     setContact(initialContact);
-    setPax(String(minPax));
+    setPax(String(initialPax ?? minPax));
     document.body.classList.add("modal-open");
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") resetAndClose();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") resetAndClose();
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.classList.remove("modal-open");
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [initialContact, initialName, minPax, isOpen, resetAndClose]);
+  }, [initialContact, initialName, initialPax, minPax, isOpen, resetAndClose]);
 
   if (!isOpen) return null;
 
@@ -148,28 +171,38 @@ export function CalendarModal({
     setViewMonth(next.getMonth());
   };
 
-  /* ── Validation ────────────────────────────────────────────────── */
   const nameValid = NAME_REGEX.test(name.trim());
   const contactValid = CONTACT_REGEX.test(contact.trim().replace(/[\s-]/g, ""));
   const paxNum = parseInt(pax, 10);
   const paxValid =
-    !isNaN(paxNum) && paxNum >= minPax && (maxPax === undefined || paxNum <= maxPax);
+    !Number.isNaN(paxNum) &&
+    paxNum >= minPax &&
+    (maxPax === undefined || paxNum <= maxPax);
 
   const submitBooking = () => {
     if (!selectedDate || !nameValid || !contactValid || !paxValid) {
       setShowErrors(true);
       return;
     }
+
     const ref = generateBookingRef();
     setBookingRef(ref);
-    onConfirm({ date: selectedDate, time, name: name.trim(), contact: contact.trim(), pax: paxNum });
+    onConfirm({
+      date: selectedDate,
+      time,
+      name: name.trim(),
+      contact: contact.trim(),
+      pax: paxNum,
+    });
     setSubmitted(true);
   };
 
   return createPortal(
     <div
       className="calendar-modal-backdrop"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) resetAndClose(); }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) resetAndClose();
+      }}
     >
       <div
         aria-labelledby="calendar-modal-title"
@@ -186,14 +219,12 @@ export function CalendarModal({
           <X size={20} />
         </button>
 
-        {/* ── SUCCESS STATE ─────────────────────────────────────────── */}
         {submitted ? (
           <div className="calendar-modal__success">
             <span className="calendar-modal__success-icon">
               <Check size={38} />
             </span>
 
-            {/* Booking reference — hero display */}
             <div className="success-ref-block">
               <span className="success-ref-label">Booking Reference</span>
               <span className="success-ref-number">{bookingRef}</span>
@@ -202,7 +233,7 @@ export function CalendarModal({
 
             <h2>Reservation Submitted!</h2>
 
-            <div className="booking-summary" style={{ animationDelay: "0.18s" }}>
+            <div className="booking-summary">
               <div className="booking-summary__row">
                 <span>Date</span>
                 <strong>{formatSelectedDate(selectedDate)}</strong>
@@ -213,16 +244,18 @@ export function CalendarModal({
               </div>
               <div className="booking-summary__row">
                 <span>Guests</span>
-                <strong>{paxNum} guest{paxNum !== 1 ? "s" : ""}</strong>
+                <strong>
+                  {paxNum} guest{paxNum !== 1 ? "s" : ""}
+                </strong>
               </div>
             </div>
 
-            <p className="success-next-steps" style={{ animationDelay: "0.24s" }}>
-              Capitol's team will contact you within <strong>24 hours</strong> to confirm
-              your reservation and discuss event details.
+            <p className="success-next-steps">
+              Capitol&apos;s team will contact you within <strong>24 hours</strong> to
+              confirm your reservation and discuss event details.
             </p>
 
-            <div className="success-actions" style={{ animationDelay: "0.3s" }}>
+            <div className="success-actions">
               <button
                 className="button button--red"
                 onClick={resetAndClose}
@@ -232,7 +265,10 @@ export function CalendarModal({
               </button>
               <button
                 className="button button--red"
-                onClick={() => { resetAndClose(); navigate("/"); }}
+                onClick={() => {
+                  resetAndClose();
+                  navigate("/");
+                }}
                 type="button"
               >
                 Back to Home
@@ -240,7 +276,6 @@ export function CalendarModal({
             </div>
           </div>
         ) : (
-          /* ── BOOKING FORM ───────────────────────────────────────── */
           <>
             <div className="calendar-modal__header">
               <span className="calendar-modal__header-icon">
@@ -253,62 +288,69 @@ export function CalendarModal({
             </div>
 
             <div className="calendar-modal__body">
-              {/* Left column — calendar */}
               <div className="booking-calendar-col">
                 <div className="booking-calendar">
-                  <div className="booking-calendar__toolbar">
-                    <button
-                      aria-label="Previous month"
-                      disabled={viewedMonthKey <= currentMonthKey}
-                      onClick={() => moveMonth(-1)}
-                      type="button"
-                    >
-                      <ChevronLeft size={18} />
-                    </button>
-                    <strong>{MONTHS[viewMonth]} {viewYear}</strong>
-                    <button aria-label="Next month" onClick={() => moveMonth(1)} type="button">
-                      <ChevronRight size={18} />
-                    </button>
-                  </div>
-
-                  <div className="booking-calendar__weekdays">
-                    {WEEKDAYS.map((d) => <span key={d}>{d}</span>)}
-                  </div>
-
-                  <div className="booking-calendar__days">
-                    {Array.from({ length: firstWeekday }).map((_, i) => (
-                      <span aria-hidden="true" key={`blank-${i}`} />
-                    ))}
-                    {Array.from({ length: daysInMonth }, (_, idx) => {
-                      const day = idx + 1;
-                      const dateKey = toDateKey(viewYear, viewMonth, day);
-                      const blocked = isBlockedDate(day);
-                      const reserved = isReserved(dateKey);
-                      const isSelected = selectedDate === dateKey;
-
-                      const cls = isSelected
-                        ? "booking-day booking-day--selected"
-                        : reserved
-                        ? "booking-day booking-day--reserved"
-                        : "booking-day";
-
-                      return (
-                        <button
-                          aria-label={`${MONTHS[viewMonth]} ${day}, ${viewYear}${reserved ? " – unavailable" : ""}`}
-                          className={cls}
-                          disabled={blocked || reserved}
-                          key={dateKey}
-                          onClick={() => setSelectedDate(dateKey)}
-                          type="button"
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="booking-calendar__toolbar">
+                  <button
+                    aria-label="Previous month"
+                    disabled={viewedMonthKey <= currentMonthKey}
+                    onClick={() => moveMonth(-1)}
+                    type="button"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <strong>
+                    {MONTHS[viewMonth]} {viewYear}
+                  </strong>
+                  <button
+                    aria-label="Next month"
+                    onClick={() => moveMonth(1)}
+                    type="button"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
                 </div>
 
-                {/* Legend — only Reserved + Your Selection */}
+                <div className="booking-calendar__weekdays">
+                  {WEEKDAYS.map((weekday) => (
+                    <span key={weekday}>{weekday}</span>
+                  ))}
+                </div>
+
+                <div className="booking-calendar__days">
+                  {Array.from({ length: firstWeekday }).map((_, index) => (
+                    <span aria-hidden="true" key={`blank-${index}`} />
+                  ))}
+                  {Array.from({ length: daysInMonth }, (_, index) => {
+                    const day = index + 1;
+                    const dateKey = toDateKey(viewYear, viewMonth, day);
+                    const blocked = isBlockedDate(day);
+                    const reserved = isReserved(dateKey);
+                    const selected = selectedDate === dateKey;
+
+                    return (
+                      <button
+                        aria-label={`${MONTHS[viewMonth]} ${day}, ${viewYear}${reserved ? " – unavailable" : ""}`}
+                        className={
+                          selected
+                            ? "booking-day booking-day--selected"
+                            : reserved
+                              ? "booking-day booking-day--reserved"
+                            : "booking-day"
+                        }
+                        disabled={blocked || reserved}
+                        key={dateKey}
+                        onClick={() => setSelectedDate(dateKey)}
+                        type="button"
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                </div>
+
                 <div className="calendar-legend">
                   <span className="calendar-legend__item">
                     <span className="calendar-legend__swatch calendar-legend__swatch--reserved" />
@@ -320,14 +362,12 @@ export function CalendarModal({
                   </span>
                 </div>
 
-                {/* 2-day policy note */}
                 <p className="calendar-policy-note">
                   <AlertCircle size={13} />
                   Reservations must be made at least 2 days in advance.
                 </p>
               </div>
 
-              {/* Right column — booking fields */}
               <div className="booking-fields">
                 <label className="form-field">
                   <span>Selected Date</span>
@@ -349,10 +389,10 @@ export function CalendarModal({
                   <select
                     className="input"
                     value={time}
-                    onChange={(e) => setTime(e.target.value)}
+                    onChange={(event) => setTime(event.target.value)}
                   >
-                    {TIME_OPTIONS.map((opt) => (
-                      <option key={opt}>{opt}</option>
+                    {TIME_OPTIONS.map((option) => (
+                      <option key={option}>{option}</option>
                     ))}
                   </select>
                 </label>
@@ -363,7 +403,7 @@ export function CalendarModal({
                     className={showErrors && !nameValid ? "input input--error" : "input"}
                     placeholder="Juan dela Cruz"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(event) => setName(event.target.value)}
                   />
                   {showErrors && !nameValid && (
                     <span className="field-error">
@@ -378,7 +418,7 @@ export function CalendarModal({
                     className={showErrors && !contactValid ? "input input--error" : "input"}
                     placeholder="09XX XXX XXXX"
                     value={contact}
-                    onChange={(e) => setContact(e.target.value)}
+                    onChange={(event) => setContact(event.target.value)}
                   />
                   {showErrors && !contactValid && (
                     <span className="field-error">
@@ -403,7 +443,7 @@ export function CalendarModal({
                     placeholder={String(minPax)}
                     type="number"
                     value={pax}
-                    onChange={(e) => setPax(e.target.value)}
+                    onChange={(event) => setPax(event.target.value)}
                   />
                   {showErrors && !paxValid && (
                     <span className="field-error">
