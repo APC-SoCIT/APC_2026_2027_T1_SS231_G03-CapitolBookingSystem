@@ -1,5 +1,5 @@
 import { Check, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarModal } from "../components/common";
 import { CATERING_PACKAGES, type CateringPackage } from "../constants";
@@ -7,7 +7,26 @@ import { CATERING_PACKAGES, type CateringPackage } from "../constants";
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+
+      if (
+        event.target.closest(".package-card") ||
+        event.target.closest(".proceed-bar-v2") ||
+        event.target.closest(".calendar-modal-backdrop")
+      ) {
+        return;
+      }
+
+      setSelected(null);
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
+
   return (
     <div>
       <div className="breadcrumb">
@@ -15,10 +34,12 @@ export function CateringBuffet() {
         <ChevronRight size={14} />
         <span>Buffet Style</span>
       </div>
+
       <section className="subpage-hero">
         <h1>Buffet Style Catering</h1>
         <p>Select a package, then proceed to choose your reservation date.</p>
       </section>
+
       <section className="section buffet-section">
         <div className="package-grid">
           {CATERING_PACKAGES.map((pkg) => (
@@ -51,39 +72,41 @@ export function CateringBuffet() {
             </button>
           ))}
         </div>
-        <div className="proceed-bar">
-          <div>
+
+        {/* ── Proceed bar ─────────────────────────────────────────── */}
+        <div className="proceed-bar-v2">
+          <div className="proceed-bar-v2__info">
             {selected ? (
               <>
-                <small>Selected package:</small>
-                <strong>
-                  {selected.name} — ₱{selected.pricePerPax.toLocaleString()}/pax
-                </strong>
+                <span className="proceed-bar-v2__label">Selected Package</span>
+                <span className="proceed-bar-v2__package">{selected.name}</span>
+                <span className="proceed-bar-v2__price">
+                  ₱{selected.pricePerPax.toLocaleString()} / pax &middot; {selected.minPax}–{selected.maxPax} guests
+                </span>
               </>
             ) : (
-              <em>Please select a package to continue.</em>
+              <span className="proceed-bar-v2__hint">
+                Select a package above to continue
+              </span>
             )}
           </div>
           <button
-            className="button button--red"
+            className="button button--gold proceed-bar-v2__btn"
             disabled={!selected}
             onClick={() => setModalOpen(true)}
             type="button"
           >
-            Proceed →
+            Book This Package
           </button>
         </div>
-        {submitted && (
-          <p className="booking-notice">
-            Reservation request submitted for {selected?.name}. Capitol&apos;s
-            staff will contact you to confirm availability.
-          </p>
-        )}
       </section>
+
       <CalendarModal
         isOpen={modalOpen}
+        minPax={selected?.minPax ?? 50}
+        maxPax={selected?.maxPax}
         onClose={() => setModalOpen(false)}
-        onConfirm={() => setSubmitted(true)}
+        onConfirm={() => {}}
         title={`Reserve ${selected?.name ?? "Buffet Catering"}`}
       />
     </div>
