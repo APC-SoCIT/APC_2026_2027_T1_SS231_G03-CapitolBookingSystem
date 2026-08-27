@@ -1,13 +1,41 @@
 import { Check, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarModal } from "../components/common";
-import { CATERING_PACKAGES, type CateringPackage } from "../constants";
+import {
+  CalendarModal,
+  SignInModal,
+  type BookingDetails,
+} from "../components/common";
+import {
+  CATERING_PACKAGE_NOTES,
+  CATERING_PACKAGES,
+  type CateringPackage,
+} from "../constants";
+import { addCateringBooking, nextCateringId } from "../data/reservations";
+import { useAuthGate } from "../hooks/useAuthGate";
 
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (
+        event.target.closest(".package-card") ||
+        event.target.closest(".proceed-bar") ||
+        event.target.closest(".calendar-modal-backdrop") ||
+        event.target.closest(".signin-modal")
+      ) {
+        return;
+      }
+      setSelected(null);
+    };
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
   return (
     <div>
       <div className="breadcrumb">
@@ -25,7 +53,7 @@ export function CateringBuffet() {
             <button
               className={`package-card ${selected?.id === pkg.id ? "package-card--selected" : ""}`}
               key={pkg.id}
-              onClick={() => setSelected(pkg)}
+              onClick={() => setSelected((prev) => (prev?.id === pkg.id ? null : pkg))}
               type="button"
             >
               {selected?.id === pkg.id && (
@@ -35,8 +63,8 @@ export function CateringBuffet() {
               )}
               <h2>{pkg.name}</h2>
               <p className="package-card__price">
-                ₱{pkg.pricePerPax.toLocaleString()}{" "}
-                <small>/ pax · min. {pkg.minPax}</small>
+                ₱{pkg.packagePrice.toLocaleString()}{" "}
+                <small>/ package · {pkg.servingSize}</small>
               </p>
               <div className="package-card__rule" />
               <p>{pkg.description}</p>
@@ -51,13 +79,21 @@ export function CateringBuffet() {
             </button>
           ))}
         </div>
+        <div className="package-notes">
+          <strong>Package notes</strong>
+          <ul>
+            {CATERING_PACKAGE_NOTES.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
         <div className="proceed-bar">
           <div>
             {selected ? (
               <>
                 <small>Selected package:</small>
                 <strong>
-                  {selected.name} — ₱{selected.pricePerPax.toLocaleString()}/pax
+                  {selected.name} · ₱{selected.packagePrice.toLocaleString()}/package
                 </strong>
               </>
             ) : (
@@ -67,7 +103,9 @@ export function CateringBuffet() {
           <button
             className="button button--red"
             disabled={!selected}
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              if (requireAuth()) setModalOpen(true);
+            }}
             type="button"
           >
             Proceed →
@@ -83,9 +121,38 @@ export function CateringBuffet() {
       <CalendarModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onConfirm={() => setSubmitted(true)}
+        onConfirm={(details: BookingDetails) => {
+          if (!selected) return;
+          const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+          addCateringBooking({
+            id: nextCateringId(),
+            kind: "catering_buffet",
+            customer: details.name,
+            phone: details.contact,
+            email: "",
+            date: details.date,
+            time: details.time,
+            status: "Pending",
+            placedAt: now,
+            timeline: [{ status: "Pending", at: now }],
+            notes: `${selected.description}`,
+            packageId: selected.id,
+            packageName: selected.name,
+            pax: details.pax,
+            packagePrice: selected.packagePrice,
+            pricePerPax: selected.packagePrice / details.pax,
+            guestCount: details.pax,
+            subtotal: selected.packagePrice,
+            total: selected.packagePrice,
+          });
+          setSubmitted(true);
+        }}
+        initialPax={selected?.minPax ?? 10}
+        maxPax={selected?.maxPax ?? 12}
+        minPax={selected?.minPax ?? 10}
         title={`Reserve ${selected?.name ?? "Buffet Catering"}`}
       />
+      {showSignIn && <SignInModal onClose={closeSignIn} />}
     </div>
   );
 }

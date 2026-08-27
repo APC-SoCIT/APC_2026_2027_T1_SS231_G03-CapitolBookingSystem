@@ -1,12 +1,14 @@
-import { ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Check, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { SignInModal } from "../components/common";
 import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
 import {
   getDeliveryOrders,
   saveDeliveryOrders,
   type DeliveryOrder as DeliveryOrderData,
 } from "../data/delivery";
+import { useAuthGate } from "../hooks/useAuthGate";
 
 type Cart = Record<string, number>;
 
@@ -32,6 +34,7 @@ const DELIVERY_FEE = 60;
 
 export function DeliveryOrder() {
   const navigate = useNavigate();
+  const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
   const [cart, setCart] = useState<Cart>({});
   const [details, setDetails] = useState<CustomerDetails>(EMPTY_DETAILS);
   const [errors, setErrors] = useState<OrderErrors>([]);
@@ -45,7 +48,7 @@ export function DeliveryOrder() {
   );
 
   const subtotal = selectedItems.reduce(
-    (total, item) => total + item.price * cart[item.id],
+    (sum, item) => sum + item.price * (cart[item.id] ?? 0),
     0,
   );
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
@@ -54,7 +57,7 @@ export function DeliveryOrder() {
   const updateQuantity = (item: MenuItem, quantity: number) => {
     setCart((currentCart) => ({
       ...currentCart,
-      [item.id]: Math.max(0, quantity),
+      [item.id]: Math.max(0, Math.min(1, quantity)), // Cap at 1
     }));
   };
 
@@ -76,17 +79,35 @@ export function DeliveryOrder() {
     setErrors(nextErrors);
 
     if (nextErrors.length > 0) return;
+    if (!requireAuth()) return;
 
     const existingOrders = getDeliveryOrders();
     const reference = `CAP-${1050 + existingOrders.length}`;
+    const itemsList = selectedItems.map((it) => ({
+      id: it.id,
+      type: "packed_meal" as const,
+      name: it.name,
+      quantity: cart[it.id] ?? 1,
+      price: it.price,
+      category: it.category,
+    }));
+    const itemsDisplay = `${selectedItems.length} menu item${selectedItems.length === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
     const order: DeliveryOrderData = {
       reference,
       customer: details.name,
+      phone: details.phone,
       address: details.address,
-      items: `${selectedItems.length} menu item${selectedItems.length === 1 ? "" : "s"} · ₱${total.toLocaleString()}`,
+      items: itemsDisplay,
+      itemsList,
+      subtotal,
+      deliveryFee,
+      total,
+      paymentMethod: details.payment,
+      notes: details.notes,
       eta: "Today, 6:30 PM",
       status: "Preparing",
       placedAt: "Just now",
+      timeline: [{ status: "Preparing", at: "Just now" }],
     };
 
     saveDeliveryOrders([...existingOrders, order]);
@@ -125,8 +146,7 @@ export function DeliveryOrder() {
                 <h2>Choose your dishes</h2>
               </div>
               <span>
-                {selectedItems.length} item
-                {selectedItems.length === 1 ? "" : "s"} selected
+                {selectedItems.length} {selectedItems.length === 1 ? "item" : "items"} selected
               </span>
             </div>
 
@@ -143,14 +163,14 @@ export function DeliveryOrder() {
           </div>
 
           <aside className="order-sidebar">
-            <OrderSummary
-              deliveryFee={deliveryFee}
-              items={selectedItems}
-              quantities={cart}
+            <OrderSummaryCard
+              cart={cart}
+              selectedItems={selectedItems}
               subtotal={subtotal}
+              deliveryFee={deliveryFee}
               total={total}
             />
-            <CustomerForm
+            <CustomerFormCard
               details={details}
               errors={errors}
               total={total}
@@ -160,6 +180,7 @@ export function DeliveryOrder() {
           </aside>
         </div>
       </section>
+      {showSignIn && <SignInModal onClose={closeSignIn} />}
     </div>
   );
 }
@@ -173,83 +194,76 @@ function MenuOrderCard({
   quantity: number;
   onChange: (quantity: number) => void;
 }) {
+  const isSelected = quantity > 0;
+
   return (
-    <article
-      className={`order-menu-card ${quantity ? "order-menu-card--selected" : ""}`}
+    <button
+      className={`order-menu-card ${isSelected ? "order-menu-card--selected" : ""}`}
+      key={item.id}
+      onClick={() => onChange(isSelected ? 0 : 1)}
+      type="button"
     >
-      <div>
-        <span className="menu-card__category">{item.category}</span>
+      <div className="order-menu-card__image-placeholder" aria-hidden="true" />
+      <div className="order-menu-card__content">
+        <div className="order-menu-card__top">
         <h2>{item.name}</h2>
+        <strong>₱{item.price}</strong>
+        </div>
+        <span className="order-menu-card__category">{item.category}</span>
         <p>{item.description}</p>
       </div>
-
-      <div className="order-menu-card__bottom">
-        <strong>₱{item.price}</strong>
-        <div className="quantity-control">
-          <button
-            aria-label={`Remove one ${item.name}`}
-            disabled={!quantity}
-            onClick={() => onChange(quantity - 1)}
-            type="button"
-          >
-            <Minus size={14} />
-          </button>
-          <span>{quantity}</span>
-          <button
-            aria-label={`Add one ${item.name}`}
-            onClick={() => onChange(quantity + 1)}
-            type="button"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
-      </div>
-    </article>
+    </button>
   );
 }
 
-function OrderSummary({
-  deliveryFee,
-  items,
-  quantities,
+function OrderSummaryCard({
+  cart,
+  selectedItems,
   subtotal,
+  deliveryFee,
   total,
 }: {
-  deliveryFee: number;
-  items: MenuItem[];
-  quantities: Cart;
+  cart: Cart;
+  selectedItems: MenuItem[];
   subtotal: number;
+  deliveryFee: number;
   total: number;
 }) {
   return (
     <div className="order-summary-card">
       <h2>Your order</h2>
 
-      {items.length > 0 ? (
+      {selectedItems.length > 0 ? (
         <div className="cart-lines">
-          {items.map((item) => (
-            <div className="cart-line" key={item.id}>
-              <span>
-                {item.name}
-                <small>
-                  {quantities[item.id]} × ₱{item.price}
-                </small>
-              </span>
-              <strong>
-                ₱{(item.price * quantities[item.id]).toLocaleString()}
-              </strong>
-            </div>
-          ))}
+          {selectedItems.map((item) => {
+            const quantity = cart[item.id] ?? 0;
+            return (
+              <div className="cart-line" key={item.id}>
+                <span>
+                  {item.name}
+                  <small>{item.category} · {quantity} serving{quantity === 1 ? "" : "s"}</small>
+                </span>
+                <strong>₱{item.price * quantity}</strong>
+              </div>
+            );
+          })}
         </div>
       ) : (
-        <p className="cart-empty">
-          Your cart is empty. Add a dish to get started.
-        </p>
+        <p className="cart-empty">Your cart is empty. Add a dish to get started.</p>
       )}
 
-      <SummaryRow label="Subtotal" value={subtotal} />
-      <SummaryRow label="Delivery fee" value={deliveryFee} />
-      <SummaryRow grandTotal label="Total" value={total} />
+      <div className="summary-total">
+        <span>Subtotal</span>
+        <span>₱{subtotal}</span>
+      </div>
+      <div className="summary-total">
+        <span>Delivery fee</span>
+        <span>₱{deliveryFee}</span>
+      </div>
+      <div className="summary-total summary-total--grand">
+        <span>Total</span>
+        <strong>₱{total}</strong>
+      </div>
     </div>
   );
 }
@@ -273,7 +287,7 @@ function SummaryRow({
   );
 }
 
-function CustomerForm({
+function CustomerFormCard({
   details,
   errors,
   total,
@@ -287,64 +301,73 @@ function CustomerForm({
   onSubmit: () => void;
 }) {
   return (
-    <div className="customer-form">
+    <div className="customer-form-card">
       <h2>Delivery details</h2>
 
-      <FormField
-        error={errors.includes("name")}
-        label="Full Name"
-        name="name"
-        placeholder="Juan dela Cruz"
-        value={details.name}
-        onChange={onChange}
-      />
-      <FormField
-        error={errors.includes("phone")}
-        label="Contact Number"
-        name="phone"
-        placeholder="09XX XXX XXXX"
-        value={details.phone}
-        onChange={onChange}
-      />
-
-      <label
-        className={`form-field ${errors.includes("address") ? "form-field--error" : ""}`}
-      >
-        <span>Delivery Address</span>
-        <textarea
-          className="input"
-          placeholder="House number, street, barangay, city"
-          rows={3}
-          value={details.address}
-          onChange={(event) => onChange("address", event.target.value)}
+      <div className="form-section">
+        <div className="form-section-title">Contact Information</div>
+        <FormField
+          error={errors.includes("name")}
+          label="Full Name"
+          name="name"
+          placeholder="Juan dela Cruz"
+          value={details.name}
+          onChange={onChange}
         />
-      </label>
+        <FormField
+          error={errors.includes("phone")}
+          label="Contact Number"
+          name="phone"
+          placeholder="09XX XXX XXXX"
+          value={details.phone}
+          onChange={onChange}
+        />
+      </div>
 
-      <label className="form-field">
-        <span>Payment Method</span>
-        <select
-          className="input"
-          value={details.payment}
-          onChange={(event) => onChange("payment", event.target.value)}
+      <div className="form-section">
+        <div className="form-section-title">Delivery</div>
+        <label
+          className={`form-field ${errors.includes("address") ? "form-field--error" : ""}`}
         >
-          <option>Cash on delivery</option>
-          <option>GCash</option>
-          <option>Card</option>
-        </select>
-      </label>
+          <span>Delivery Address</span>
+          <textarea
+            className="input"
+            placeholder="House number, street, barangay, city"
+            rows={3}
+            value={details.address}
+            onChange={(event) => onChange("address", event.target.value)}
+          />
+        </label>
+      </div>
 
-      <label className="form-field">
-        <span>
-          Notes <em>(optional)</em>
-        </span>
-        <textarea
-          className="input"
-          placeholder="Delivery instructions"
-          rows={2}
-          value={details.notes}
-          onChange={(event) => onChange("notes", event.target.value)}
-        />
-      </label>
+      <div className="form-section">
+        <div className="form-section-title">Payment & Notes</div>
+        <label className="form-field">
+          <span>Payment Method</span>
+          <select
+            className="input"
+            value={details.payment}
+            onChange={(event) => onChange("payment", event.target.value)}
+          >
+            <option>Cash on delivery</option>
+            <option>GCash</option>
+            <option>Card</option>
+          </select>
+        </label>
+
+        <label className="form-field">
+          <span>
+            Notes <em>(optional)</em>
+          </span>
+          <textarea
+            className="input"
+            placeholder="Delivery instructions"
+            rows={2}
+            value={details.notes}
+            onChange={(event) => onChange("notes", event.target.value)}
+          />
+        </label>
+      </div>
 
       {errors.length > 0 && (
         <p className="field-error">
