@@ -281,7 +281,10 @@ button, input, textarea, select { font: inherit; }
 .order-confirmation > strong { display: block; margin: 0.5rem 0 1rem; color: #af0100; font-family: Georgia, "Times New Roman", serif; font-size: 2rem; letter-spacing: 0.06em; }
 .order-confirmation > p:not(.eyebrow) { max-width: 450px; margin: 0 auto; color: #6a4a4a; line-height: 1.7; }
 .confirmation-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
-.button--outline-light { border-color: #640000; color: #640000; }
+.button--outline-light { border: 1.5px solid #640000; background: #fff; color: #640000; }
+.button--outline-light:hover { background: rgba(100, 0, 0, 0.06); }
+.button--red { border: 1.5px solid #af0100; background: #af0100; color: #f2e7a9; }
+.button--red:hover { background: #8d0100; border-color: #8d0100; }
 .inquiries-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 4rem; }
 .inquiry-info h2, .inquiry-form h2 { margin: 0 0 1rem; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.8rem; }
 .inquiry-info > p:not(.eyebrow) { max-width: 34rem; margin: 0; color: #5a3a3a; line-height: 1.8; }
@@ -351,6 +354,11 @@ button, input, textarea, select { font: inherit; }
 .calendar-modal__success-icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 1rem; border-radius: 50%; background: rgba(8, 116, 67, 0.1); color: #087443; }
 .calendar-modal__success h2 { margin: 0.15rem 0 0.8rem; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.8rem; }
 .calendar-modal__success > p:not(.eyebrow) { margin: 0 0 1.5rem; color: #6a4a4a; line-height: 1.7; }
+
+@media (max-width: 900px) {
+  .analytics-grid { grid-template-columns: 1fr !important; }
+  .analytics-grid .card { grid-column: auto !important; }
+}
 
 @media (max-width: 640px) {
   .desktop-nav { display: none; }

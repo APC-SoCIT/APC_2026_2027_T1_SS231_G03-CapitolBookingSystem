@@ -4,7 +4,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: "Catering", path: "/catering" },
   { label: "Function Rooms", path: "/function-rooms" },
   { label: "Delivery", path: "/delivery" },
-  { label: "Analytics", path: "/analytics" },
 ];
 
 export const RESTAURANT_INFO = {
