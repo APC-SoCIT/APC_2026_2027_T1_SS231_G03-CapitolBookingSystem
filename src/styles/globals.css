@@ -369,7 +369,7 @@ button, input, textarea, select { font: inherit; }
   color: #af0100; font-size: 0.72rem; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
 }
-.customer-form-card .field-error { margin-top: 1.25rem; }
+.customer-form-card > .field-error { margin-top: 1.25rem; }
 .customer-form-card .order-submit { margin-top: 1.5rem; }
 .cart-empty { margin: 0 0 1rem; color: #8a5a5a; font-size: 0.85rem; font-style: italic; }
 .cart-lines { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1rem; }

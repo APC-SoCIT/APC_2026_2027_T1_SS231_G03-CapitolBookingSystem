@@ -18,7 +18,12 @@ type CustomerDetails = {
   payment: string;
 };
 
-type OrderErrors = Array<"name" | "phone" | "address" | "items">;
+type FieldKey = "name" | "phone" | "address" | "items";
+type OrderErrors = FieldKey[];
+type FieldMessages = Partial<Record<FieldKey, string>>;
+
+// Philippine mobile number: 11 digits, starting with 09 (spaces/dashes ignored).
+const PH_MOBILE_PATTERN = /^09\d{9}$/;
 
 const EMPTY_DETAILS: CustomerDetails = {
   name: "",
@@ -35,27 +40,32 @@ export function DeliveryOrder() {
   const [cart, setCart] = useState<Cart>({});
   const [details, setDetails] = useState<CustomerDetails>(EMPTY_DETAILS);
   const [errors, setErrors] = useState<OrderErrors>([]);
+  const [fieldMessages, setFieldMessages] = useState<FieldMessages>({});
   const [submittedReference, setSubmittedReference] = useState<string | null>(
     null,
   );
 
   const selectedItems = useMemo(
-    () => PACKED_MENU_ITEMS.filter((item) => cart[item.id]),
+    () => PACKED_MENU_ITEMS.filter((item) => cart[item.id] > 0),
     [cart],
   );
 
-  // Enforce max 1 selection
-  const isAtMaxSelection = selectedItems.length >= 1;
-  const selectedMeal = selectedItems[0] || null;
+  const totalQuantity = selectedItems.reduce(
+    (sum, item) => sum + (cart[item.id] ?? 0),
+    0,
+  );
 
-  const subtotal = selectedMeal ? selectedMeal.price : 0;
+  const subtotal = selectedItems.reduce(
+    (sum, item) => sum + item.price * (cart[item.id] ?? 0),
+    0,
+  );
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
   const total = subtotal + deliveryFee;
 
   const updateQuantity = (item: MenuItem, quantity: number) => {
     setCart((currentCart) => ({
       ...currentCart,
-      [item.id]: Math.max(0, Math.min(1, quantity)), // Cap at 1
+      [item.id]: Math.max(0, Math.min(1, quantity)), // one serving per dish — pick multiple different dishes instead
     }));
   };
 
@@ -68,13 +78,33 @@ export function DeliveryOrder() {
 
   const submitOrder = () => {
     const nextErrors: OrderErrors = [];
+    const nextMessages: FieldMessages = {};
 
-    if (!details.name.trim()) nextErrors.push("name");
-    if (!details.phone.trim()) nextErrors.push("phone");
-    if (!details.address.trim()) nextErrors.push("address");
-    if (!selectedItems.length) nextErrors.push("items");
+    if (!details.name.trim()) {
+      nextErrors.push("name");
+      nextMessages.name = "Full name is required";
+    }
+
+    const phoneDigits = details.phone.replace(/\D/g, "");
+    if (!phoneDigits) {
+      nextErrors.push("phone");
+      nextMessages.phone = "Contact number is required";
+    } else if (!PH_MOBILE_PATTERN.test(phoneDigits)) {
+      nextErrors.push("phone");
+      nextMessages.phone = "Enter an 11-digit number starting with 09";
+    }
+
+    if (!details.address.trim()) {
+      nextErrors.push("address");
+      nextMessages.address = "Delivery address is required";
+    }
+    if (!selectedItems.length) {
+      nextErrors.push("items");
+      nextMessages.items = "Select at least one item to order";
+    }
 
     setErrors(nextErrors);
+    setFieldMessages(nextMessages);
 
     if (nextErrors.length > 0) return;
 
@@ -88,7 +118,7 @@ export function DeliveryOrder() {
       price: it.price,
       category: it.category,
     }));
-    const itemsDisplay = `${selectedItems.length} menu item${selectedItems.length === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
+    const itemsDisplay = `${totalQuantity} item${totalQuantity === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
     const order: DeliveryOrderData = {
       reference,
       customer: details.name,
@@ -143,7 +173,7 @@ export function DeliveryOrder() {
                 <h2>Choose your dishes</h2>
               </div>
               <span>
-                {selectedMeal ? "1 item selected" : "0 items selected"}
+                {totalQuantity} item{totalQuantity === 1 ? "" : "s"} selected
               </span>
             </div>
 
@@ -161,7 +191,8 @@ export function DeliveryOrder() {
 
           <aside className="order-sidebar">
             <OrderSummaryCard
-              selectedMeal={selectedMeal}
+              selectedItems={selectedItems}
+              cart={cart}
               subtotal={subtotal}
               deliveryFee={deliveryFee}
               total={total}
@@ -169,6 +200,7 @@ export function DeliveryOrder() {
             <CustomerFormCard
               details={details}
               errors={errors}
+              fieldMessages={fieldMessages}
               total={total}
               onChange={updateDetail}
               onSubmit={submitOrder}
@@ -201,8 +233,8 @@ function MenuOrderCard({
       <div className="order-menu-card__image-placeholder" aria-hidden="true" />
       <div className="order-menu-card__content">
         <div className="order-menu-card__top">
-        <h2>{item.name}</h2>
-        <strong>₱{item.price}</strong>
+          <h2>{item.name}</h2>
+          <strong>₱{item.price}</strong>
         </div>
         <span className="order-menu-card__category">{item.category}</span>
         <p>{item.description}</p>
@@ -212,12 +244,14 @@ function MenuOrderCard({
 }
 
 function OrderSummaryCard({
-  selectedMeal,
+  selectedItems,
+  cart,
   subtotal,
   deliveryFee,
   total,
 }: {
-  selectedMeal: MenuItem | null;
+  selectedItems: MenuItem[];
+  cart: Cart;
   subtotal: number;
   deliveryFee: number;
   total: number;
@@ -226,15 +260,22 @@ function OrderSummaryCard({
     <div className="order-summary-card">
       <h2>Your order</h2>
 
-      {selectedMeal ? (
+      {selectedItems.length ? (
         <div className="cart-lines">
-          <div className="cart-line">
-            <span>
-              {selectedMeal.name}
-              <small>{selectedMeal.category} · 1 serving</small>
-            </span>
-            <strong>₱{selectedMeal.price}</strong>
-          </div>
+          {selectedItems.map((item) => {
+            const quantity = cart[item.id] ?? 0;
+            return (
+              <div className="cart-line" key={item.id}>
+                <span>
+                  {item.name}
+                  <small>
+                    {item.category} · {quantity} serving{quantity === 1 ? "" : "s"}
+                  </small>
+                </span>
+                <strong>₱{(item.price * quantity).toLocaleString()}</strong>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <p className="cart-empty">Your cart is empty. Add a dish to get started.</p>
@@ -242,15 +283,15 @@ function OrderSummaryCard({
 
       <div className="summary-total">
         <span>Subtotal</span>
-        <span>₱{subtotal}</span>
+        <span>₱{subtotal.toLocaleString()}</span>
       </div>
       <div className="summary-total">
         <span>Delivery fee</span>
-        <span>₱{deliveryFee}</span>
+        <span>₱{deliveryFee.toLocaleString()}</span>
       </div>
       <div className="summary-total summary-total--grand">
         <span>Total</span>
-        <strong>₱{total}</strong>
+        <strong>₱{total.toLocaleString()}</strong>
       </div>
     </div>
   );
@@ -278,12 +319,14 @@ function SummaryRow({
 function CustomerFormCard({
   details,
   errors,
+  fieldMessages,
   total,
   onChange,
   onSubmit,
 }: {
   details: CustomerDetails;
   errors: OrderErrors;
+  fieldMessages: FieldMessages;
   total: number;
   onChange: (key: keyof CustomerDetails, value: string) => void;
   onSubmit: () => void;
@@ -296,6 +339,7 @@ function CustomerFormCard({
         <div className="form-section-title">Contact Information</div>
         <FormField
           error={errors.includes("name")}
+          message={fieldMessages.name}
           label="Full Name"
           name="name"
           placeholder="Juan dela Cruz"
@@ -304,6 +348,7 @@ function CustomerFormCard({
         />
         <FormField
           error={errors.includes("phone")}
+          message={fieldMessages.phone}
           label="Contact Number"
           name="phone"
           placeholder="09XX XXX XXXX"
@@ -325,6 +370,9 @@ function CustomerFormCard({
             value={details.address}
             onChange={(event) => onChange("address", event.target.value)}
           />
+          {errors.includes("address") && (
+            <small className="field-error">{fieldMessages.address}</small>
+          )}
         </label>
       </div>
 
@@ -357,11 +405,8 @@ function CustomerFormCard({
         </label>
       </div>
 
-      {errors.length > 0 && (
-        <p className="field-error">
-          Please select at least one item and complete the required delivery
-          details.
-        </p>
+      {errors.includes("items") && (
+        <p className="field-error">{fieldMessages.items}</p>
       )}
 
       <button
@@ -377,6 +422,7 @@ function CustomerFormCard({
 
 function FormField({
   error,
+  message,
   label,
   name,
   placeholder,
@@ -384,6 +430,7 @@ function FormField({
   onChange,
 }: {
   error: boolean;
+  message?: string;
   label: string;
   name: "name" | "phone";
   placeholder: string;
@@ -399,6 +446,7 @@ function FormField({
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
       />
+      {error && <small className="field-error">{message}</small>}
     </label>
   );
 }
