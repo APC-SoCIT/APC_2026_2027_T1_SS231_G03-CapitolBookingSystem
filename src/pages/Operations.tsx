@@ -175,12 +175,6 @@ export function Operations() {
 
   return (
     <div>
-      <section className="page-hero dashboard-hero">
-        <p className="eyebrow">Staff workspace</p>
-        <h1>Operations</h1>
-        <p>Review delivery orders, function room reservations, catering bookings, and inquiries. Click any row to edit.</p>
-      </section>
-
       <section className="section dashboard-section">
         <div className="dashboard-toolbar">
           <div>
