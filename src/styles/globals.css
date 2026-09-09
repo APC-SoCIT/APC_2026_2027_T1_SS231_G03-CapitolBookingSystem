@@ -203,12 +203,12 @@ button, input, textarea, select { font: inherit; }
 .amenities-card li svg { color: #f2e7a9; }
 .reservation-form { display: flex; flex-direction: column; gap: 1rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.4rem; }
-.form-field > span { color: #640000; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.form-field > span { color: #640000; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
 .form-field em { font-weight: 400; opacity: 0.6; text-transform: none; }
 .input { width: 100%; padding: 0.7rem 0.9rem; border: 1.5px solid rgba(100, 0, 0, 0.18); border-radius: 6px; background: #fff; color: #1a0a0a; font-size: 0.9rem; outline: none; transition: border-color 150ms ease, box-shadow 150ms ease; }
 .input:focus { border-color: #af0100; box-shadow: 0 0 0 3px rgba(175, 1, 0, 0.1); }
 .input--error { border-color: #c0392b; }
-/* Error text — clearly distinct from bold uppercase labels: smaller, italic, normal weight, softer tone */
+/* Error text — clearly distinct from the (unbolded) label: smaller, italic, normal weight, softer tone */
 .field-error { color: #b84040; font-size: 0.72rem; font-style: italic; font-weight: 400; line-height: 1.4; letter-spacing: 0; }
 .reservation-submit { width: 100%; margin-top: 0.5rem; }
 .success-message { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem; border-radius: 6px; background: rgba(8, 116, 67, 0.08); color: #087443; font-size: 0.875rem; }
@@ -329,7 +329,7 @@ button, input, textarea, select { font: inherit; }
 .status-option { padding: 0.55rem 0.85rem; border: 1px solid rgba(242, 231, 169, 0.35); border-radius: 5px; background: transparent; color: rgba(253, 246, 227, 0.8); cursor: pointer; font-size: 0.8rem; }
 .status-option--active { border-color: #f2e7a9; background: #f2e7a9; color: #640000; font-weight: 700; }
 .order-section { max-width: 1250px; }
-.order-content { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr); align-items: start; gap: 2rem; }
+.order-content { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.7fr); align-items: start; gap: 2rem; }
 .back-link { display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 1.5rem; color: #af0100; font-size: 0.85rem; font-weight: 600; text-decoration: none; }
 .order-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .order-section-heading h2 { margin: 0; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.8rem; }
@@ -357,9 +357,20 @@ button, input, textarea, select { font: inherit; }
 .quantity-control button:disabled { opacity: 0.35; cursor: not-allowed; }
 .quantity-control span { min-width: 1rem; color: #640000; font-weight: 700; text-align: center; }
 .order-sidebar { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 1.5rem; }
-.order-summary-card, .customer-form-card { padding: 1.5rem; border: 1px solid rgba(100, 0, 0, 0.12); border-radius: 12px; background: #fff; box-shadow: 0 6px 24px rgba(100, 0, 0, 0.08); }
+.order-summary-card, .customer-form-card { padding: 1.75rem; border: 1px solid rgba(100, 0, 0, 0.12); border-radius: 12px; background: #fff; box-shadow: 0 6px 24px rgba(100, 0, 0, 0.08); }
 .order-summary-card { border-top: 4px solid #af0100; box-shadow: 0 8px 32px rgba(100, 0, 0, 0.12); z-index: 10; }
-.order-summary-card h2, .customer-form-card h2 { margin: 0 0 1rem; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.3rem; }
+.order-summary-card h2, .customer-form-card h2 { margin: 0 0 1.25rem; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.3rem; }
+/* Field groups inside the delivery details form — was unstyled, causing everything to collapse together */
+.customer-form-card .form-section { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+.customer-form-card .form-section:first-of-type { margin-top: 0; }
+.customer-form-card .form-section-title {
+  padding-bottom: 0.5rem; margin-bottom: 0.15rem;
+  border-bottom: 1px solid rgba(100, 0, 0, 0.08);
+  color: #af0100; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.customer-form-card .field-error { margin-top: 1.25rem; }
+.customer-form-card .order-submit { margin-top: 1.5rem; }
 .cart-empty { margin: 0 0 1rem; color: #8a5a5a; font-size: 0.85rem; font-style: italic; }
 .cart-lines { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1rem; }
 .cart-line { display: flex; justify-content: space-between; gap: 0.75rem; color: #4a2a2a; font-size: 0.85rem; }
@@ -1067,7 +1078,7 @@ button, input, textarea, select { font: inherit; }
   margin-bottom: 0.45rem;
   color: var(--delivery-ink);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: center;
