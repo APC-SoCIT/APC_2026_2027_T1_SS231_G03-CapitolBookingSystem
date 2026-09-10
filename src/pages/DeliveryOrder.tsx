@@ -1,7 +1,12 @@
 import { ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
+import type { MenuItem } from "../constants";
+import {
+  getVisibleCategoryName,
+  useDeliveryCategoryDefs,
+  useDeliveryMenuItems,
+} from "../data/deliveryMenu";
 import {
   getDeliveryOrders,
   saveDeliveryOrders,
@@ -32,6 +37,8 @@ const DELIVERY_FEE = 60;
 
 export function DeliveryOrder() {
   const navigate = useNavigate();
+  const menuItems = useDeliveryMenuItems();
+  const categoryDefs = useDeliveryCategoryDefs();
   const [cart, setCart] = useState<Cart>({});
   const [details, setDetails] = useState<CustomerDetails>(EMPTY_DETAILS);
   const [errors, setErrors] = useState<OrderErrors>([]);
@@ -40,12 +47,12 @@ export function DeliveryOrder() {
   );
 
   const selectedItems = useMemo(
-    () => PACKED_MENU_ITEMS.filter((item) => cart[item.id]),
-    [cart],
+    () => menuItems.filter((item) => cart[item.id]),
+    [menuItems, cart],
   );
 
   const subtotal = selectedItems.reduce(
-    (total, item) => total + item.price * cart[item.id],
+    (total, item) => total + item.price * (cart[item.id] || 0),
     0,
   );
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
@@ -58,11 +65,8 @@ export function DeliveryOrder() {
     }));
   };
 
-  const updateDetail = (key: keyof CustomerDetails, value: string) => {
-    setDetails((currentDetails) => ({
-      ...currentDetails,
-      [key]: value,
-    }));
+  const updateDetail = (field: keyof CustomerDetails, value: string) => {
+    setDetails((prev) => ({ ...prev, [field]: value }));
   };
 
   const submitOrder = () => {
@@ -71,7 +75,7 @@ export function DeliveryOrder() {
     if (!details.name.trim()) nextErrors.push("name");
     if (!details.phone.trim()) nextErrors.push("phone");
     if (!details.address.trim()) nextErrors.push("address");
-    if (!selectedItems.length) nextErrors.push("items");
+    if (selectedItems.length === 0) nextErrors.push("items");
 
     setErrors(nextErrors);
 
@@ -108,6 +112,7 @@ export function DeliveryOrder() {
 
     saveDeliveryOrders([...existingOrders, order]);
     setSubmittedReference(reference);
+    setCart({});
   };
 
   if (submittedReference) {
@@ -115,15 +120,18 @@ export function DeliveryOrder() {
       <OrderConfirmation
         customerName={details.name}
         reference={submittedReference}
-        onPlaceAnother={() => navigate("/delivery/order")}
+        onPlaceAnother={() => {
+          setSubmittedReference(null);
+          setDetails(EMPTY_DETAILS);
+          setCart({});
+        }}
       />
     );
   }
 
   return (
-    <div>
-      <section className="page-hero">
-        <p className="eyebrow">Capitol Restaurant</p>
+    <div className="order-page">
+      <section className="subpage-hero">
         <h1>Order Delivery</h1>
         <p>Enjoy Capitol favorites at home. Build your order below.</p>
       </section>
@@ -148,8 +156,9 @@ export function DeliveryOrder() {
             </div>
 
             <div className="order-menu-grid">
-              {PACKED_MENU_ITEMS.map((item) => (
+              {menuItems.map((item) => (
                 <MenuOrderCard
+                  categoryDefs={categoryDefs}
                   item={item}
                   key={item.id}
                   quantity={cart[item.id] ?? 0}
@@ -184,41 +193,63 @@ export function DeliveryOrder() {
 function MenuOrderCard({
   item,
   quantity,
+  categoryDefs,
   onChange,
 }: {
   item: MenuItem;
   quantity: number;
+  categoryDefs: ReturnType<typeof useDeliveryCategoryDefs>;
   onChange: (quantity: number) => void;
 }) {
   return (
     <article
       className={`order-menu-card ${quantity ? "order-menu-card--selected" : ""}`}
     >
-      <div>
-        <span className="menu-card__category">{item.category}</span>
-        <h2>{item.name}</h2>
-        <p>{item.description}</p>
+      <div className="order-menu-card__media">
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.name}
+            className="order-menu-card__img"
+            loading="lazy"
+          />
+        ) : (
+          <div
+            className="order-menu-card__img order-menu-card__img--blank"
+            aria-label="No image available"
+          />
+        )}
       </div>
 
-      <div className="order-menu-card__bottom">
-        <strong>₱{item.price}</strong>
-        <div className="quantity-control">
-          <button
-            aria-label={`Remove one ${item.name}`}
-            disabled={!quantity}
-            onClick={() => onChange(quantity - 1)}
-            type="button"
-          >
-            <Minus size={14} />
-          </button>
-          <span>{quantity}</span>
-          <button
-            aria-label={`Add one ${item.name}`}
-            onClick={() => onChange(quantity + 1)}
-            type="button"
-          >
-            <Plus size={14} />
-          </button>
+      <div className="order-menu-card__body">
+        <div className="order-menu-card__header-row">
+          <h2>{item.name}</h2>
+          <strong className="order-menu-card__price">₱{item.price}</strong>
+        </div>
+        <span className="order-menu-card__category">
+          {getVisibleCategoryName(item, categoryDefs)}
+        </span>
+        <p>{item.description}</p>
+
+        <div className="order-menu-card__bottom">
+          <div className="quantity-control">
+            <button
+              aria-label={`Remove one ${item.name}`}
+              disabled={!quantity}
+              onClick={() => onChange(quantity - 1)}
+              type="button"
+            >
+              <Minus size={14} />
+            </button>
+            <span>{quantity}</span>
+            <button
+              aria-label={`Add one ${item.name}`}
+              onClick={() => onChange(quantity + 1)}
+              type="button"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </article>

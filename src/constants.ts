@@ -29,6 +29,8 @@ export type MenuItem = {
   description: string;
   price: number;
   category: string;
+  categories?: string[];
+  image?: string;
 };
 
 export const CATERING_PACKAGES: CateringPackage[] = [
@@ -94,28 +96,32 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     name: "Adobong Manok",
     description: "Classic Filipino chicken adobo in garlic, soy, and vinegar.",
     price: 120,
-    category: "Chicken",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Chicken"],
   },
   {
     id: "pm-02",
     name: "Lechon Kawali",
     description: "Crispy deep-fried pork belly served with liver sauce.",
     price: 145,
-    category: "Pork",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Pork"],
   },
   {
     id: "pm-03",
     name: "Pork Sinigang",
     description: "Tamarind-based pork soup with fresh vegetables.",
     price: 135,
-    category: "Pork",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Pork"],
   },
   {
     id: "pm-04",
     name: "Beef Kaldereta",
     description: "Braised beef in tomato and liver sauce with bell peppers.",
     price: 165,
-    category: "Beef",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Beef"],
   },
   {
     id: "pm-05",
@@ -123,21 +129,24 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     description:
       "Ginger-based chicken soup with green papaya and chili leaves.",
     price: 115,
-    category: "Chicken",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Chicken"],
   },
   {
     id: "pm-06",
     name: "Pinakbet",
     description: "Mixed vegetables sautéed with shrimp paste and pork.",
     price: 100,
-    category: "Vegetables",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Vegetables"],
   },
   {
     id: "pm-07",
     name: "Laing",
     description: "Taro leaves simmered in coconut milk with chili.",
     price: 95,
-    category: "Vegetables",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Vegetables"],
   },
   {
     id: "pm-08",
@@ -145,7 +154,8 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     description:
       "Stir-fried rice noodles with pork, vegetables, and soy sauce.",
     price: 110,
-    category: "Noodles",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Pasta & Noodles"],
   },
   {
     id: "pm-09",
@@ -153,6 +163,7 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     description: "Freshly cooked premium white rice per serving.",
     price: 35,
     category: "Sides",
+    categories: ["Sides"],
   },
   {
     id: "pm-10",
@@ -160,5 +171,6 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     description: "Classic Filipino caramel custard dessert.",
     price: 75,
     category: "Desserts",
+    categories: ["Desserts"],
   },
 ];

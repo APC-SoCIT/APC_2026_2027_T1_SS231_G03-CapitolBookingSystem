@@ -9,11 +9,13 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Settings,
   Truck,
   Users,
   UtensilsCrossed,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   DELIVERY_STATUSES,
   getDeliveryOrders,
@@ -212,6 +214,9 @@ export function Operations() {
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
+            <Link className="ops-manage-menu-link" to="/delivery/items">
+              <Settings size={14} /> Manage menu items
+            </Link>
           </div>
 
           <div className="ops-filter-row">

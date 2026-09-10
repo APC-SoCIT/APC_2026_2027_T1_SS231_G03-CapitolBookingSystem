@@ -1,6 +1,7 @@
 import { Minus, Plus, Trash2, Package, UtensilsCrossed } from "lucide-react";
-import { CATERING_PACKAGES, PACKED_MENU_ITEMS } from "../../constants";
+import { CATERING_PACKAGES } from "../../constants";
 import type { OrderItem, OrderItemType } from "../../data/delivery";
+import { useDeliveryMenuItems } from "../../data/deliveryMenu";
 
 type Props = {
   items: OrderItem[];
@@ -20,20 +21,22 @@ function makePackageItem(pkgId: string): OrderItem {
   };
 }
 
-function makeMealItem(mealId: string): OrderItem {
-  const m = PACKED_MENU_ITEMS.find((x) => x.id === mealId);
-  if (!m) throw new Error("meal not found");
-  return {
-    id: m.id,
-    type: "packed_meal",
-    name: m.name,
-    quantity: 1,
-    price: m.price,
-    category: m.category,
-  };
-}
-
 export function OrderItemsEditor({ items, onChange }: Props) {
+  const menuItems = useDeliveryMenuItems();
+
+  function makeMealItem(mealId?: string): OrderItem {
+    const m = (mealId ? menuItems.find((x) => x.id === mealId) : null) || menuItems[0];
+    if (!m) throw new Error("meal not found");
+    return {
+      id: m.id,
+      type: "packed_meal",
+      name: m.name,
+      quantity: 1,
+      price: m.price,
+      category: m.category,
+    };
+  }
+
   const update = (idx: number, patch: Partial<OrderItem>) => {
     const next = items.map((it, i) => (i === idx ? { ...it, ...patch } : it));
     onChange(next);
@@ -45,7 +48,7 @@ export function OrderItemsEditor({ items, onChange }: Props) {
 
   const add = (type: OrderItemType) => {
     if (type === "package") onChange([...items, makePackageItem("pkg-1")]);
-    else onChange([...items, makeMealItem("pm-01")]);
+    else onChange([...items, makeMealItem()]);
   };
 
   const changeType = (idx: number, type: OrderItemType) => {
@@ -54,7 +57,7 @@ export function OrderItemsEditor({ items, onChange }: Props) {
     if (type === "package") {
       onChange(items.map((x, i) => (i === idx ? makePackageItem("pkg-1") : x)));
     } else {
-      onChange(items.map((x, i) => (i === idx ? makeMealItem("pm-01") : x)));
+      onChange(items.map((x, i) => (i === idx ? makeMealItem() : x)));
     }
   };
 
@@ -101,12 +104,14 @@ export function OrderItemsEditor({ items, onChange }: Props) {
                 <select
                   value={item.id}
                   onChange={(e) => {
-                    const m = PACKED_MENU_ITEMS.find((x) => x.id === e.target.value)!;
-                    update(idx, { id: m.id, name: m.name, price: m.price, category: m.category });
+                    const m = menuItems.find((x) => x.id === e.target.value) || menuItems[0];
+                    if (m) {
+                      update(idx, { id: m.id, name: m.name, price: m.price, category: m.category });
+                    }
                   }}
                   className="ops-select ops-select--grow"
                 >
-                  {PACKED_MENU_ITEMS.map((m) => (
+                  {menuItems.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name} — ₱{m.price} · {m.category}
                     </option>
