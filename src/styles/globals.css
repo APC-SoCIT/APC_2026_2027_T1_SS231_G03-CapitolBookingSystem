@@ -334,8 +334,12 @@ button, input, textarea, select { font: inherit; }
 .order-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .order-section-heading h2 { margin: 0; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.8rem; }
 .order-section-heading > span { color: #8a5a5a; font-size: 0.8rem; }
+.order-menu-search { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.25rem; padding: 0.65rem 1rem; border: 1.5px solid rgba(100, 0, 0, 0.15); border-radius: 999px; background: #fff; color: #af0100; }
+.order-menu-search:focus-within { border-color: rgba(175, 1, 0, 0.4); box-shadow: 0 0 0 3px rgba(175, 1, 0, 0.08); }
+.order-menu-search input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: #3a0000; font-size: 0.9rem; font-family: inherit; }
+.order-menu-search input::placeholder { color: #a98a8a; }
 .order-menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
-.order-menu-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 1.5px solid rgba(100, 0, 0, 0.1); border-radius: 12px; background: #fff; cursor: pointer; text-align: left; transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.order-menu-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 1.5px solid rgba(100, 0, 0, 0.1); border-radius: 12px; background: #fff; text-align: left; transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 .order-menu-card:hover { border-color: rgba(175, 1, 0, 0.2); box-shadow: 0 4px 16px rgba(100, 0, 0, 0.08); }
 .order-menu-card:hover:not(.order-menu-card--selected) { transform: translateY(-2px); }
 .order-menu-card--selected { border-color: #640000 !important; background: #640000 !important; box-shadow: 0 8px 24px rgba(100, 0, 0, 0.18) !important; }
@@ -354,8 +358,15 @@ button, input, textarea, select { font: inherit; }
 .order-menu-card__bottom > strong { color: #af0100; font-size: 1.1rem; }
 .quantity-control { display: inline-flex; align-items: center; gap: 0.7rem; }
 .quantity-control button { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgba(175, 1, 0, 0.35); border-radius: 50%; background: transparent; color: #af0100; cursor: pointer; }
+.quantity-control button:hover:not(:disabled) { background: rgba(175, 1, 0, 0.08); }
 .quantity-control button:disabled { opacity: 0.35; cursor: not-allowed; }
 .quantity-control span { min-width: 1rem; color: #640000; font-weight: 700; text-align: center; }
+.order-menu-card__add { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; border: 1.5px solid rgba(175, 1, 0, 0.35); border-radius: 999px; background: transparent; color: #af0100; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 150ms ease, border-color 150ms ease; }
+.order-menu-card__add:hover { background: rgba(175, 1, 0, 0.08); border-color: rgba(175, 1, 0, 0.5); }
+/* Selected cards go dark red, so the quantity control switches to yellow to stay visible against that background. */
+.order-menu-card--selected .quantity-control button { border-color: rgba(242, 231, 169, 0.55); color: #f2e7a9; }
+.order-menu-card--selected .quantity-control button:hover:not(:disabled) { background: rgba(242, 231, 169, 0.16); }
+.order-menu-card--selected .quantity-control span { color: #f2e7a9 !important; }
 .order-sidebar { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 1.5rem; }
 .order-summary-card, .customer-form-card { padding: 1.75rem; border: 1px solid rgba(100, 0, 0, 0.12); border-radius: 12px; background: #fff; box-shadow: 0 6px 24px rgba(100, 0, 0, 0.08); }
 .order-summary-card { border-top: 4px solid #af0100; box-shadow: 0 8px 32px rgba(100, 0, 0, 0.12); z-index: 10; }

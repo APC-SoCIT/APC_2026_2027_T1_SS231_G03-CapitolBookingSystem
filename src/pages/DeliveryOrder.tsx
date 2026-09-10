@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Minus, Plus, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Search, ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
@@ -34,6 +34,7 @@ const EMPTY_DETAILS: CustomerDetails = {
 };
 
 const DELIVERY_FEE = 60;
+const MAX_QUANTITY_PER_ITEM = 20;
 
 export function DeliveryOrder() {
   const navigate = useNavigate();
@@ -44,11 +45,23 @@ export function DeliveryOrder() {
   const [submittedReference, setSubmittedReference] = useState<string | null>(
     null,
   );
+  const [menuSearch, setMenuSearch] = useState("");
 
   const selectedItems = useMemo(
     () => PACKED_MENU_ITEMS.filter((item) => cart[item.id] > 0),
     [cart],
   );
+
+  const visibleMenuItems = useMemo(() => {
+    const query = menuSearch.trim().toLowerCase();
+    if (!query) return PACKED_MENU_ITEMS;
+    return PACKED_MENU_ITEMS.filter(
+      (item) =>
+        item.name.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query),
+    );
+  }, [menuSearch]);
 
   const totalQuantity = selectedItems.reduce(
     (sum, item) => sum + (cart[item.id] ?? 0),
@@ -65,7 +78,7 @@ export function DeliveryOrder() {
   const updateQuantity = (item: MenuItem, quantity: number) => {
     setCart((currentCart) => ({
       ...currentCart,
-      [item.id]: Math.max(0, Math.min(1, quantity)), // one serving per dish — pick multiple different dishes instead
+      [item.id]: Math.max(0, Math.min(MAX_QUANTITY_PER_ITEM, quantity)),
     }));
   };
 
@@ -177,16 +190,32 @@ export function DeliveryOrder() {
               </span>
             </div>
 
-            <div className="order-menu-grid">
-              {PACKED_MENU_ITEMS.map((item) => (
-                <MenuOrderCard
-                  item={item}
-                  key={item.id}
-                  quantity={cart[item.id] ?? 0}
-                  onChange={(quantity) => updateQuantity(item, quantity)}
-                />
-              ))}
-            </div>
+            <label className="order-menu-search">
+              <Search size={16} aria-hidden="true" />
+              <input
+                type="search"
+                placeholder="Search the menu…"
+                value={menuSearch}
+                onChange={(event) => setMenuSearch(event.target.value)}
+              />
+            </label>
+
+            {visibleMenuItems.length ? (
+              <div className="order-menu-grid">
+                {visibleMenuItems.map((item) => (
+                  <MenuOrderCard
+                    item={item}
+                    key={item.id}
+                    quantity={cart[item.id] ?? 0}
+                    onChange={(quantity) => updateQuantity(item, quantity)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="cart-empty">
+                No dishes match &ldquo;{menuSearch}&rdquo;.
+              </p>
+            )}
           </div>
 
           <aside className="order-sidebar">
@@ -224,11 +253,9 @@ function MenuOrderCard({
   const isSelected = quantity > 0;
 
   return (
-    <button
+    <div
       className={`order-menu-card ${isSelected ? "order-menu-card--selected" : ""}`}
       key={item.id}
-      onClick={() => onChange(isSelected ? 0 : 1)}
-      type="button"
     >
       <div className="order-menu-card__image-placeholder" aria-hidden="true" />
       <div className="order-menu-card__content">
@@ -238,8 +265,40 @@ function MenuOrderCard({
         </div>
         <span className="order-menu-card__category">{item.category}</span>
         <p>{item.description}</p>
+
+        <div className="order-menu-card__bottom">
+          {isSelected ? (
+            <div className="quantity-control">
+              <button
+                aria-label={`Remove one ${item.name}`}
+                onClick={() => onChange(quantity - 1)}
+                type="button"
+              >
+                <Minus size={14} />
+              </button>
+              <span>{quantity}</span>
+              <button
+                aria-label={`Add one more ${item.name}`}
+                disabled={quantity >= MAX_QUANTITY_PER_ITEM}
+                onClick={() => onChange(quantity + 1)}
+                type="button"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              className="order-menu-card__add"
+              onClick={() => onChange(1)}
+              type="button"
+            >
+              <Plus size={14} />
+              Add
+            </button>
+          )}
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
 
