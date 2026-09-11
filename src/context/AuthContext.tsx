@@ -14,6 +14,7 @@ export interface User {
 export interface AuthActionResult {
   success: boolean;
   error?: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -135,8 +136,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithPassword = async (email: string, password: string): Promise<AuthActionResult> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return error ? { success: false, error: error.message } : { success: true };
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { success: false, error: error.message };
+
+      // Resolve the profile role so the caller can route admins immediately.
+      if (data.user) {
+        const appUser = await toAppUser(data.user);
+        return { success: true, isAdmin: appUser.role === "admin" };
+      }
+      return { success: true };
     } catch (error) {
       return {
         success: false,

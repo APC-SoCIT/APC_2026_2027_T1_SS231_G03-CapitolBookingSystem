@@ -75,8 +75,22 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about-us" element={<AboutUs />} />
+        <Route
+          path="/"
+          element={
+            <CustomerOnly>
+              <Home />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/about-us"
+          element={
+            <CustomerOnly>
+              <AboutUs />
+            </CustomerOnly>
+          }
+        />
         <Route
           path="/catering"
           element={
@@ -117,7 +131,14 @@ export default function App() {
             </CustomerOnly>
           }
         />
-        <Route path="/inquiries" element={<Inquiries />} />
+        <Route
+          path="/inquiries"
+          element={
+            <CustomerOnly>
+              <Inquiries />
+            </CustomerOnly>
+          }
+        />
         <Route
           path="/delivery"
           element={
