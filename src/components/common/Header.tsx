@@ -75,6 +75,14 @@ export function Header() {
                   className={({ isActive }) =>
                     `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
                   }
+                  to="/delivery/staff"
+                >
+                  Delivery
+                </NavLink>
+                <NavLink
+                  className={({ isActive }) =>
+                    `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
+                  }
                   to="/dashboard"
                 >
                   Dashboard
@@ -155,6 +163,14 @@ export function Header() {
                   to="/operations"
                 >
                   Operations
+                </NavLink>
+                <NavLink
+                  className={({ isActive }) =>
+                    `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
+                  }
+                  to="/delivery/staff"
+                >
+                  Delivery
                 </NavLink>
                 <NavLink
                   className={({ isActive }) =>

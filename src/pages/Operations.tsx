@@ -1,25 +1,19 @@
 import {
-  AlertCircle,
   Building2,
   CalendarDays,
   ClipboardList,
   Eye,
   Inbox,
-  MapPin,
   Pencil,
   RefreshCw,
   Search,
-  Settings,
   Truck,
   Users,
   UtensilsCrossed,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import {
-  DELIVERY_STATUSES,
   getDeliveryOrders,
-  saveDeliveryOrders,
   type DeliveryOrder,
   type DeliveryStatus,
 } from "../data/delivery";
@@ -45,22 +39,19 @@ import { FunctionDetailModal } from "../components/operations/FunctionDetailModa
 import { CateringDetailModal } from "../components/operations/CateringDetailModal";
 import { StatusPill } from "../components/operations/StatusPill";
 
-type OrderFilter = DeliveryStatus | "All";
 type ResFilter = ReservationStatus | "All";
 
 export function Operations() {
-  const [orders, setOrders] = useState<DeliveryOrder[]>(getDeliveryOrders);
   const [functionBookings, setFunctionBookings] = useState<FunctionBooking[]>(getFunctionBookings);
   const [cateringBookings, setCateringBookings] = useState<CateringBooking[]>(getCateringBookings);
   const [inquiries, setInquiries] = useState<Inquiry[]>(getInquiries);
-  const [search, setSearch] = useState("");
+  // Orders are read-only here — status/assignment work lives in the Delivery tab.
+  const [orders, setOrders] = useState<DeliveryOrder[]>(getDeliveryOrders);
   const [functionSearch, setFunctionSearch] = useState("");
   const [cateringSearch, setCateringSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<OrderFilter>("All");
   const [functionFilter, setFunctionFilter] = useState<ResFilter>("All");
   const [cateringFilter, setCateringFilter] = useState<ResFilter>("All");
   const [cateringKindFilter, setCateringKindFilter] = useState<"All" | "Buffet" | "Packed">("All");
-  const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const [selectedFunctionId, setSelectedFunctionId] = useState<string | null>(null);
   const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
 
@@ -69,21 +60,6 @@ export function Operations() {
     setFunctionBookings(getFunctionBookings());
     setCateringBookings(getCateringBookings());
     setInquiries(getInquiries());
-  };
-
-  const updateOrderStatus = (reference: string, status: DeliveryStatus) => {
-    const updatedOrders = orders.map((order) =>
-      order.reference === reference ? { ...order, status } : order,
-    );
-    setOrders(updatedOrders);
-    saveDeliveryOrders(updatedOrders);
-  };
-
-  const handleOrderSave = (updated: DeliveryOrder) => {
-    const next = orders.map((o) => (o.reference === updated.reference ? updated : o));
-    setOrders(next);
-    saveDeliveryOrders(next);
-    setSelectedRef(null);
   };
 
   const updateFunctionStatus = (id: string, status: ReservationStatus) => {
@@ -123,19 +99,6 @@ export function Operations() {
     saveInquiries(updatedInquiries);
   };
 
-  const filteredOrders = useMemo(() => {
-    let list = orders;
-    if (statusFilter !== "All") list = list.filter((o) => o.status === statusFilter);
-    const query = search.trim().toLowerCase();
-    if (!query) return list;
-    return list.filter((order) =>
-      [order.reference, order.customer, order.address, order.status, order.phone ?? "", order.items]
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [orders, search, statusFilter]);
-
   const filteredFunction = useMemo(() => {
     let list = functionBookings;
     if (functionFilter !== "All") list = list.filter((b) => b.status === functionFilter);
@@ -156,10 +119,6 @@ export function Operations() {
     return list.filter((b) => [b.id, b.customer, b.phone, b.email, b.packageName ?? "", b.status].join(" ").toLowerCase().includes(q));
   }, [cateringBookings, cateringFilter, cateringKindFilter, cateringSearch]);
 
-  const selectedOrder = useMemo(
-    () => (selectedRef ? orders.find((o) => o.reference === selectedRef) ?? null : null),
-    [orders, selectedRef],
-  );
   const selectedFunction = useMemo(
     () => (selectedFunctionId ? functionBookings.find((b) => b.id === selectedFunctionId) ?? null : null),
     [functionBookings, selectedFunctionId],
@@ -196,49 +155,6 @@ export function Operations() {
           <StatCard icon={<UtensilsCrossed size={20} />} label="Catering pending" value={cateringPending} hint={`${cateringBookings.length} total`} accent={cateringPending>0} />
           <StatCard icon={<Inbox size={20} />} label="New inquiries" value={newInquiryCount} hint="Need reply" accent={newInquiryCount > 0} />
           <StatCard icon={<ClipboardList size={20} />} label="Total orders" value={orders.length} hint={revenueToday ? `₱${revenueToday.toLocaleString()} total` : undefined} />
-        </div>
-
-        {/* Delivery */}
-        <div className="dashboard-panel">
-          <div className="dashboard-panel__header">
-            <div>
-              <p className="eyebrow">Order management</p>
-              <h2>Delivery orders</h2>
-            </div>
-            <label className="dashboard-search">
-              <Search size={16} />
-              <input
-                aria-label="Search delivery orders"
-                placeholder="Search name, address, reference..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <Link className="ops-manage-menu-link" to="/delivery/items">
-              <Settings size={14} /> Manage menu items
-            </Link>
-          </div>
-
-          <div className="ops-filter-row">
-            <button className={`ops-filter-chip ${statusFilter === "All" ? "ops-filter-chip--active" : ""}`} onClick={() => setStatusFilter("All")} type="button">All <span>{orders.length}</span></button>
-            {DELIVERY_STATUSES.map((s) => {
-              const count = orders.filter((o) => o.status === s).length;
-              return (
-                <button key={s} className={`ops-filter-chip ops-filter-chip--${s.toLowerCase().replaceAll(" ", "-")} ${statusFilter === s ? "ops-filter-chip--active" : ""}`} onClick={() => setStatusFilter(s)} type="button">{s} <span>{count}</span></button>
-              );
-            })}
-          </div>
-
-          <div className="ops-table-head">
-            <span>Order</span><span>Items</span><span>When</span><span>Status</span><span className="ops-table-head__action">Action</span>
-          </div>
-
-          <div className="dashboard-orders">
-            {filteredOrders.length > 0 ? filteredOrders.map((order) => (
-              <DeliveryRow key={order.reference} order={order} onOpen={() => setSelectedRef(order.reference)} onStatusChange={updateOrderStatus} />
-            )) : <EmptyDashboardState message="No delivery orders match your filters." />}
-          </div>
-          <div className="ops-panel-footer"><span><AlertCircle size={12} /> Click any row to edit packages, quantities, and totals. Changes save instantly with history.</span></div>
         </div>
 
         {/* Function room reservations — stacked */}
@@ -320,7 +236,6 @@ export function Operations() {
         </div>
       </section>
 
-      {selectedOrder && <OrderDetailModal order={selectedOrder} onClose={() => setSelectedRef(null)} onSave={handleOrderSave} />}
       {selectedFunction && <FunctionDetailModal booking={selectedFunction} onClose={()=>setSelectedFunctionId(null)} onSave={handleFunctionSave} />}
       {selectedCatering && <CateringDetailModal booking={selectedCatering} onClose={()=>setSelectedCateringId(null)} onSave={handleCateringSave} />}
     </div>
@@ -333,23 +248,6 @@ function StatCard({ icon, label, value, hint, accent }: { icon: React.ReactNode;
       <span className="dashboard-stat__icon">{icon}</span>
       <span><strong>{value}</strong><small>{label}</small>{hint && <em className="dashboard-stat__hint">{hint}</em>}</span>
     </div>
-  );
-}
-
-function DeliveryRow({ order, onOpen, onStatusChange }: { order: DeliveryOrder; onOpen: () => void; onStatusChange: (reference: string, status: DeliveryStatus) => void }) {
-  return (
-    <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen()}>
-      <div className="ops-order-row__id"><strong>{order.reference}</strong><span>{order.customer}</span>{order.phone && <small>{order.phone}</small>}</div>
-      <div className="ops-order-row__items"><span>{order.items}</span><small><MapPin size={10} /> {order.address}</small>{order.total !== undefined && <small className="ops-order-row__price">₱{order.total.toLocaleString()}</small>}</div>
-      <div className="ops-order-row__when"><span><CalendarDays size={12} /> {order.eta}</span><small>Placed {order.placedAt}</small></div>
-      <div className="ops-order-row__status" onClick={(e) => e.stopPropagation()}>
-        <select className={`ops-status-select ops-status-select--${order.status.toLowerCase().replaceAll(" ", "-")}`} value={order.status} onChange={(event) => onStatusChange(order.reference, event.target.value as DeliveryStatus)} aria-label={`Change status for ${order.reference}`}>
-          {DELIVERY_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-        </select>
-        <span className="ops-order-row__pill"><StatusPill status={order.status} /></span>
-      </div>
-      <div className="ops-order-row__action"><span className="ops-row-action"><Eye size={14} /> View</span><span className="ops-row-action ops-row-action--edit"><Pencil size={12} /> Edit</span></div>
-    </article>
   );
 }
 

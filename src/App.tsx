@@ -6,10 +6,10 @@ import { CateringPacked } from "./pages/CateringPacked";
 import { FunctionRooms } from "./pages/FunctionRooms";
 import { FunctionRoomReservation } from "./pages/FunctionRoomReservation";
 import { Delivery } from "./pages/Delivery";
-import { DeliveryStaff } from "./pages/DeliveryStaff";
+import { AdminDelivery } from "./pages/AdminDelivery";
 import { DeliveryOrder } from "./pages/DeliveryOrder";
-import { Dashboard } from "./pages/Dashboard";
 import { DeliveryMenuManager } from "./pages/DeliveryMenuManager";
+import { Dashboard } from "./pages/Dashboard";
 import { Operations } from "./pages/Operations";
 import { Home } from "./pages/Home";
 import { Inquiries } from "./pages/Inquiries";
@@ -60,6 +60,22 @@ function ProtectedDeliveryMenuManager() {
         {user?.email ? <> · {user.email}</> : null}
       </p>
       <p>Please sign in with an administrator account to access Delivery menu items.</p>
+    </div>
+  );
+}
+
+function ProtectedDeliveryStaff() {
+  const { isAdmin, loading, user } = useAuth();
+  if (loading) return <div className="auth-loading">Loading account...</div>;
+  if (isAdmin) return <AdminDelivery />;
+  return (
+    <div className="placeholder-page">
+      <h1>Admin Only</h1>
+      <p>
+        Current role: <strong>{user?.role ?? "not signed in"}</strong>
+        {user?.email ? <> · {user.email}</> : null}
+      </p>
+      <p>Please sign in with an administrator account to access Delivery.</p>
     </div>
   );
 }
@@ -155,14 +171,7 @@ export default function App() {
             </CustomerOnly>
           }
         />
-        <Route
-          path="/delivery/staff"
-          element={
-            <CustomerOnly>
-              <DeliveryStaff />
-            </CustomerOnly>
-          }
-        />
+        <Route path="/delivery/staff" element={<ProtectedDeliveryStaff />} />
         <Route path="/delivery/items" element={<ProtectedDeliveryMenuManager />} />
         <Route path="/dashboard" element={<ProtectedDashboard />} />
         <Route path="/operations" element={<ProtectedOperations />} />
