@@ -1,4 +1,4 @@
-import { ArrowLeft, Minus, Plus, Search, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingBag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SignInModal } from "../components/common";
@@ -86,6 +86,15 @@ export function DeliveryOrder() {
         item.description.toLowerCase().includes(query),
     );
   }, [menuSearch, menuItems]);
+
+  // Show six dishes at a time so the page doesn't stretch on big menus.
+  const MENU_PAGE_SIZE = 6;
+  const [menuPage, setMenuPage] = useState(1);
+  const menuPageCount = Math.ceil(visibleMenuItems.length / MENU_PAGE_SIZE) || 1;
+  const shownMenuItems = visibleMenuItems.slice(
+    (menuPage - 1) * MENU_PAGE_SIZE,
+    menuPage * MENU_PAGE_SIZE,
+  );
 
   const totalQuantity = selectedItems.reduce(
     (sum, item) => sum + (cart[item.id] ?? 0),
@@ -222,22 +231,50 @@ export function DeliveryOrder() {
                 type="search"
                 placeholder="Search the menu…"
                 value={menuSearch}
-                onChange={(event) => setMenuSearch(event.target.value)}
+                onChange={(event) => {
+                  setMenuSearch(event.target.value);
+                  setMenuPage(1);
+                }}
               />
             </label>
 
             {visibleMenuItems.length ? (
-              <div className="order-menu-grid">
-                {visibleMenuItems.map((item) => (
-                  <MenuOrderCard
-                    categoryDefs={categoryDefs}
-                    item={item}
-                    key={item.id}
-                    quantity={cart[item.id] ?? 0}
-                    onChange={(quantity) => updateQuantity(item, quantity)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="order-menu-grid">
+                  {shownMenuItems.map((item) => (
+                    <MenuOrderCard
+                      categoryDefs={categoryDefs}
+                      item={item}
+                      key={item.id}
+                      quantity={cart[item.id] ?? 0}
+                      onChange={(quantity) => updateQuantity(item, quantity)}
+                    />
+                  ))}
+                </div>
+                {menuPageCount > 1 && (
+                  <div className="order-menu-pager">
+                    <button
+                      aria-label="Previous dishes"
+                      disabled={menuPage <= 1}
+                      onClick={() => setMenuPage((page) => Math.max(1, page - 1))}
+                      type="button"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <span className="order-menu-pager__page">
+                      Page {menuPage} of {menuPageCount}
+                    </span>
+                    <button
+                      aria-label="Next dishes"
+                      disabled={menuPage >= menuPageCount}
+                      onClick={() => setMenuPage((page) => Math.min(menuPageCount, page + 1))}
+                      type="button"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <p className="cart-empty">
                 No dishes match &ldquo;{menuSearch}&rdquo;.

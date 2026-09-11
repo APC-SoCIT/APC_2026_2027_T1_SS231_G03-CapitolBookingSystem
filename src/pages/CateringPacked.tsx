@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight, Minus, Plus } from "lucide-react";
+import { ArrowRight, ChevronRight, Minus, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -22,19 +22,29 @@ export function CateringPacked() {
     ...new Set(PACKED_MENU_ITEMS.map((item) => item.category)),
   ];
   const [activeCategory, setActiveCategory] = useState("All");
+  const [menuSearch, setMenuSearch] = useState("");
   const [selectedMeals, setSelectedMeals] = useState<MenuItem[]>([]);
   const [mealQuantities, setMealQuantities] = useState<Record<string, number>>({});
   const [modalOpen, setModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
 
-  const displayItems = useMemo(
-    () =>
+  const displayItems = useMemo(() => {
+    let items =
       activeCategory === "All"
         ? PACKED_MENU_ITEMS
-        : PACKED_MENU_ITEMS.filter((item) => item.category === activeCategory),
-    [activeCategory],
-  );
+        : PACKED_MENU_ITEMS.filter((item) => item.category === activeCategory);
+    const query = menuSearch.trim().toLowerCase();
+    if (query) {
+      items = items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(query) ||
+          item.category.toLowerCase().includes(query) ||
+          item.description.toLowerCase().includes(query),
+      );
+    }
+    return items;
+  }, [activeCategory, menuSearch]);
 
   const totalPacks = selectedMeals.reduce(
     (sum, meal) => sum + (mealQuantities[meal.id] ?? 0),
@@ -88,6 +98,7 @@ export function CateringPacked() {
         event.target.closest(".proceed-bar") ||
         event.target.closest(".calendar-modal-backdrop") ||
         event.target.closest(".filter-row") ||
+        event.target.closest(".order-menu-search") ||
         event.target.closest(".order-summary-card") ||
         event.target.closest(".signin-modal")
       ) {
@@ -128,6 +139,15 @@ export function CateringPacked() {
             </button>
           ))}
         </div>
+        <label className="order-menu-search">
+          <Search size={16} aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search the menu…"
+            value={menuSearch}
+            onChange={(event) => setMenuSearch(event.target.value)}
+          />
+        </label>
         <div className="menu-grid">
           {displayItems.map((item) => (
             <button
@@ -144,6 +164,11 @@ export function CateringPacked() {
               <p>{item.description}</p>
             </button>
           ))}
+          {displayItems.length === 0 && (
+            <p className="cart-empty">
+              No dishes match &ldquo;{menuSearch}&rdquo;.
+            </p>
+          )}
         </div>
 
         <div className="packed-guidelines">
