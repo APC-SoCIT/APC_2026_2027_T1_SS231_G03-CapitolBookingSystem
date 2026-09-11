@@ -75,18 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Restore demo mock admin from Log In bypass (admin@capitol.com / 123456)
-    try {
-      const raw = localStorage.getItem("capitol_mock_admin");
-      if (raw) {
-        const mock = JSON.parse(raw) as User;
-        if (mock?.email?.toLowerCase() === "admin@capitol.com" && mock?.role === "admin") {
-          setUser(mock);
-          setLoading(false);
-        }
-      }
-    } catch {}
-
     let mounted = true;
     let syncVersion = 0;
 
@@ -94,20 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const version = ++syncVersion;
 
       if (!authUser) {
-        // Keep mock admin if present — don't clear it on null session
-        try {
-          const raw = localStorage.getItem("capitol_mock_admin");
-          if (raw) {
-            const mock = JSON.parse(raw) as User;
-            if (mock?.email?.toLowerCase() === "admin@capitol.com") {
-              if (mounted && version === syncVersion) {
-                setUser(mock);
-                setLoading(false);
-              }
-              return;
-            }
-          }
-        } catch {}
         if (mounted && version === syncVersion) {
           setUser(null);
           setLoading(false);
@@ -160,40 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithPassword = async (email: string, password: string): Promise<AuthActionResult> => {
-    // Demo bypass for fake admin@capitol.com — Supabase email delivery not configured for capitol.com
-    // Keep this block for prototype only; remove before prod.
-    if (email.toLowerCase() === "admin@capitol.com" && password === "123456") {
-      const mockAdmin: User = {
-        id: "eb1ac89f-0b2f-47b4-9800-3dfcd354d162",
-        email: "admin@capitol.com",
-        role: "admin",
-        displayName: "Admin",
-      };
-      setUser(mockAdmin);
-      setLoading(false);
-      try {
-        localStorage.setItem("capitol_mock_admin", JSON.stringify(mockAdmin));
-      } catch {}
-      return { success: true };
-    }
-
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      // Fallback for manually inserted admin row that may still hit 500 due to missing identities
-      if (error && email.toLowerCase() === "admin@capitol.com" && password === "123456" && error.message.includes("Database error")) {
-        const mockAdmin: User = {
-          id: "eb1ac89f-0b2f-47b4-9800-3dfcd354d162",
-          email: "admin@capitol.com",
-          role: "admin",
-          displayName: "Admin",
-        };
-        setUser(mockAdmin);
-        setLoading(false);
-        try {
-          localStorage.setItem("capitol_mock_admin", JSON.stringify(mockAdmin));
-        } catch {}
-        return { success: true };
-      }
       return error ? { success: false, error: error.message } : { success: true };
     } catch (error) {
       return {
@@ -221,7 +163,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async (): Promise<AuthActionResult> => {
     try {
-      localStorage.removeItem("capitol_mock_admin");
       setUser(null);
       const { error } = await supabase.auth.signOut();
       return error ? { success: false, error: error.message } : { success: true };

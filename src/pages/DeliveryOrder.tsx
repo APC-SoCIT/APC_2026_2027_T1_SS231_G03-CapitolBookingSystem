@@ -1,5 +1,5 @@
 import { ArrowLeft, Minus, Plus, Search, ShoppingBag } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SignInModal } from "../components/common";
 import type { MenuItem } from "../constants";
@@ -14,6 +14,8 @@ import {
   type DeliveryOrder as DeliveryOrderData,
 } from "../data/delivery";
 import { useAuthGate } from "../hooks/useAuthGate";
+import { useAuth } from "../context/AuthContext";
+import { getStoredContact } from "../lib/contact";
 
 type Cart = Record<string, number>;
 
@@ -46,6 +48,7 @@ const MAX_QUANTITY_PER_ITEM = 20;
 export function DeliveryOrder() {
   const navigate = useNavigate();
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
+  const { user } = useAuth();
   const menuItems = useDeliveryMenuItems();
   const categoryDefs = useDeliveryCategoryDefs();
   const [cart, setCart] = useState<Cart>({});
@@ -56,6 +59,16 @@ export function DeliveryOrder() {
     null,
   );
   const [menuSearch, setMenuSearch] = useState("");
+
+  // Autofill name + previously used contact number once the session is known.
+  useEffect(() => {
+    if (!user) return;
+    setDetails((prev) => ({
+      ...prev,
+      name: prev.name || user.displayName,
+      phone: prev.phone || getStoredContact(user.id),
+    }));
+  }, [user]);
 
   const selectedItems = useMemo(
     () => menuItems.filter((item) => cart[item.id]),
