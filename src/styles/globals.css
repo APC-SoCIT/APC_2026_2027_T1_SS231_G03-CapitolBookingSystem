@@ -1465,6 +1465,24 @@ button, input, textarea, select { font: inherit; }
   .fr-gallery-section { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   .fr-info-section { animation: delivery-rise 700ms 200ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   .fr-reserve-layout { animation: delivery-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  /* Match the delivery/function-rooms entrance on the remaining pages.
+     Hero backgrounds stay static — only their content rises. */
+  .home-page .hero-content { animation: delivery-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .home-page .section--services { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .home-page .legacy-strip__content { animation: delivery-rise 700ms 220ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .catering-page .page-hero > *,
+  .about-page .page-hero > *,
+  .inquiries-page .page-hero > * { animation: delivery-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .catering-page .catering-choice { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .catering-page .catering-note { animation: delivery-rise 700ms 220ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .catering-subpage .breadcrumb { animation: delivery-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .catering-subpage .subpage-hero > * { animation: delivery-rise 650ms 60ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .catering-subpage .buffet-section,
+  .catering-subpage .packed-section { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .catering-subpage .proceed-bar { animation: delivery-rise 700ms 220ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .about-page .about-content { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .inquiries-page .section { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 }
 
 @media (max-width: 760px) {
@@ -1497,7 +1515,22 @@ button, input, textarea, select { font: inherit; }
   .delivery-page *::after,
   .function-rooms-page *,
   .function-rooms-page *::before,
-  .function-rooms-page *::after {
+  .function-rooms-page *::after,
+  .home-page *,
+  .home-page *::before,
+  .home-page *::after,
+  .catering-page *,
+  .catering-page *::before,
+  .catering-page *::after,
+  .catering-subpage *,
+  .catering-subpage *::before,
+  .catering-subpage *::after,
+  .about-page *,
+  .about-page *::before,
+  .about-page *::after,
+  .inquiries-page *,
+  .inquiries-page *::before,
+  .inquiries-page *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;

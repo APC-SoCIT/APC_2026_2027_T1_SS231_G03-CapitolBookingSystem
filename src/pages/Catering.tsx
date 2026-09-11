@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 export function Catering() {
   return (
-    <div>
+    <div className="catering-page">
       <section className="page-hero">
         <p className="eyebrow">Capitol Restaurant</p>
         <h1>Catering Services</h1>
