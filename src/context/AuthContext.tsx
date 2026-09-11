@@ -64,7 +64,10 @@ async function toAppUser(authUser: SupabaseUser): Promise<User> {
 }
 
 function authRedirectUrl() {
-  return new URL("/operations", window.location.origin).toString();
+  return new URL(
+    window.location.pathname + window.location.search,
+    window.location.origin,
+  ).toString();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
