@@ -2,7 +2,12 @@ import { ArrowLeft, Minus, Plus, Search, ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SignInModal } from "../components/common";
-import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
+import type { MenuItem } from "../constants";
+import {
+  getVisibleCategoryName,
+  useDeliveryCategoryDefs,
+  useDeliveryMenuItems,
+} from "../data/deliveryMenu";
 import {
   getDeliveryOrders,
   saveDeliveryOrders,
@@ -41,6 +46,8 @@ const MAX_QUANTITY_PER_ITEM = 20;
 export function DeliveryOrder() {
   const navigate = useNavigate();
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
+  const menuItems = useDeliveryMenuItems();
+  const categoryDefs = useDeliveryCategoryDefs();
   const [cart, setCart] = useState<Cart>({});
   const [details, setDetails] = useState<CustomerDetails>(EMPTY_DETAILS);
   const [errors, setErrors] = useState<OrderErrors>([]);
@@ -51,21 +58,21 @@ export function DeliveryOrder() {
   const [menuSearch, setMenuSearch] = useState("");
 
   const selectedItems = useMemo(
-    () => PACKED_MENU_ITEMS.filter((item) => cart[item.id] > 0),
-    [cart],
+    () => menuItems.filter((item) => cart[item.id]),
+    [menuItems, cart],
   );
 
 
   const visibleMenuItems = useMemo(() => {
     const query = menuSearch.trim().toLowerCase();
-    if (!query) return PACKED_MENU_ITEMS;
-    return PACKED_MENU_ITEMS.filter(
+    if (!query) return menuItems;
+    return menuItems.filter(
       (item) =>
         item.name.toLowerCase().includes(query) ||
         item.category.toLowerCase().includes(query) ||
         item.description.toLowerCase().includes(query),
     );
-  }, [menuSearch]);
+  }, [menuSearch, menuItems]);
 
   const totalQuantity = selectedItems.reduce(
     (sum, item) => sum + (cart[item.id] ?? 0),
@@ -86,11 +93,8 @@ export function DeliveryOrder() {
     }));
   };
 
-  const updateDetail = (key: keyof CustomerDetails, value: string) => {
-    setDetails((currentDetails) => ({
-      ...currentDetails,
-      [key]: value,
-    }));
+  const updateDetail = (field: keyof CustomerDetails, value: string) => {
+    setDetails((prev) => ({ ...prev, [field]: value }));
   };
 
   const submitOrder = () => {
@@ -157,6 +161,7 @@ export function DeliveryOrder() {
 
     saveDeliveryOrders([...existingOrders, order]);
     setSubmittedReference(reference);
+    setCart({});
   };
 
   if (submittedReference) {
@@ -164,15 +169,18 @@ export function DeliveryOrder() {
       <OrderConfirmation
         customerName={details.name}
         reference={submittedReference}
-        onPlaceAnother={() => navigate("/delivery/order")}
+        onPlaceAnother={() => {
+          setSubmittedReference(null);
+          setDetails(EMPTY_DETAILS);
+          setCart({});
+        }}
       />
     );
   }
 
   return (
-    <div>
-      <section className="page-hero">
-        <p className="eyebrow">Capitol Restaurant</p>
+    <div className="order-page">
+      <section className="subpage-hero">
         <h1>Order Delivery</h1>
         <p>Enjoy Capitol favorites at home. Build your order below.</p>
       </section>
@@ -209,6 +217,7 @@ export function DeliveryOrder() {
               <div className="order-menu-grid">
                 {visibleMenuItems.map((item) => (
                   <MenuOrderCard
+                    categoryDefs={categoryDefs}
                     item={item}
                     key={item.id}
                     quantity={cart[item.id] ?? 0}
@@ -250,26 +259,45 @@ export function DeliveryOrder() {
 function MenuOrderCard({
   item,
   quantity,
+  categoryDefs,
   onChange,
 }: {
   item: MenuItem;
   quantity: number;
+  categoryDefs: ReturnType<typeof useDeliveryCategoryDefs>;
   onChange: (quantity: number) => void;
 }) {
   const isSelected = quantity > 0;
 
   return (
-    <div
-      className={`order-menu-card ${isSelected ? "order-menu-card--selected" : ""}`}
+    <article
+      className={`order-menu-card ${quantity ? "order-menu-card--selected" : ""}`}
       key={item.id}
     >
-      <div className="order-menu-card__image-placeholder" aria-hidden="true" />
-      <div className="order-menu-card__content">
-        <div className="order-menu-card__top">
+      <div className="order-menu-card__media">
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.name}
+            className="order-menu-card__img"
+            loading="lazy"
+          />
+        ) : (
+          <div
+            className="order-menu-card__img order-menu-card__img--blank"
+            aria-label="No image available"
+          />
+        )}
+      </div>
+
+      <div className="order-menu-card__body">
+        <div className="order-menu-card__header-row">
           <h2>{item.name}</h2>
-          <strong>₱{item.price}</strong>
+          <strong className="order-menu-card__price">₱{item.price}</strong>
         </div>
-        <span className="order-menu-card__category">{item.category}</span>
+        <span className="order-menu-card__category">
+          {getVisibleCategoryName(item, categoryDefs)}
+        </span>
         <p>{item.description}</p>
 
         <div className="order-menu-card__bottom">
@@ -304,7 +332,7 @@ function MenuOrderCard({
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 

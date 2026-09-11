@@ -8,6 +8,7 @@ import { Delivery } from "./pages/Delivery";
 import { DeliveryStaff } from "./pages/DeliveryStaff";
 import { DeliveryOrder } from "./pages/DeliveryOrder";
 import { Dashboard } from "./pages/Dashboard";
+import { DeliveryMenuManager } from "./pages/DeliveryMenuManager";
 import { Operations } from "./pages/Operations";
 import { Home } from "./pages/Home";
 import { Inquiries } from "./pages/Inquiries";
@@ -42,6 +43,22 @@ function ProtectedOperations() {
         {user?.email ? <> · {user.email}</> : null}
       </p>
       <p>Please sign in with an administrator account to access Operations.</p>
+    </div>
+  );
+}
+
+function ProtectedDeliveryMenuManager() {
+  const { isAdmin, loading, user } = useAuth();
+  if (loading) return <div className="auth-loading">Loading account...</div>;
+  if (isAdmin) return <DeliveryMenuManager />;
+  return (
+    <div className="placeholder-page">
+      <h1>Admin Only</h1>
+      <p>
+        Current role: <strong>{user?.role ?? "not signed in"}</strong>
+        {user?.email ? <> · {user.email}</> : null}
+      </p>
+      <p>Please sign in with an administrator account to access Delivery menu items.</p>
     </div>
   );
 }
@@ -116,6 +133,7 @@ export default function App() {
             </CustomerOnly>
           }
         />
+        <Route path="/delivery/items" element={<ProtectedDeliveryMenuManager />} />
         <Route path="/dashboard" element={<ProtectedDashboard />} />
         <Route path="/operations" element={<ProtectedOperations />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -9,11 +9,13 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Settings,
   Truck,
   Users,
   UtensilsCrossed,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   DELIVERY_STATUSES,
   getDeliveryOrders,
@@ -175,12 +177,6 @@ export function Operations() {
 
   return (
     <div>
-      <section className="page-hero dashboard-hero">
-        <p className="eyebrow">Staff workspace</p>
-        <h1>Operations</h1>
-        <p>Review delivery orders, function room reservations, catering bookings, and inquiries. Click any row to edit.</p>
-      </section>
-
       <section className="section dashboard-section">
         <div className="dashboard-toolbar">
           <div>
@@ -218,6 +214,9 @@ export function Operations() {
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
+            <Link className="ops-manage-menu-link" to="/delivery/items">
+              <Settings size={14} /> Manage menu items
+            </Link>
           </div>
 
           <div className="ops-filter-row">
