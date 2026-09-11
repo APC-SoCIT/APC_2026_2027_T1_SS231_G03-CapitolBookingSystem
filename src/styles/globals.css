@@ -199,7 +199,6 @@ button, input, textarea, select { font: inherit; }
 .packed-guidelines h2 { margin: 0 0 0.75rem; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.35rem; }
 .packed-guidelines ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 2rem; margin: 0; padding: 0; list-style: none; }
 .packed-guidelines li { padding-left: 0.75rem; border-left: 2px solid #f2e7a9; font-size: 0.95rem; line-height: 1.55; }
-.function-rooms-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3rem; }
 .content-heading { margin: 0 0 1.25rem; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.5rem; }
 .room-card { margin-bottom: 1rem; padding: 1.25rem; border: 1.5px solid rgba(100, 0, 0, 0.1); border-left: 4px solid #af0100; border-radius: 0 8px 8px 0; background: #fff; }
 .room-card h3 { margin: 0 0 0.4rem; color: #3a0000; font-family: Georgia, "Times New Roman", serif; font-size: 1rem; }
@@ -222,16 +221,38 @@ button, input, textarea, select { font: inherit; }
 .success-message { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem; border-radius: 6px; background: rgba(8, 116, 67, 0.08); color: #087443; font-size: 0.875rem; }
 .button--red:not(:disabled):hover { background: #c30b09; box-shadow: 0 8px 22px rgba(175, 1, 0, 0.2); }
 .function-rooms-page { background: radial-gradient(circle at 88% 42%, rgba(242, 231, 169, 0.22), transparent 26rem), #fdf6e3; }
-.function-rooms-page .page-hero { position: relative; overflow: hidden; padding: 5.5rem 1.5rem 4.5rem; background: linear-gradient(125deg, #3a0000 0%, #640000 62%, #8f0805 100%); text-align: left; }
-.function-rooms-page .page-hero::after { position: absolute; top: -10rem; right: -5rem; width: 30rem; height: 30rem; border: 1px solid rgba(242, 231, 169, 0.16); border-radius: 50%; box-shadow: 0 0 0 3rem rgba(242, 231, 169, 0.035), 0 0 0 7rem rgba(242, 231, 169, 0.025); content: ""; }
-.function-rooms-page__hero-content { position: relative; z-index: 1; width: min(100%, 1120px); margin: 0 auto; }
-.function-rooms-page .page-hero .eyebrow, .function-rooms-page .page-hero h1, .function-rooms-page .page-hero p:last-child { width: 100%; margin-left: 0; margin-right: 0; }
-.function-rooms-page .page-hero p:last-child { max-width: 520px; }
-.function-rooms-page .page-hero .eyebrow { margin-top: 0; margin-bottom: 1rem; }
-.function-rooms-page .page-hero h1 { margin-bottom: 1rem; letter-spacing: -0.02em; }
-.function-rooms-page .page-hero p:last-child { margin-bottom: 0; }
-.function-rooms-page .function-rooms-grid { max-width: 1160px; align-items: start; gap: clamp(2rem, 5vw, 5rem); padding-top: 4.5rem; padding-bottom: 6rem; }
-.function-rooms-page .function-rooms-grid > div:first-child { padding-top: 0.35rem; }
+
+/* Function Rooms — editorial landing (mirrors the Delivery page) */
+.fr-landing-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 0.8fr); align-items: center; gap: clamp(2rem, 6vw, 6.5rem); max-width: 1280px; margin: 0 auto; padding: clamp(3rem, 7vw, 6rem) 1.5rem clamp(3.5rem, 8vw, 7rem); }
+.fr-kicker { margin: 0 0 1.2rem; color: #af0100; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; }
+.fr-landing-hero h1 { max-width: 31rem; margin: 0; color: #3a0000; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.6rem, 6vw, 4.6rem); line-height: 1.04; letter-spacing: -0.02em; }
+.fr-landing-hero__intro { max-width: 31rem; margin: 1.7rem 0 2.2rem; color: #6a4a4a; font-size: clamp(1rem, 1.4vw, 1.15rem); line-height: 1.7; }
+.fr-landing-hero__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 1.25rem; }
+.fr-landing-hero .fr-primary-cta { min-width: 260px; min-height: 4rem; padding: 1.05rem 2rem; border: 0; border-radius: 999px; background: #af0100; color: #fffaf2; font-size: 1.05rem; box-shadow: 0 12px 26px rgba(122, 33, 31, 0.2); }
+.fr-landing-hero .fr-primary-cta:hover { background: #640000; box-shadow: 0 16px 30px rgba(122, 33, 31, 0.26); }
+.fr-landing-hero__visual { min-height: min(42rem, 66vh); border-radius: 18px; background: #cfcecb; box-shadow: 0 22px 48px rgba(69, 43, 37, 0.12); }
+
+.fr-gallery-section { max-width: 1160px; margin: 0 auto; padding-top: 0; padding-bottom: 1.5rem; }
+.fr-gallery-header { margin-bottom: 1.5rem; }
+.fr-gallery-header h2 { margin: 0 0 0.5rem; color: #3a0000; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.65rem, 3vw, 2rem); letter-spacing: -0.015em; }
+.fr-gallery-header p { margin: 0; color: #6a4a4a; font-size: 0.95rem; }
+.fr-gallery { max-width: 980px; }
+.fr-gallery__viewport { overflow: hidden; border-radius: 18px; box-shadow: 0 16px 36px rgba(69, 43, 37, 0.1); }
+.fr-gallery__track { display: flex; transition: transform 420ms ease; }
+.fr-gallery__slide { flex: 0 0 100%; height: clamp(14rem, 32vw, 24rem); background: #cfcecb; }
+.fr-gallery__controls { display: flex; align-items: center; justify-content: center; gap: 1.25rem; margin-top: 1.25rem; }
+.fr-gallery__controls > button { display: grid; place-items: center; width: 38px; height: 38px; border: 1.5px solid rgba(100, 0, 0, 0.2); border-radius: 50%; background: #fff; color: #640000; cursor: pointer; transition: border-color 150ms ease, color 150ms ease; }
+.fr-gallery__controls > button:hover { border-color: #af0100; color: #af0100; }
+.fr-gallery__dots { display: flex; gap: 0.5rem; }
+.fr-gallery__dot { width: 9px; height: 9px; padding: 0; border: none; border-radius: 50%; background: rgba(100, 0, 0, 0.2); cursor: pointer; transition: background 150ms ease; }
+.fr-gallery__dot--active { background: #af0100; }
+
+.room-card__media { height: 200px; margin-bottom: 1.1rem; border-radius: 10px; background: #cfcecb; }
+.room-card__media--plan { height: 230px; margin-top: 1.1rem; background-image: linear-gradient(rgba(100, 0, 0, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 0, 0, 0.07) 1px, transparent 1px); background-size: 24px 24px, 24px 24px; }
+
+.fr-info-section { max-width: 1160px; margin: 0 auto; padding-bottom: 6rem; }
+.fr-reserve-layout { max-width: 720px; margin: 0 auto; padding-top: 2.5rem; padding-bottom: 6rem; }
+.fr-reserve-layout .content-heading { margin-bottom: 1.5rem; font-size: clamp(1.65rem, 3vw, 2rem); letter-spacing: -0.015em; }
 .function-rooms-page .content-heading { margin-bottom: 1.5rem; font-size: clamp(1.65rem, 3vw, 2rem); letter-spacing: -0.015em; }
 .function-rooms-page .room-card { margin-bottom: 1.25rem; padding: 1.6rem 1.75rem; border: 1px solid rgba(100, 0, 0, 0.1); border-left: 4px solid #af0100; border-radius: 0 14px 14px 0; box-shadow: 0 10px 28px rgba(100, 0, 0, 0.07); }
 .function-rooms-page .room-card h3 { margin-bottom: 0.65rem; font-size: 1.18rem; }
@@ -242,8 +263,6 @@ button, input, textarea, select { font: inherit; }
 .function-rooms-page .amenities-card h3 { margin-bottom: 1rem; font-size: 1.18rem; }
 .function-rooms-page .amenities-card ul { gap: 0.65rem 1rem; }
 .function-rooms-page .amenities-card li { font-size: 0.84rem; }
-.function-rooms-page .function-rooms-grid > div:last-child { min-width: 0; }
-.function-rooms-page .function-rooms-grid > div:last-child .content-heading { margin-bottom: 1.5rem; }
 .function-rooms-page .reservation-form { padding: 1.75rem; border: 1px solid rgba(100, 0, 0, 0.1); border-top: 4px solid #af0100; border-radius: 0 14px 14px 14px; background: rgba(255, 255, 255, 0.72); box-shadow: 0 14px 34px rgba(100, 0, 0, 0.08); }
 .function-rooms-page .reservation-form .input { background: #fffdfa; }
 .function-rooms-page .reservation-submit { margin-top: 0.75rem; padding-top: 1rem; padding-bottom: 1rem; }
@@ -977,7 +996,6 @@ button, input, textarea, select { font: inherit; }
   .service-grid, .about-content { grid-template-columns: 1fr; }
   .choice-grid, .package-grid, .menu-grid { grid-template-columns: 1fr; }
   .proceed-bar { align-items: stretch; flex-direction: column; }
-  .function-rooms-grid { grid-template-columns: 1fr; }
   .amenities-card ul { grid-template-columns: 1fr; }
   .about-content { gap: 1rem; }
   .tracking-search, .order-summary { align-items: stretch; flex-direction: column; }
@@ -1018,9 +1036,8 @@ button, input, textarea, select { font: inherit; }
   .calendar-modal__success { padding: 2rem 1rem 1.25rem; }
   .success-actions { width: 100%; flex-direction: column; }
   .success-actions .button { width: 100%; }
-  .function-rooms-page .page-hero { padding-top: 4rem; padding-bottom: 3.5rem; text-align: center; }
-  .function-rooms-page .page-hero p:last-child { margin-left: auto; margin-right: auto; }
-  .function-rooms-page .function-rooms-grid { padding-top: 3.5rem; padding-bottom: 4rem; }
+  .function-rooms-page .fr-landing-hero { grid-template-columns: 1fr; padding-top: 3rem; padding-bottom: 3rem; }
+  .fr-landing-hero__visual { min-height: 16rem; }
   .function-rooms-page .reservation-form { padding: 1.25rem; }
   .menu-manager-toolbar { align-items: flex-start; flex-direction: column; }
   .menu-manager-toolbar__actions { flex-wrap: wrap; }
@@ -1443,6 +1460,11 @@ button, input, textarea, select { font: inherit; }
 @media (prefers-reduced-motion: no-preference) {
   .delivery-landing-hero__content { animation: delivery-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   .delivery-landing-hero__visual { animation: delivery-rise 750ms 100ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .fr-landing-hero__content { animation: delivery-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .fr-landing-hero__visual { animation: delivery-rise 750ms 100ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .fr-gallery-section { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .fr-info-section { animation: delivery-rise 700ms 200ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .fr-reserve-layout { animation: delivery-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 }
 
 @media (max-width: 760px) {
@@ -1472,7 +1494,10 @@ button, input, textarea, select { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .delivery-page *,
   .delivery-page *::before,
-  .delivery-page *::after {
+  .delivery-page *::after,
+  .function-rooms-page *,
+  .function-rooms-page *::before,
+  .function-rooms-page *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;

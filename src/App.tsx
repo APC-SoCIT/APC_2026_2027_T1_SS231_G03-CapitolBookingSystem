@@ -4,6 +4,7 @@ import { Catering } from "./pages/Catering";
 import { CateringBuffet } from "./pages/CateringBuffet";
 import { CateringPacked } from "./pages/CateringPacked";
 import { FunctionRooms } from "./pages/FunctionRooms";
+import { FunctionRoomReservation } from "./pages/FunctionRoomReservation";
 import { Delivery } from "./pages/Delivery";
 import { DeliveryStaff } from "./pages/DeliveryStaff";
 import { DeliveryOrder } from "./pages/DeliveryOrder";
@@ -105,6 +106,14 @@ export default function App() {
           element={
             <CustomerOnly>
               <FunctionRooms />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/function-rooms/reserve"
+          element={
+            <CustomerOnly>
+              <FunctionRoomReservation />
             </CustomerOnly>
           }
         />
