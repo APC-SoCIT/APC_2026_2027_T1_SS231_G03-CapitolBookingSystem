@@ -211,7 +211,7 @@ button, input, textarea, select { font: inherit; }
 .amenities-card li svg { color: #f2e7a9; }
 .reservation-form { display: flex; flex-direction: column; gap: 1rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.4rem; }
-.form-field > span { color: #640000; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.form-field > span { color: #640000; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
 .form-field em { font-weight: 400; opacity: 0.6; text-transform: none; }
 .input { width: 100%; padding: 0.7rem 0.9rem; border: 1.5px solid rgba(100, 0, 0, 0.18); border-radius: 6px; background: #fff; color: #1a0a0a; font-size: 0.9rem; outline: none; transition: border-color 150ms ease, box-shadow 150ms ease; }
 .input:focus { border-color: #af0100; box-shadow: 0 0 0 3px rgba(175, 1, 0, 0.1); }
@@ -564,7 +564,7 @@ button, input, textarea, select { font: inherit; }
 @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
 
 .signin-modal {
-  position: relative; width: min(420px, 100%);
+  position: relative; width: min(480px, 100%);
   overflow: hidden; border: 1px solid rgba(242, 231, 169, 0.22);
   border-radius: 14px; background: #fdf6e3;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
@@ -582,27 +582,27 @@ button, input, textarea, select { font: inherit; }
 .signin-modal__close:hover { background: rgba(58, 0, 0, 0.7); }
 
 .signin-modal__header {
-  display: flex; align-items: center; gap: 0.85rem;
-  padding: 1.4rem 1.5rem; border-radius: 13px 13px 0 0;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1.75rem 2rem; border-radius: 13px 13px 0 0;
   background: linear-gradient(135deg, #3a0000, #640000);
 }
 .signin-modal__header-icon {
-  display: grid; place-items: center; width: 42px; height: 42px;
+  display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0;
   border-radius: 50%; background: rgba(242, 231, 169, 0.12); color: #f2e7a9;
 }
-.signin-modal__header .eyebrow { margin: 0 0 0.2rem; color: rgba(242, 231, 169, 0.65); }
-.signin-modal__header h2 { margin: 0; padding-right: 2.5rem; color: #f2e7a9; font-family: Georgia, "Times New Roman", serif; font-size: 1.45rem; }
+.signin-modal__header .eyebrow { margin: 0 0 0.25rem; color: rgba(242, 231, 169, 0.65); }
+.signin-modal__header h2 { margin: 0; padding-right: 2.5rem; color: #f2e7a9; font-family: Georgia, "Times New Roman", serif; font-size: 1.55rem; }
 
 .signin-tabs { display: flex; gap: 0.5rem; padding: 0.75rem 1.5rem 0; background: #fdf6e3; }
 .signin-tab { flex: 1; padding: 0.55rem 1rem; border: 1.5px solid rgba(100, 0, 0, 0.12); border-radius: 6px; background: #fff; color: #640000; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 180ms ease, color 180ms ease, border-color 180ms ease; }
 .signin-tab--active { background: #640000; color: #f2e7a9; border-color: #640000; }
 .signin-hint { color: #8a5a5a; font-size: 0.72rem; margin-top: 0.2rem; }
 
-.signin-modal__body { display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem; }
+.signin-modal__body { display: flex; flex-direction: column; gap: 1.25rem; padding: 2rem; }
 
 .signin-field { display: flex; flex-direction: column; gap: 0.35rem; }
 .signin-field label {
-  color: #640000; font-size: 0.75rem; font-weight: 600;
+  color: #640000; font-size: 0.75rem; font-weight: 500;
   letter-spacing: 0.05em; text-transform: uppercase;
 }
 
