@@ -438,6 +438,8 @@ button, input, textarea, select { font: inherit; }
 .inquiry-form { display: flex; flex-direction: column; gap: 1rem; padding: 2rem; border: 1px solid rgba(100, 0, 0, 0.1); border-radius: 10px; background: #fff; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06); }
 .inquiry-form h2 { font-size: 1.5rem; }
 .inquiry-form .button { align-self: flex-start; }
+.profile-address-block { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+.profile-address-block .eyebrow { margin: 0; }
 .nav-link--dashboard { margin-left: 0.5rem; border-left: 1px solid rgba(242, 231, 169, 0.25); }
 /* Operations has no page-hero banner (admin, not customer-facing) — give the
    section its own, tighter top spacing instead of the hero-sized default. */
@@ -580,6 +582,8 @@ button, input, textarea, select { font: inherit; }
 .auth-user-info { display: flex; flex-direction: column; line-height: 1.15; }
 .auth-user-info strong { color: #f2e7a9; font-size: 0.78rem; }
 .auth-user-info small { color: rgba(242, 231, 169, 0.55); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.auth-user-profile-link { display: flex; align-items: center; gap: 0.55rem; text-decoration: none; border-radius: 6px; }
+.auth-user-profile-link:hover .auth-user-info strong { text-decoration: underline; }
 
 .auth-logout-btn {
   display: grid; place-items: center; width: 26px; height: 26px;

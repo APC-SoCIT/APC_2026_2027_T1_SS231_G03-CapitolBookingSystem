@@ -13,6 +13,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Operations } from "./pages/Operations";
 import { Home } from "./pages/Home";
 import { Inquiries } from "./pages/Inquiries";
+import { Profile } from "./pages/Profile";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
@@ -167,6 +168,14 @@ export default function App() {
           element={
             <CustomerOnly>
               <DeliveryOrder />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <CustomerOnly>
+              <Profile />
             </CustomerOnly>
           }
         />

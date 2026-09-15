@@ -107,13 +107,32 @@ export function Header() {
           <div className="header-auth">
             {loading ? null : user ? (
               <div className="auth-user-badge">
-                <span className="auth-user-avatar">
-                  {isAdmin ? <ShieldCheck size={14} /> : <User size={14} />}
-                </span>
-                <span className="auth-user-info">
-                  <strong>{user.displayName}</strong>
-                  <small>{isAdmin ? "Administrator" : "Customer"}</small>
-                </span>
+                {isAdmin ? (
+                  <>
+                    <span className="auth-user-avatar">
+                      <ShieldCheck size={14} />
+                    </span>
+                    <span className="auth-user-info">
+                      <strong>{user.displayName}</strong>
+                      <small>Administrator</small>
+                    </span>
+                  </>
+                ) : (
+                  <Link
+                    className="auth-user-profile-link"
+                    to="/profile"
+                    aria-label="View your profile"
+                    title="View your profile"
+                  >
+                    <span className="auth-user-avatar">
+                      <User size={14} />
+                    </span>
+                    <span className="auth-user-info">
+                      <strong>{user.displayName}</strong>
+                      <small>Customer</small>
+                    </span>
+                  </Link>
+                )}
                 <button
                   className="auth-logout-btn"
                   onClick={() => {
