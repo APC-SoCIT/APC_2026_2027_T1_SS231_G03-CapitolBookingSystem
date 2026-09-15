@@ -4,9 +4,11 @@ import { Catering } from "./pages/Catering";
 import { CateringBuffet } from "./pages/CateringBuffet";
 import { CateringPacked } from "./pages/CateringPacked";
 import { FunctionRooms } from "./pages/FunctionRooms";
+import { FunctionRoomReservation } from "./pages/FunctionRoomReservation";
 import { Delivery } from "./pages/Delivery";
-import { DeliveryStaff } from "./pages/DeliveryStaff";
+import { AdminDelivery } from "./pages/AdminDelivery";
 import { DeliveryOrder } from "./pages/DeliveryOrder";
+import { DeliveryMenuManager } from "./pages/DeliveryMenuManager";
 import { Dashboard } from "./pages/Dashboard";
 import { Operations } from "./pages/Operations";
 import { Home } from "./pages/Home";
@@ -46,6 +48,38 @@ function ProtectedOperations() {
   );
 }
 
+function ProtectedDeliveryMenuManager() {
+  const { isAdmin, loading, user } = useAuth();
+  if (loading) return <div className="auth-loading">Loading account...</div>;
+  if (isAdmin) return <DeliveryMenuManager />;
+  return (
+    <div className="placeholder-page">
+      <h1>Admin Only</h1>
+      <p>
+        Current role: <strong>{user?.role ?? "not signed in"}</strong>
+        {user?.email ? <> · {user.email}</> : null}
+      </p>
+      <p>Please sign in with an administrator account to access Delivery menu items.</p>
+    </div>
+  );
+}
+
+function ProtectedDeliveryStaff() {
+  const { isAdmin, loading, user } = useAuth();
+  if (loading) return <div className="auth-loading">Loading account...</div>;
+  if (isAdmin) return <AdminDelivery />;
+  return (
+    <div className="placeholder-page">
+      <h1>Admin Only</h1>
+      <p>
+        Current role: <strong>{user?.role ?? "not signed in"}</strong>
+        {user?.email ? <> · {user.email}</> : null}
+      </p>
+      <p>Please sign in with an administrator account to access Delivery.</p>
+    </div>
+  );
+}
+
 function CustomerOnly({ children }: { children: React.ReactNode }) {
   const { loading } = useAuth();
   if (loading) return <div className="auth-loading">Loading account...</div>;
@@ -56,8 +90,22 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about-us" element={<AboutUs />} />
+        <Route
+          path="/"
+          element={
+            <CustomerOnly>
+              <Home />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/about-us"
+          element={
+            <CustomerOnly>
+              <AboutUs />
+            </CustomerOnly>
+          }
+        />
         <Route
           path="/catering"
           element={
@@ -90,7 +138,22 @@ export default function App() {
             </CustomerOnly>
           }
         />
-        <Route path="/inquiries" element={<Inquiries />} />
+        <Route
+          path="/function-rooms/reserve"
+          element={
+            <CustomerOnly>
+              <FunctionRoomReservation />
+            </CustomerOnly>
+          }
+        />
+        <Route
+          path="/inquiries"
+          element={
+            <CustomerOnly>
+              <Inquiries />
+            </CustomerOnly>
+          }
+        />
         <Route
           path="/delivery"
           element={
@@ -107,14 +170,8 @@ export default function App() {
             </CustomerOnly>
           }
         />
-        <Route
-          path="/delivery/staff"
-          element={
-            <CustomerOnly>
-              <DeliveryStaff />
-            </CustomerOnly>
-          }
-        />
+        <Route path="/delivery/staff" element={<ProtectedDeliveryStaff />} />
+        <Route path="/delivery/items" element={<ProtectedDeliveryMenuManager />} />
         <Route path="/dashboard" element={<ProtectedDashboard />} />
         <Route path="/operations" element={<ProtectedOperations />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -37,7 +37,7 @@ export function CateringBuffet() {
     return () => document.removeEventListener("click", handleDocumentClick);
   }, []);
   return (
-    <div>
+    <div className="catering-subpage">
       <div className="breadcrumb">
         <Link to="/catering">Catering</Link>
         <ChevronRight size={14} />

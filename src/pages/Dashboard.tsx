@@ -217,15 +217,6 @@ export function Dashboard() {
 
   return (
     <div>
-      <section className="page-hero dashboard-hero">
-        <p className="eyebrow">Analytics</p>
-        <h1>Daily Operations Report</h1>
-        <p style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <Calendar size={16} />
-          {formatDate(currentTime)}
-        </p>
-      </section>
-
       <section className="section">
         {/* Date & Time header bar */}
         <div
@@ -233,23 +224,24 @@ export function Dashboard() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "1rem 1.5rem",
+            padding: "0.75rem 1.5rem",
             marginBottom: 24,
             borderRadius: 10,
-            background: "#640000",
-            color: "#fdf6e3",
+            background: "#fffbf7",
+            borderBottom: "1px solid rgba(0,0,0,0.08)",
           }}
         >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Calendar size={16} style={{ color: "#af0100" }} />
+            <span style={{ fontSize: "0.95rem", fontWeight: 600 }}>
+              {formatDate(currentTime)}
+            </span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Clock size={18} style={{ color: "#f2e7a9" }} />
-            <div>
-              <div style={{ fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(242,231,169,0.7)" }}>
-                Current Time
-              </div>
-              <div style={{ fontSize: "1.1rem", fontWeight: 700, fontFamily: "Georgia, serif", color: "#f2e7a9" }}>
-                {formatTime(currentTime)}
-              </div>
-            </div>
+            <Clock size={16} style={{ color: "#888" }} />
+            <span style={{ fontSize: "0.95rem", fontWeight: 600, fontFamily: "Georgia, serif" }}>
+              {formatTime(currentTime)}
+            </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {polling ? (
@@ -257,13 +249,13 @@ export function Dashboard() {
                 className="button"
                 type="button"
                 onClick={() => setPolling(false)}
-                style={{ padding: "0.5rem 1rem", fontSize: "0.8rem", border: "1px solid rgba(242,231,169,0.4)", background: "transparent", color: "#f2e7a9" }}
+                style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}
               >
                 <Activity size={12} style={{ marginRight: 6 }} /> Stop live
               </button>
             ) : (
               <button
-                className="button button--gold"
+                className="button button--"
                 type="button"
                 onClick={() => setPolling(true)}
                 style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}
@@ -272,16 +264,16 @@ export function Dashboard() {
               </button>
             )}
             {polling && (
-              <span style={{ fontSize: "0.75rem", color: "#87d068", fontWeight: 600 }}>
+              <span style={{ fontSize: "0.75rem", color: "#2d9e2d", fontWeight: 600 }}>
                 ● Live
               </span>
             )}
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(242,231,169,0.7)" }}>
+            <div style={{ fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#999" }}>
               Last Updated
             </div>
-            <div style={{ fontSize: "0.85rem", color: "#f2e7a9" }}>
+            <div style={{ fontSize: "0.85rem", color: "#555" }}>
               {lastUpdated ? formatTime(lastUpdated) : "—"}
             </div>
           </div>

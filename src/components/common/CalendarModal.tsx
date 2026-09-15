@@ -10,6 +10,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { RESERVED_DATES } from "../../constants";
+import { useAuth } from "../../context/AuthContext";
+import { getStoredContact, saveStoredContact } from "../../lib/contact";
 
 export type BookingDetails = {
   date: string;
@@ -109,12 +111,17 @@ export function CalendarModal({
 }: CalendarModalProps) {
   const today = useMemo(() => new Date(), []);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const effectiveName = initialName || user?.displayName || "";
+  const effectiveContact = initialContact || getStoredContact(user?.id);
+
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState("");
   const [time, setTime] = useState(TIME_OPTIONS[0]);
-  const [name, setName] = useState(initialName);
-  const [contact, setContact] = useState(initialContact);
+  const [name, setName] = useState(effectiveName);
+  const [contact, setContact] = useState(effectiveContact);
   const [pax, setPax] = useState(String(initialPax ?? minPax));
   const [submitted, setSubmitted] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
@@ -123,20 +130,20 @@ export function CalendarModal({
   const resetAndClose = useCallback(() => {
     setSelectedDate("");
     setTime(TIME_OPTIONS[0]);
-    setName(initialName);
-    setContact(initialContact);
+    setName(effectiveName);
+    setContact(effectiveContact);
     setPax(String(initialPax ?? minPax));
     setSubmitted(false);
     setShowErrors(false);
     setBookingRef("");
     onClose();
-  }, [initialContact, initialName, initialPax, minPax, onClose]);
+  }, [effectiveContact, effectiveName, initialPax, minPax, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    setName(initialName);
-    setContact(initialContact);
+    setName(effectiveName);
+    setContact(effectiveContact);
     setPax(String(initialPax ?? minPax));
     document.body.classList.add("modal-open");
 
@@ -149,7 +156,7 @@ export function CalendarModal({
       document.body.classList.remove("modal-open");
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [initialContact, initialName, initialPax, minPax, isOpen, resetAndClose]);
+  }, [effectiveContact, effectiveName, initialPax, minPax, isOpen, resetAndClose]);
 
   if (!isOpen) return null;
 
@@ -189,6 +196,10 @@ export function CalendarModal({
     if (!selectedDate || !nameValid || !contactValid || !paxValid) {
       setShowErrors(true);
       return;
+    }
+
+    if (user?.id) {
+      saveStoredContact(user.id, contact.trim());
     }
 
     const ref = generateBookingRef();

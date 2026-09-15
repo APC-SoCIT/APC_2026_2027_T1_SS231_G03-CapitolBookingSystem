@@ -59,7 +59,8 @@ export function SignInModal({ onClose }: SignInModalProps) {
     const result = await signInWithPassword(normalizedEmail, password);
     if (result.success) {
       onClose();
-      if (result.user?.role === "admin") {
+      // Admins are restricted to admin pages — send them straight there.
+      if (result.isAdmin) {
         navigate("/operations");
       }
     } else {
@@ -210,7 +211,7 @@ export function SignInModal({ onClose }: SignInModalProps) {
                 id="login-email"
                 className={`input ${error ? "input--error" : ""}`}
                 type="email"
-                placeholder="admin@capitol.com"
+                placeholder="you@example.com"
                 value={email}
                 required
                 onChange={(e) => {
