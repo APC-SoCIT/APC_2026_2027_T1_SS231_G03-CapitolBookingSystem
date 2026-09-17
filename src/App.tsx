@@ -9,6 +9,7 @@ import { FunctionRoomReservation } from "./pages/FunctionRoomReservation";
 import { Delivery } from "./pages/Delivery";
 import { AdminDelivery } from "./pages/AdminDelivery";
 import { DeliveryOrder } from "./pages/DeliveryOrder";
+import { DeliveryRider } from "./pages/DeliveryRider";
 import { DeliveryMenuManager } from "./pages/DeliveryMenuManager";
 import { Dashboard } from "./pages/Dashboard";
 import { Operations } from "./pages/Operations";
@@ -54,15 +55,7 @@ export default function App() {
           <Route path="/delivery/items" element={<DeliveryMenuManager />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/operations" element={<Operations />} />
-          <Route
-            path="/delivery/rider"
-            element={
-              <div className="placeholder-page">
-                <h1>Rider deliveries</h1>
-                <p>Your delivery workspace is coming soon.</p>
-              </div>
-            }
-          />
+          <Route path="/delivery/rider" element={<DeliveryRider />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </RoleGuard>
