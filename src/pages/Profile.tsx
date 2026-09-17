@@ -17,7 +17,7 @@ function defaultAddresses(stored: StoredAddress[]): StoredAddress[] {
 }
 
 export function Profile() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading } = useAuth();
   const [phone, setPhone] = useState("");
   const [addresses, setAddresses] = useState<StoredAddress[]>([
     { ...EMPTY_ADDRESS },
@@ -51,18 +51,6 @@ export function Profile() {
           Sign In / Log In
         </button>
         {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
-      </div>
-    );
-  }
-
-  if (isAdmin) {
-    return (
-      <div className="placeholder-page">
-        <h1>Admin Only</h1>
-        <p>
-          Current role: <strong>{user.role}</strong> · {user.email}
-        </p>
-        <p>Profile details are available for customer accounts.</p>
       </div>
     );
   }

@@ -4,6 +4,15 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { NAVIGATION_ITEMS, RESTAURANT_INFO } from "../../constants";
 import { useAuth } from "../../context/AuthContext";
 import { SignInModal } from "./SignInModal";
+import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
+
+const EMPLOYEE_NAVIGATION_ITEMS = [
+  { label: "Operations", path: "/operations" },
+  { label: "Delivery", path: "/delivery/staff" },
+  { label: "Menu Items", path: "/delivery/items" },
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "My Deliveries", path: "/delivery/rider" },
+];
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,11 +21,15 @@ export function Header() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { user, loading, logout, isAdmin } = useAuth();
-  const location = useLocation();
+  const { user, loading, logout } = useAuth();
+  const { pathname } = useLocation();
+  const role = user?.role ?? null;
+  const staffLinks = EMPLOYEE_NAVIGATION_ITEMS.filter((item) =>
+    canAccessRoute({ role }, item.path),
+  );
   const navigate = useNavigate();
 
-  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => setMenuOpen(false), [pathname]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -61,63 +74,24 @@ export function Header() {
           </Link>
 
           <nav className="desktop-nav" aria-label="Main navigation">
-            {isAdmin ? (
-              <>
-                <NavLink
-                  className={({ isActive }) =>
-                    `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
-                  }
-                  to="/operations"
-                >
-                  Operations
-                </NavLink>
-                <NavLink
-                  className={({ isActive }) =>
-                    `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
-                  }
-                  to="/delivery/staff"
-                >
-                  Delivery
-                </NavLink>
-                <NavLink
-                  className={({ isActive }) =>
-                    `nav-link nav-link--dashboard ${isActive ? "nav-link--active" : ""}`
-                  }
-                  to="/dashboard"
-                >
-                  Dashboard
-                </NavLink>
-              </>
-            ) : (
-              NAVIGATION_ITEMS.map((item) => (
-                <NavLink
-                  className={({ isActive }) =>
-                    `nav-link ${isActive ? "nav-link--active" : ""}`
-                  }
-                  key={item.path}
-                  to={item.path}
-                >
-                  {item.label}
-                </NavLink>
-              ))
-            )}
+            {(staffLinks.length ? staffLinks : NAVIGATION_ITEMS).map((item) => (
+              <NavLink
+                className={({ isActive }) =>
+                  `nav-link ${staffLinks.length ? "nav-link--dashboard" : ""} ${isActive ? "nav-link--active" : ""}`
+                }
+                key={item.path}
+                to={item.path}
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
 
           {/* Right side: Sign In / User badge */}
           <div className="header-auth">
             {loading ? null : user ? (
               <div className="auth-user-badge">
-                {isAdmin ? (
-                  <>
-                    <span className="auth-user-avatar">
-                      <ShieldCheck size={14} />
-                    </span>
-                    <span className="auth-user-info">
-                      <strong>{user.displayName}</strong>
-                      <small>Administrator</small>
-                    </span>
-                  </>
-                ) : (
+                {role === "customer" ? (
                   <Link
                     className="auth-user-profile-link"
                     to="/profile"
@@ -129,9 +103,19 @@ export function Header() {
                     </span>
                     <span className="auth-user-info">
                       <strong>{user.displayName}</strong>
-                      <small>Customer</small>
+                      <small>{ROLE_LABELS.customer}</small>
                     </span>
                   </Link>
+                ) : (
+                  <>
+                    <span className="auth-user-avatar">
+                      <ShieldCheck size={14} />
+                    </span>
+                    <span className="auth-user-info">
+                      <strong>{user.displayName}</strong>
+                      <small>{role ? ROLE_LABELS[role] : "Unknown role"}</small>
+                    </span>
+                  </>
                 )}
                 <button
                   className="auth-logout-btn"
@@ -173,46 +157,17 @@ export function Header() {
 
         {menuOpen && (
           <nav className="mobile-nav" aria-label="Mobile navigation">
-            {isAdmin ? (
-              <>
-                <NavLink
-                  className={({ isActive }) =>
-                    `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
-                  }
-                  to="/operations"
-                >
-                  Operations
-                </NavLink>
-                <NavLink
-                  className={({ isActive }) =>
-                    `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
-                  }
-                  to="/delivery/staff"
-                >
-                  Delivery
-                </NavLink>
-                <NavLink
-                  className={({ isActive }) =>
-                    `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
-                  }
-                  to="/dashboard"
-                >
-                  Dashboard
-                </NavLink>
-              </>
-            ) : (
-              NAVIGATION_ITEMS.map((item) => (
-                <NavLink
-                  className={({ isActive }) =>
-                    `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
-                  }
-                  key={item.path}
-                  to={item.path}
-                >
-                  {item.label}
-                </NavLink>
-              ))
-            )}
+            {(staffLinks.length ? staffLinks : NAVIGATION_ITEMS).map((item) => (
+              <NavLink
+                className={({ isActive }) =>
+                  `mobile-nav__link ${isActive ? "mobile-nav__link--active" : ""}`
+                }
+                key={item.path}
+                to={item.path}
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         )}
       </header>
