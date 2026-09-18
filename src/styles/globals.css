@@ -1030,6 +1030,11 @@ button, input, textarea, select { font: inherit; }
   .dashboard-search, .dashboard-search input { width: 100%; }
   .dashboard-order-row, .dashboard-inquiry-row { grid-template-columns: 1fr; align-items: start; }
   .dashboard-status { width: 100%; }
+  .riders-grid { grid-template-columns: minmax(0, 1fr); }
+  .rider-card { flex-wrap: wrap; }
+  .rider-card__info { flex: 1 1 calc(100% - 40px - 0.85rem); overflow-wrap: anywhere; }
+  .rider-card__remove { margin-left: auto; flex-shrink: 0; }
+  .rider-add-row { flex-direction: column; align-items: stretch; }
   .proceed-bar-v2 { flex-direction: column; align-items: flex-start; gap: 1rem; }
   .proceed-bar-v2__btn { width: 100%; }
   .packed-guidelines ul { grid-template-columns: 1fr; }
