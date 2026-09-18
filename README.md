@@ -35,8 +35,8 @@ A continuation from our PROJMAN class to our current one (SOFTDEV). **Capitol Bo
 Authentication uses Supabase Auth with passwordless magic links and Google OAuth.
 
 1. Copy `.env.example` to `.env.local` and set the Supabase project URL and publishable key.
-2. In Supabase Dashboard, enable Email authentication and configure the Site URL plus `http://localhost:5173/dashboard` as an additional redirect URL.
-3. In Google Cloud, create a Web OAuth client. Add `http://localhost:5173` as an authorized JavaScript origin and add the Supabase Auth callback URL shown in the Google provider settings as an authorized redirect URI.
+2. In Supabase Dashboard, enable Email authentication and configure the Site URL plus `http://localhost:5173/**` and `http://localhost:5174/**` as additional redirect URLs so users return to the page where they started signing in.
+3. In Google Cloud, create a Web OAuth client. Add `http://localhost:5173` and `http://localhost:5174` as authorized JavaScript origins and add the Supabase Auth callback URL shown in the Google provider settings as an authorized redirect URI.
 4. Enable Google under Supabase Dashboard > Authentication > Providers and save the Google client ID and client secret there. Never place the client secret or service-role key in frontend code.
 5. Apply the migration in `supabase/migrations/` to create the RLS-protected profiles table.
 
