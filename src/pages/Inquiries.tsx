@@ -50,7 +50,7 @@ export function Inquiries() {
   };
 
   return (
-    <div>
+    <div className="inquiries-page">
       <section className="page-hero">
         <p className="eyebrow">Capitol Restaurant</p>
         <h1>Inquiries</h1>

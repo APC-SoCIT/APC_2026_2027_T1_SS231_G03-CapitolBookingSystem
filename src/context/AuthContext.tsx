@@ -2,19 +2,19 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "../lib/supabase";
 
-export type UserRole = "admin" | "customer";
+import { isUserRole, type UserRole } from "../lib/roles";
 
 export interface User {
   id: string;
   email: string;
-  role: UserRole;
+  role: UserRole | null;
   displayName: string;
 }
 
 export interface AuthActionResult {
   success: boolean;
   error?: string;
-  user?: User;
+  role?: UserRole | null;
 }
 
 interface AuthContextType {
@@ -24,14 +24,13 @@ interface AuthContextType {
   signInWithPassword: (email: string, password: string) => Promise<AuthActionResult>;
   signInWithGoogle: () => Promise<AuthActionResult>;
   logout: () => Promise<AuthActionResult>;
-  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 type Profile = {
-  display_name: string;
-  role: UserRole;
+  display_name: string | null;
+  role: unknown;
 };
 
 function getMetadataName(authUser: SupabaseUser) {
@@ -46,20 +45,23 @@ function getMetadataName(authUser: SupabaseUser) {
 }
 
 async function toAppUser(authUser: SupabaseUser): Promise<User> {
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("display_name, role")
-    .eq("id", authUser.id)
-    .maybeSingle<Profile>();
-
-  if (error) {
-    console.warn("Unable to load user profile", error.message);
+  let profile: Profile | null = null;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("display_name, role")
+      .eq("id", authUser.id)
+      .maybeSingle<Profile>();
+    if (error) throw error;
+    profile = data;
+  } catch {
+    console.warn("Unable to load user profile");
   }
 
   return {
     id: authUser.id,
     email: authUser.email ?? "",
-    role: profile?.role === "admin" ? "admin" : "customer",
+    role: isUserRole(profile?.role) ? profile.role : null,
     displayName: profile?.display_name || getMetadataName(authUser),
   };
 }
@@ -74,70 +76,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Restore demo mock admin from Log In bypass (admin@capitol.com / 123456)
-    try {
-      const raw = localStorage.getItem("capitol_mock_admin");
-      if (raw) {
-        const mock = JSON.parse(raw) as User;
-        if (mock?.email?.toLowerCase() === "admin@capitol.com" && mock?.role === "admin") {
-          setUser(mock);
-          setLoading(false);
-        }
-      }
-    } catch {}
-
     let mounted = true;
     let syncVersion = 0;
-
-    const syncUser = async (authUser: SupabaseUser | null, redirectAdmin = false) => {
-      const version = ++syncVersion;
-
-      if (!authUser) {
-        // Keep mock admin if present — don't clear it on null session
-        try {
-          const raw = localStorage.getItem("capitol_mock_admin");
-          if (raw) {
-            const mock = JSON.parse(raw) as User;
-            if (mock?.email?.toLowerCase() === "admin@capitol.com") {
-              if (mounted && version === syncVersion) {
-                setUser(mock);
-                setLoading(false);
-              }
-              return;
-            }
-          }
-        } catch {}
-        if (mounted && version === syncVersion) {
-          setUser(null);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const nextUser = await toAppUser(authUser);
-      if (mounted && version === syncVersion) {
-        setUser(nextUser);
-        setLoading(false);
-        if (redirectAdmin && nextUser.role === "admin" && window.location.pathname !== "/operations") {
-          window.location.assign("/operations");
-        }
-      }
-    };
+    let accountId: string | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (mounted) setLoading(true);
-      void syncUser(session?.user ?? null, event === "SIGNED_IN");
-    });
-
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (error) console.warn("Unable to restore auth session", error.message);
-      return syncUser(data.session?.user ?? null);
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      const version = ++syncVersion;
+      clearTimeout(timer);
+      const authUser = session?.user ?? null;
+      if (!authUser) {
+        accountId = null;
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      if (accountId !== authUser.id) {
+        accountId = authUser.id;
+        setUser(null);
+        setLoading(true);
+      }
+      timer = setTimeout(() => {
+        void toAppUser(authUser).then((nextUser) => {
+          if (mounted && version === syncVersion) {
+            setUser((current) =>
+              current?.id === nextUser.id && current.email === nextUser.email &&
+              current.role === nextUser.role && current.displayName === nextUser.displayName
+                ? current
+                : nextUser,
+            );
+            setLoading(false);
+          }
+        });
+      }, 0);
     });
 
     return () => {
       mounted = false;
+      clearTimeout(timer);
       subscription.unsubscribe();
     };
   }, []);
@@ -162,44 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithPassword = async (email: string, password: string): Promise<AuthActionResult> => {
-    // Demo bypass for fake admin@capitol.com — Supabase email delivery not configured for capitol.com
-    // Keep this block for prototype only; remove before prod.
-    if (email.toLowerCase() === "admin@capitol.com" && password === "123456") {
-      const mockAdmin: User = {
-        id: "eb1ac89f-0b2f-47b4-9800-3dfcd354d162",
-        email: "admin@capitol.com",
-        role: "admin",
-        displayName: "Admin",
-      };
-      setUser(mockAdmin);
-      setLoading(false);
-      try {
-        localStorage.setItem("capitol_mock_admin", JSON.stringify(mockAdmin));
-      } catch {}
-      return { success: true, user: mockAdmin };
-    }
-
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      // Fallback for manually inserted admin row that may still hit 500 due to missing identities
-      if (error && email.toLowerCase() === "admin@capitol.com" && password === "123456" && error.message.includes("Database error")) {
-        const mockAdmin: User = {
-          id: "eb1ac89f-0b2f-47b4-9800-3dfcd354d162",
-          email: "admin@capitol.com",
-          role: "admin",
-          displayName: "Admin",
-        };
-        setUser(mockAdmin);
-        setLoading(false);
-        try {
-          localStorage.setItem("capitol_mock_admin", JSON.stringify(mockAdmin));
-        } catch {}
-        return { success: true, user: mockAdmin };
-      }
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { success: false, error: error.message };
 
-      const signedInUser = data.user ? await toAppUser(data.user) : undefined;
-      return { success: true, user: signedInUser };
+      if (!data.user) return { success: false, error: "Unable to load account" };
+      const appUser = await toAppUser(data.user);
+      return { success: true, role: appUser.role };
     } catch (error) {
       return {
         success: false,
@@ -226,8 +174,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async (): Promise<AuthActionResult> => {
     try {
-      localStorage.removeItem("capitol_mock_admin");
-      setUser(null);
       const { error } = await supabase.auth.signOut();
       return error ? { success: false, error: error.message } : { success: true };
     } catch (error) {
@@ -247,7 +193,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithPassword,
         signInWithGoogle,
         logout,
-        isAdmin: user?.role === "admin",
       }}
     >
       {children}

@@ -1,14 +1,21 @@
-import { ArrowLeft, Check, Minus, Plus, ShoppingBag } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingBag } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SignInModal } from "../components/common";
-import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
+import type { MenuItem } from "../constants";
+import {
+  getVisibleCategoryName,
+  useDeliveryCategoryDefs,
+  useDeliveryMenuItems,
+} from "../data/deliveryMenu";
 import {
   getDeliveryOrders,
   saveDeliveryOrders,
   type DeliveryOrder as DeliveryOrderData,
 } from "../data/delivery";
 import { useAuthGate } from "../hooks/useAuthGate";
+import { useAuth } from "../context/AuthContext";
+import { getStoredContact } from "../lib/contact";
 
 type Cart = Record<string, number>;
 
@@ -20,7 +27,12 @@ type CustomerDetails = {
   payment: string;
 };
 
-type OrderErrors = Array<"name" | "phone" | "address" | "items">;
+type FieldKey = "name" | "phone" | "address" | "items";
+type OrderErrors = FieldKey[];
+type FieldMessages = Partial<Record<FieldKey, string>>;
+
+// Philippine mobile number: 11 digits, starting with 09 (spaces/dashes ignored).
+const PH_MOBILE_PATTERN = /^09\d{9}$/;
 
 const EMPTY_DETAILS: CustomerDetails = {
   name: "",
@@ -31,20 +43,62 @@ const EMPTY_DETAILS: CustomerDetails = {
 };
 
 const DELIVERY_FEE = 60;
+const MAX_QUANTITY_PER_ITEM = 20;
 
 export function DeliveryOrder() {
   const navigate = useNavigate();
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
+  const { user } = useAuth();
+  const menuItems = useDeliveryMenuItems();
+  const categoryDefs = useDeliveryCategoryDefs();
   const [cart, setCart] = useState<Cart>({});
   const [details, setDetails] = useState<CustomerDetails>(EMPTY_DETAILS);
   const [errors, setErrors] = useState<OrderErrors>([]);
+  const [fieldMessages, setFieldMessages] = useState<FieldMessages>({});
   const [submittedReference, setSubmittedReference] = useState<string | null>(
     null,
   );
+  const [menuSearch, setMenuSearch] = useState("");
+
+  // Autofill name + previously used contact number once the session is known.
+  useEffect(() => {
+    if (!user) return;
+    setDetails((prev) => ({
+      ...prev,
+      name: prev.name || user.displayName,
+      phone: prev.phone || getStoredContact(user.id),
+    }));
+  }, [user]);
 
   const selectedItems = useMemo(
-    () => PACKED_MENU_ITEMS.filter((item) => cart[item.id]),
-    [cart],
+    () => menuItems.filter((item) => cart[item.id]),
+    [menuItems, cart],
+  );
+
+
+  const visibleMenuItems = useMemo(() => {
+    const query = menuSearch.trim().toLowerCase();
+    if (!query) return menuItems;
+    return menuItems.filter(
+      (item) =>
+        item.name.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query),
+    );
+  }, [menuSearch, menuItems]);
+
+  // Show six dishes at a time so the page doesn't stretch on big menus.
+  const MENU_PAGE_SIZE = 6;
+  const [menuPage, setMenuPage] = useState(1);
+  const menuPageCount = Math.ceil(visibleMenuItems.length / MENU_PAGE_SIZE) || 1;
+  const shownMenuItems = visibleMenuItems.slice(
+    (menuPage - 1) * MENU_PAGE_SIZE,
+    menuPage * MENU_PAGE_SIZE,
+  );
+
+  const totalQuantity = selectedItems.reduce(
+    (sum, item) => sum + (cart[item.id] ?? 0),
+    0,
   );
 
   const subtotal = selectedItems.reduce(
@@ -57,26 +111,43 @@ export function DeliveryOrder() {
   const updateQuantity = (item: MenuItem, quantity: number) => {
     setCart((currentCart) => ({
       ...currentCart,
-      [item.id]: Math.max(0, Math.min(1, quantity)), // Cap at 1
+      [item.id]: Math.max(0, Math.min(MAX_QUANTITY_PER_ITEM, quantity)),
     }));
   };
 
-  const updateDetail = (key: keyof CustomerDetails, value: string) => {
-    setDetails((currentDetails) => ({
-      ...currentDetails,
-      [key]: value,
-    }));
+  const updateDetail = (field: keyof CustomerDetails, value: string) => {
+    setDetails((prev) => ({ ...prev, [field]: value }));
   };
 
   const submitOrder = () => {
     const nextErrors: OrderErrors = [];
+    const nextMessages: FieldMessages = {};
 
-    if (!details.name.trim()) nextErrors.push("name");
-    if (!details.phone.trim()) nextErrors.push("phone");
-    if (!details.address.trim()) nextErrors.push("address");
-    if (!selectedItems.length) nextErrors.push("items");
+    if (!details.name.trim()) {
+      nextErrors.push("name");
+      nextMessages.name = "Full name is required";
+    }
+
+    const phoneDigits = details.phone.replace(/\D/g, "");
+    if (!phoneDigits) {
+      nextErrors.push("phone");
+      nextMessages.phone = "Contact number is required";
+    } else if (!PH_MOBILE_PATTERN.test(phoneDigits)) {
+      nextErrors.push("phone");
+      nextMessages.phone = "Enter an 11-digit number starting with 09";
+    }
+
+    if (!details.address.trim()) {
+      nextErrors.push("address");
+      nextMessages.address = "Delivery address is required";
+    }
+    if (!selectedItems.length) {
+      nextErrors.push("items");
+      nextMessages.items = "Select at least one item to order";
+    }
 
     setErrors(nextErrors);
+    setFieldMessages(nextMessages);
 
     if (nextErrors.length > 0) return;
     if (!requireAuth()) return;
@@ -91,7 +162,7 @@ export function DeliveryOrder() {
       price: it.price,
       category: it.category,
     }));
-    const itemsDisplay = `${selectedItems.length} menu item${selectedItems.length === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
+    const itemsDisplay = `${totalQuantity} item${totalQuantity === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
     const order: DeliveryOrderData = {
       reference,
       customer: details.name,
@@ -112,6 +183,7 @@ export function DeliveryOrder() {
 
     saveDeliveryOrders([...existingOrders, order]);
     setSubmittedReference(reference);
+    setCart({});
   };
 
   if (submittedReference) {
@@ -119,15 +191,18 @@ export function DeliveryOrder() {
       <OrderConfirmation
         customerName={details.name}
         reference={submittedReference}
-        onPlaceAnother={() => navigate("/delivery/order")}
+        onPlaceAnother={() => {
+          setSubmittedReference(null);
+          setDetails(EMPTY_DETAILS);
+          setCart({});
+        }}
       />
     );
   }
 
   return (
-    <div>
-      <section className="page-hero">
-        <p className="eyebrow">Capitol Restaurant</p>
+    <div className="order-page">
+      <section className="subpage-hero">
         <h1>Order Delivery</h1>
         <p>Enjoy Capitol favorites at home. Build your order below.</p>
       </section>
@@ -146,26 +221,71 @@ export function DeliveryOrder() {
                 <h2>Choose your dishes</h2>
               </div>
               <span>
-                {selectedItems.length} {selectedItems.length === 1 ? "item" : "items"} selected
+                {totalQuantity} item{totalQuantity === 1 ? "" : "s"} selected
               </span>
             </div>
 
-            <div className="order-menu-grid">
-              {PACKED_MENU_ITEMS.map((item) => (
-                <MenuOrderCard
-                  item={item}
-                  key={item.id}
-                  quantity={cart[item.id] ?? 0}
-                  onChange={(quantity) => updateQuantity(item, quantity)}
-                />
-              ))}
-            </div>
+            <label className="order-menu-search">
+              <Search size={16} aria-hidden="true" />
+              <input
+                type="search"
+                placeholder="Search the menu…"
+                value={menuSearch}
+                onChange={(event) => {
+                  setMenuSearch(event.target.value);
+                  setMenuPage(1);
+                }}
+              />
+            </label>
+
+            {visibleMenuItems.length ? (
+              <>
+                <div className="order-menu-grid">
+                  {shownMenuItems.map((item) => (
+                    <MenuOrderCard
+                      categoryDefs={categoryDefs}
+                      item={item}
+                      key={item.id}
+                      quantity={cart[item.id] ?? 0}
+                      onChange={(quantity) => updateQuantity(item, quantity)}
+                    />
+                  ))}
+                </div>
+                {menuPageCount > 1 && (
+                  <div className="order-menu-pager">
+                    <button
+                      aria-label="Previous dishes"
+                      disabled={menuPage <= 1}
+                      onClick={() => setMenuPage((page) => Math.max(1, page - 1))}
+                      type="button"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <span className="order-menu-pager__page">
+                      Page {menuPage} of {menuPageCount}
+                    </span>
+                    <button
+                      aria-label="Next dishes"
+                      disabled={menuPage >= menuPageCount}
+                      onClick={() => setMenuPage((page) => Math.min(menuPageCount, page + 1))}
+                      type="button"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="cart-empty">
+                No dishes match &ldquo;{menuSearch}&rdquo;.
+              </p>
+            )}
           </div>
 
           <aside className="order-sidebar">
             <OrderSummaryCard
-              cart={cart}
               selectedItems={selectedItems}
+              cart={cart}
               subtotal={subtotal}
               deliveryFee={deliveryFee}
               total={total}
@@ -173,6 +293,7 @@ export function DeliveryOrder() {
             <CustomerFormCard
               details={details}
               errors={errors}
+              fieldMessages={fieldMessages}
               total={total}
               onChange={updateDetail}
               onSubmit={submitOrder}
@@ -188,43 +309,92 @@ export function DeliveryOrder() {
 function MenuOrderCard({
   item,
   quantity,
+  categoryDefs,
   onChange,
 }: {
   item: MenuItem;
   quantity: number;
+  categoryDefs: ReturnType<typeof useDeliveryCategoryDefs>;
   onChange: (quantity: number) => void;
 }) {
   const isSelected = quantity > 0;
 
   return (
-    <button
-      className={`order-menu-card ${isSelected ? "order-menu-card--selected" : ""}`}
+    <article
+      className={`order-menu-card ${quantity ? "order-menu-card--selected" : ""}`}
       key={item.id}
-      onClick={() => onChange(isSelected ? 0 : 1)}
-      type="button"
     >
-      <div className="order-menu-card__image-placeholder" aria-hidden="true" />
-      <div className="order-menu-card__content">
-        <div className="order-menu-card__top">
-        <h2>{item.name}</h2>
-        <strong>₱{item.price}</strong>
-        </div>
-        <span className="order-menu-card__category">{item.category}</span>
-        <p>{item.description}</p>
+      <div className="order-menu-card__media">
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.name}
+            className="order-menu-card__img"
+            loading="lazy"
+          />
+        ) : (
+          <div
+            className="order-menu-card__img order-menu-card__img--blank"
+            aria-label="No image available"
+          />
+        )}
       </div>
-    </button>
+
+      <div className="order-menu-card__body">
+        <div className="order-menu-card__header-row">
+          <h2>{item.name}</h2>
+          <strong className="order-menu-card__price">₱{item.price}</strong>
+        </div>
+        <span className="order-menu-card__category">
+          {getVisibleCategoryName(item, categoryDefs)}
+        </span>
+        <p>{item.description}</p>
+
+        <div className="order-menu-card__bottom">
+          {isSelected ? (
+            <div className="quantity-control">
+              <button
+                aria-label={`Remove one ${item.name}`}
+                onClick={() => onChange(quantity - 1)}
+                type="button"
+              >
+                <Minus size={14} />
+              </button>
+              <span>{quantity}</span>
+              <button
+                aria-label={`Add one more ${item.name}`}
+                disabled={quantity >= MAX_QUANTITY_PER_ITEM}
+                onClick={() => onChange(quantity + 1)}
+                type="button"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              className="order-menu-card__add"
+              onClick={() => onChange(1)}
+              type="button"
+            >
+              <Plus size={14} />
+              Add
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
 
 function OrderSummaryCard({
-  cart,
   selectedItems,
+  cart,
   subtotal,
   deliveryFee,
   total,
 }: {
-  cart: Cart;
   selectedItems: MenuItem[];
+  cart: Cart;
   subtotal: number;
   deliveryFee: number;
   total: number;
@@ -233,7 +403,7 @@ function OrderSummaryCard({
     <div className="order-summary-card">
       <h2>Your order</h2>
 
-      {selectedItems.length > 0 ? (
+      {selectedItems.length ? (
         <div className="cart-lines">
           {selectedItems.map((item) => {
             const quantity = cart[item.id] ?? 0;
@@ -241,9 +411,11 @@ function OrderSummaryCard({
               <div className="cart-line" key={item.id}>
                 <span>
                   {item.name}
-                  <small>{item.category} · {quantity} serving{quantity === 1 ? "" : "s"}</small>
+                  <small>
+                    {item.category} · {quantity} serving{quantity === 1 ? "" : "s"}
+                  </small>
                 </span>
-                <strong>₱{item.price * quantity}</strong>
+                <strong>₱{(item.price * quantity).toLocaleString()}</strong>
               </div>
             );
           })}
@@ -254,15 +426,15 @@ function OrderSummaryCard({
 
       <div className="summary-total">
         <span>Subtotal</span>
-        <span>₱{subtotal}</span>
+        <span>₱{subtotal.toLocaleString()}</span>
       </div>
       <div className="summary-total">
         <span>Delivery fee</span>
-        <span>₱{deliveryFee}</span>
+        <span>₱{deliveryFee.toLocaleString()}</span>
       </div>
       <div className="summary-total summary-total--grand">
         <span>Total</span>
-        <strong>₱{total}</strong>
+        <strong>₱{total.toLocaleString()}</strong>
       </div>
     </div>
   );
@@ -290,12 +462,14 @@ function SummaryRow({
 function CustomerFormCard({
   details,
   errors,
+  fieldMessages,
   total,
   onChange,
   onSubmit,
 }: {
   details: CustomerDetails;
   errors: OrderErrors;
+  fieldMessages: FieldMessages;
   total: number;
   onChange: (key: keyof CustomerDetails, value: string) => void;
   onSubmit: () => void;
@@ -308,6 +482,7 @@ function CustomerFormCard({
         <div className="form-section-title">Contact Information</div>
         <FormField
           error={errors.includes("name")}
+          message={fieldMessages.name}
           label="Full Name"
           name="name"
           placeholder="Juan dela Cruz"
@@ -316,6 +491,7 @@ function CustomerFormCard({
         />
         <FormField
           error={errors.includes("phone")}
+          message={fieldMessages.phone}
           label="Contact Number"
           name="phone"
           placeholder="09XX XXX XXXX"
@@ -337,6 +513,9 @@ function CustomerFormCard({
             value={details.address}
             onChange={(event) => onChange("address", event.target.value)}
           />
+          {errors.includes("address") && (
+            <small className="field-error">{fieldMessages.address}</small>
+          )}
         </label>
       </div>
 
@@ -369,11 +548,8 @@ function CustomerFormCard({
         </label>
       </div>
 
-      {errors.length > 0 && (
-        <p className="field-error">
-          Please select at least one item and complete the required delivery
-          details.
-        </p>
+      {errors.includes("items") && (
+        <p className="field-error">{fieldMessages.items}</p>
       )}
 
       <button
@@ -389,6 +565,7 @@ function CustomerFormCard({
 
 function FormField({
   error,
+  message,
   label,
   name,
   placeholder,
@@ -396,6 +573,7 @@ function FormField({
   onChange,
 }: {
   error: boolean;
+  message?: string;
   label: string;
   name: "name" | "phone";
   placeholder: string;
@@ -411,6 +589,7 @@ function FormField({
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
       />
+      {error && <small className="field-error">{message}</small>}
     </label>
   );
 }

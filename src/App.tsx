@@ -1,124 +1,64 @@
+import type { ReactNode } from "react";
 import { Layout } from "./components/common";
 import { AboutUs } from "./pages/AboutUs";
 import { Catering } from "./pages/Catering";
 import { CateringBuffet } from "./pages/CateringBuffet";
 import { CateringPacked } from "./pages/CateringPacked";
 import { FunctionRooms } from "./pages/FunctionRooms";
+import { FunctionRoomReservation } from "./pages/FunctionRoomReservation";
 import { Delivery } from "./pages/Delivery";
-import { DeliveryStaff } from "./pages/DeliveryStaff";
+import { AdminDelivery } from "./pages/AdminDelivery";
 import { DeliveryOrder } from "./pages/DeliveryOrder";
+import { DeliveryRider } from "./pages/DeliveryRider";
+import { DeliveryMenuManager } from "./pages/DeliveryMenuManager";
 import { Dashboard } from "./pages/Dashboard";
 import { Operations } from "./pages/Operations";
 import { Home } from "./pages/Home";
 import { Inquiries } from "./pages/Inquiries";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Profile } from "./pages/Profile";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { canAccessRoute, getRoleHome } from "./lib/roles";
 
-function ProtectedDashboard() {
-  const { isAdmin, loading, user } = useAuth();
+function RoleGuard({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  const { pathname } = useLocation();
   if (loading) return <div className="auth-loading">Loading account...</div>;
-  if (isAdmin) return <Dashboard />;
+  if (canAccessRoute(user, pathname)) return <>{children}</>;
+  const home = user ? getRoleHome(user.role) : "/";
+  if (home) return <Navigate to={home} replace />;
   return (
-    <div className="placeholder-page">
-      <h1>Admin Only</h1>
-      <p>
-        Current role: <strong>{user?.role ?? "not signed in"}</strong>
-        {user?.email ? <> · {user.email}</> : null}
-      </p>
-      <p>Please sign in with an administrator account to access Dashboard.</p>
+    <div className="placeholder-page" role="alert">
+      <h1>Account access unavailable</h1>
+      <p>Your account has no valid role. Contact the restaurant or sign out to continue.</p>
     </div>
   );
-}
-
-function ProtectedOperations() {
-  const { isAdmin, loading, user } = useAuth();
-  if (loading) return <div className="auth-loading">Loading account...</div>;
-  if (isAdmin) return <Operations />;
-  return (
-    <div className="placeholder-page">
-      <h1>Admin Only</h1>
-      <p>
-        Current role: <strong>{user?.role ?? "not signed in"}</strong>
-        {user?.email ? <> · {user.email}</> : null}
-      </p>
-      <p>Please sign in with an administrator account to access Operations.</p>
-    </div>
-  );
-}
-
-function CustomerOnly({ children }: { children: React.ReactNode }) {
-  const { loading } = useAuth();
-  if (loading) return <div className="auth-loading">Loading account...</div>;
-  return <>{children}</>;
 }
 
 export default function App() {
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about-us" element={<AboutUs />} />
-        <Route
-          path="/catering"
-          element={
-            <CustomerOnly>
-              <Catering />
-            </CustomerOnly>
-          }
-        />
-        <Route
-          path="/catering/buffet"
-          element={
-            <CustomerOnly>
-              <CateringBuffet />
-            </CustomerOnly>
-          }
-        />
-        <Route
-          path="/catering/packed"
-          element={
-            <CustomerOnly>
-              <CateringPacked />
-            </CustomerOnly>
-          }
-        />
-        <Route
-          path="/function-rooms"
-          element={
-            <CustomerOnly>
-              <FunctionRooms />
-            </CustomerOnly>
-          }
-        />
-        <Route path="/inquiries" element={<Inquiries />} />
-        <Route
-          path="/delivery"
-          element={
-            <CustomerOnly>
-              <Delivery />
-            </CustomerOnly>
-          }
-        />
-        <Route
-          path="/delivery/order"
-          element={
-            <CustomerOnly>
-              <DeliveryOrder />
-            </CustomerOnly>
-          }
-        />
-        <Route
-          path="/delivery/staff"
-          element={
-            <CustomerOnly>
-              <DeliveryStaff />
-            </CustomerOnly>
-          }
-        />
-        <Route path="/dashboard" element={<ProtectedDashboard />} />
-        <Route path="/operations" element={<ProtectedOperations />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <RoleGuard>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/catering" element={<Catering />} />
+          <Route path="/catering/buffet" element={<CateringBuffet />} />
+          <Route path="/catering/packed" element={<CateringPacked />} />
+          <Route path="/function-rooms" element={<FunctionRooms />} />
+          <Route path="/function-rooms/reserve" element={<FunctionRoomReservation />} />
+          <Route path="/inquiries" element={<Inquiries />} />
+          <Route path="/delivery" element={<Delivery />} />
+          <Route path="/delivery/order" element={<DeliveryOrder />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/delivery/staff" element={<AdminDelivery />} />
+          <Route path="/delivery/items" element={<DeliveryMenuManager />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/operations" element={<Operations />} />
+          <Route path="/delivery/rider" element={<DeliveryRider />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </RoleGuard>
     </Layout>
   );
 }

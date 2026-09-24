@@ -2,6 +2,7 @@ import { Chrome, LogIn, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getRoleHome } from "../../lib/roles";
 
 interface SignInModalProps {
   onClose: () => void;
@@ -59,8 +60,9 @@ export function SignInModal({ onClose }: SignInModalProps) {
     const result = await signInWithPassword(normalizedEmail, password);
     if (result.success) {
       onClose();
-      if (result.user?.role === "admin") {
-        navigate("/operations");
+      const home = getRoleHome(result.role);
+      if (home && result.role !== "customer") {
+        navigate(home, { replace: true });
       }
     } else {
       setError(result.error || "Invalid email or password");
@@ -210,7 +212,7 @@ export function SignInModal({ onClose }: SignInModalProps) {
                 id="login-email"
                 className={`input ${error ? "input--error" : ""}`}
                 type="email"
-                placeholder="admin@capitol.com"
+                placeholder="you@example.com"
                 value={email}
                 required
                 onChange={(e) => {

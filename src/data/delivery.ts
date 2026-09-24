@@ -37,6 +37,13 @@ export type DeliveryOrder = {
   deliveryFee?: number;
   total?: number;
   timeline?: TimelineEvent[];
+  riderId?: string;
+};
+
+export type DeliveryRider = {
+  id: string;
+  name: string;
+  phone?: string;
 };
 
 export const DELIVERY_STATUSES: DeliveryStatus[] = [
@@ -45,6 +52,33 @@ export const DELIVERY_STATUSES: DeliveryStatus[] = [
   "Out for delivery",
   "Delivered",
 ];
+
+const DEFAULT_RIDERS: DeliveryRider[] = [
+  { id: "rider-01", name: "Jun Reyes", phone: "0917 442 1188" },
+  { id: "rider-02", name: "Marco Santos", phone: "0918 337 4521" },
+  { id: "rider-03", name: "Ella Cruz", phone: "0920 118 7734" },
+];
+
+const RIDER_STORAGE_KEY = "capitol-delivery-riders";
+
+export function getDeliveryRiders(): DeliveryRider[] {
+  const stored = localStorage.getItem(RIDER_STORAGE_KEY);
+  if (!stored) return DEFAULT_RIDERS;
+  try {
+    const parsed = JSON.parse(stored) as DeliveryRider[];
+    return Array.isArray(parsed) ? parsed : DEFAULT_RIDERS;
+  } catch {
+    return DEFAULT_RIDERS;
+  }
+}
+
+export function saveDeliveryRiders(riders: DeliveryRider[]) {
+  localStorage.setItem(RIDER_STORAGE_KEY, JSON.stringify(riders));
+}
+
+export function resetDeliveryRiders() {
+  localStorage.removeItem(RIDER_STORAGE_KEY);
+}
 
 const DEFAULT_DELIVERY_FEE = 60;
 
@@ -85,6 +119,7 @@ export const INITIAL_ORDERS: DeliveryOrder[] = [
     eta: "Today, 6:30 PM",
     status: "Out for delivery",
     placedAt: "Today, 2:15 PM",
+    riderId: "rider-01",
     paymentMethod: "Cash on delivery",
     notes: "",
     ...calcTotals([{ id: "pkg-2", type: "package", name: "Package 2", quantity: 1, price: 500, pax: 50 }]),
@@ -129,6 +164,7 @@ export const INITIAL_ORDERS: DeliveryOrder[] = [
     eta: "Yesterday, 7:00 PM",
     status: "Delivered",
     placedAt: "Yesterday, 1:05 PM",
+    riderId: "rider-01",
     paymentMethod: "Cash on delivery",
     notes: "",
     ...calcTotals([{ id: "pkg-1", type: "package", name: "Package 1", quantity: 1, price: 350, pax: 50 }]),
