@@ -123,6 +123,19 @@ create table public.inquiries (
   updated_at timestamptz not null default now()
 );
 
+create index idx_delivery_orders_user on public.delivery_orders (user_id);
+create index idx_delivery_orders_status on public.delivery_orders (status);
+create index idx_catering_bookings_user on public.catering_bookings (user_id);
+create index idx_catering_bookings_status on public.catering_bookings (status);
+create index idx_catering_bookings_date on public.catering_bookings (date);
+create index idx_catering_bookings_package on public.catering_bookings (package_id);
+create index idx_function_bookings_user on public.function_bookings (user_id);
+create index idx_function_bookings_status on public.function_bookings (status);
+create index idx_function_bookings_date on public.function_bookings (date);
+create index idx_function_bookings_room on public.function_bookings (room_id);
+create index idx_inquiries_user on public.inquiries (user_id);
+create index idx_inquiries_status on public.inquiries (status);
+
 insert into public.catering_packages (id, name, price_per_pax, min_pax, max_pax, description, inclusions)
 values
   ('pkg-1', 'Package 1', 350, 50, 100, 'Our starter package for intimate gatherings and small celebrations.', array['Steamed Rice', 'Soup of the Day', '2 Main Dish Selections', '1 Vegetable Dish', 'Dessert of the Day', 'Round-trip Delivery within Pasay']),
