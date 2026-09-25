@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test:roles": "node --experimental-strip-types --no-warnings scripts/test-roles.ts",
+    "test:booking-time": "node --experimental-strip-types --no-warnings scripts/test-booking-time.ts",
     "preview": "vite preview"
   },
   "dependencies": {

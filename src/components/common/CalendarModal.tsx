@@ -6,11 +6,21 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { RESERVED_DATES } from "../../constants";
 import { useAuth } from "../../context/AuthContext";
+import {
+  BOOKING_TIME_OPTIONS,
+  FUNCTION_ROOM_ID,
+  SlotTakenError,
+  bookingTimeToSql,
+  fetchMonthAvailability,
+  subscribeAvailability,
+  type BookingAvailability,
+  type BookingInventoryKind,
+  type MonthAvailability,
+} from "../../data/reservations";
 import { getStoredContact, saveStoredContact } from "../../lib/contact";
 
 export type BookingDetails = {
@@ -24,7 +34,9 @@ export type BookingDetails = {
 type CalendarModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (details: BookingDetails) => void;
+  onConfirm: (details: BookingDetails) => Promise<string>;
+  bookingKind: BookingInventoryKind;
+  roomId?: string;
   title?: string;
   initialName?: string;
   initialContact?: string;
@@ -51,30 +63,6 @@ const MONTHS = [
   "November",
   "December",
 ];
-const TIME_OPTIONS = [
-  "9:00 AM",
-  "9:30 AM",
-  "10:00 AM",
-  "10:30 AM",
-  "11:00 AM",
-  "11:30 AM",
-  "12:00 PM",
-  "12:30 PM",
-  "1:00 PM",
-  "1:30 PM",
-  "2:00 PM",
-  "2:30 PM",
-  "3:00 PM",
-  "3:30 PM",
-  "4:00 PM",
-  "4:30 PM",
-  "5:00 PM",
-  "5:30 PM",
-  "6:00 PM",
-  "6:30 PM",
-  "7:00 PM",
-  "7:30 PM",
-];
 
 /** Full-name: letters, spaces, dots, hyphens, apostrophes; 3–60 chars. */
 const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'-]{3,60}$/;
@@ -91,14 +79,12 @@ function formatSelectedDate(dateKey: string) {
   }).format(new Date(`${dateKey}T00:00:00`));
 }
 
-function generateBookingRef() {
-  return `CAP-${Math.floor(1000 + Math.random() * 9000)}`;
-}
-
 export function CalendarModal({
   isOpen,
   onClose,
   onConfirm,
+  bookingKind,
+  roomId,
   title = "Reserve a Date",
   initialName = "",
   initialContact = "",
@@ -119,23 +105,49 @@ export function CalendarModal({
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState("");
-  const [time, setTime] = useState(TIME_OPTIONS[0]);
+  const [time, setTime] = useState<string>(BOOKING_TIME_OPTIONS[0]);
   const [name, setName] = useState(effectiveName);
   const [contact, setContact] = useState(effectiveContact);
   const [pax, setPax] = useState(String(initialPax ?? minPax));
   const [submitted, setSubmitted] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
+  const [availability, setAvailability] = useState<MonthAvailability | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const availabilityRequest = useRef(0);
+
+  const refreshAvailability = useCallback(async () => {
+    const request = ++availabilityRequest.current;
+    setAvailabilityLoading(true);
+    setAvailabilityError("");
+    try {
+      const next = await fetchMonthAvailability(viewYear, viewMonth);
+      if (availabilityRequest.current === request) setAvailability(next);
+    } catch {
+      if (availabilityRequest.current === request) {
+        setAvailabilityError("Availability could not be loaded. Please try again.");
+      }
+    } finally {
+      if (availabilityRequest.current === request) setAvailabilityLoading(false);
+    }
+  }, [availabilityRequest, viewMonth, viewYear]);
 
   const resetAndClose = useCallback(() => {
     setSelectedDate("");
-    setTime(TIME_OPTIONS[0]);
+    setTime(BOOKING_TIME_OPTIONS[0]);
     setName(effectiveName);
     setContact(effectiveContact);
     setPax(String(initialPax ?? minPax));
     setSubmitted(false);
     setShowErrors(false);
     setBookingRef("");
+    setSubmitError("");
+    setAvailability(null);
+    setAvailabilityLoading(false);
+    setAvailabilityError("");
     onClose();
   }, [effectiveContact, effectiveName, initialPax, minPax, onClose]);
 
@@ -158,12 +170,26 @@ export function CalendarModal({
     };
   }, [effectiveContact, effectiveName, initialPax, minPax, isOpen, resetAndClose]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      availabilityRequest.current += 1;
+      return;
+    }
+    void refreshAvailability();
+    const channel = subscribeAvailability(() => void refreshAvailability());
+    return () => {
+      availabilityRequest.current += 1;
+      void channel.unsubscribe();
+    };
+  }, [availabilityRequest, isOpen, refreshAvailability]);
+
   if (!isOpen) return null;
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstWeekday = new Date(viewYear, viewMonth, 1).getDay();
   const currentMonthKey = today.getFullYear() * 12 + today.getMonth();
   const viewedMonthKey = viewYear * 12 + viewMonth;
+  const availabilityReady = availability !== null && !availabilityLoading && !availabilityError;
 
   /** Block today + tomorrow — reservation must be ≥ 2 days ahead. */
   const isBlockedDate = (day: number) => {
@@ -176,10 +202,28 @@ export function CalendarModal({
     return candidate < minDate;
   };
 
-  const isReserved = (dateKey: string) => RESERVED_DATES.includes(dateKey);
+  const inventoryKind = bookingKind;
+  const inventoryResource =
+    bookingKind === "function_room" ? roomId ?? FUNCTION_ROOM_ID : bookingKind;
+  const isTimeUnavailable = (dateKey: string, timeLabel: string) => {
+    const slot = bookingTimeToSql(timeLabel).slice(0, 5);
+    return (availability?.bookedSlots ?? []).some(
+      (booked: BookingAvailability) =>
+        booked.kind === inventoryKind &&
+        booked.resourceId === inventoryResource &&
+        booked.date === dateKey &&
+        booked.time.slice(0, 5) === slot,
+    );
+  };
+  const isReserved = (dateKey: string) =>
+    (availability?.reservedDates ?? []).includes(dateKey) ||
+    BOOKING_TIME_OPTIONS.every((option) => isTimeUnavailable(dateKey, option));
 
   const moveMonth = (direction: -1 | 1) => {
     const next = new Date(viewYear, viewMonth + direction, 1);
+    setSelectedDate("");
+    setSubmitError("");
+    setAvailability(null);
     setViewYear(next.getFullYear());
     setViewMonth(next.getMonth());
   };
@@ -192,26 +236,48 @@ export function CalendarModal({
     paxNum >= minPax &&
     (maxPax === undefined || paxNum <= maxPax);
 
-  const submitBooking = () => {
+  const submitBooking = async () => {
+    if (
+      !availabilityLoading &&
+      !availabilityError &&
+      selectedDate &&
+      isTimeUnavailable(selectedDate, time)
+    ) {
+      setSubmitError("That time was just booked. Choose another available time.");
+      return;
+    }
     if (!selectedDate || !nameValid || !contactValid || !paxValid) {
       setShowErrors(true);
       return;
     }
+    if (availabilityLoading || availabilityError) return;
 
     if (user?.id) {
       saveStoredContact(user.id, contact.trim());
     }
 
-    const ref = generateBookingRef();
-    setBookingRef(ref);
-    onConfirm({
-      date: selectedDate,
-      time,
-      name: name.trim(),
-      contact: contact.trim(),
-      pax: paxNum,
-    });
-    setSubmitted(true);
+    setSaving(true);
+    setSubmitError("");
+    try {
+      const id = await onConfirm({
+        date: selectedDate,
+        time,
+        name: name.trim(),
+        contact: contact.trim(),
+        pax: paxNum,
+      });
+      setBookingRef(id);
+      setSubmitted(true);
+    } catch (error) {
+      setSubmitError(
+        error instanceof SlotTakenError
+          ? "That time was just booked. Choose another available time."
+          : "Reservation could not be submitted. Please try again.",
+      );
+      void refreshAvailability();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return createPortal(
@@ -357,9 +423,16 @@ export function CalendarModal({
                               ? "booking-day booking-day--reserved"
                             : "booking-day"
                         }
-                        disabled={blocked || reserved}
+                        disabled={blocked || reserved || !availabilityReady}
                         key={dateKey}
-                        onClick={() => setSelectedDate(dateKey)}
+                        onClick={() => {
+                          setSelectedDate(dateKey);
+                          setSubmitError("");
+                          const firstAvailable = BOOKING_TIME_OPTIONS.find(
+                            (option) => !isTimeUnavailable(dateKey, option),
+                          );
+                          if (firstAvailable) setTime(firstAvailable);
+                        }}
                         type="button"
                       >
                         {day}
@@ -385,9 +458,18 @@ export function CalendarModal({
                   <AlertCircle size={13} />
                   Reservations must be made at least 2 days in advance.
                 </p>
+                {availabilityLoading && (
+                  <p className="calendar-policy-note">Checking live availability…</p>
+                )}
+                {availabilityError && (
+                  <p className="field-error" role="alert">
+                    {availabilityError}
+                  </p>
+                )}
               </div>
 
               <div className="booking-fields">
+                {submitError && <p className="field-error" role="alert">{submitError}</p>}
                 <label className="form-field">
                   <span>Selected Date</span>
                   <div
@@ -407,13 +489,30 @@ export function CalendarModal({
                   <span>Preferred Time</span>
                   <select
                     className="input"
+                    disabled={!selectedDate || !availabilityReady}
                     value={time}
-                    onChange={(event) => setTime(event.target.value)}
+                    onChange={(event) => {
+                      setTime(event.target.value);
+                      setSubmitError("");
+                    }}
                   >
-                    {TIME_OPTIONS.map((option) => (
-                      <option key={option}>{option}</option>
-                    ))}
+                    {BOOKING_TIME_OPTIONS.map((option) => {
+                      const unavailable =
+                        Boolean(selectedDate) && isTimeUnavailable(selectedDate, option);
+                      return (
+                        <option disabled={unavailable} key={option} value={option}>
+                          {option}{unavailable ? " — Reserved" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
+                  {selectedDate &&
+                    availabilityReady &&
+                    isTimeUnavailable(selectedDate, time) && (
+                      <span className="field-error" role="alert">
+                        This time was just booked. Choose another.
+                      </span>
+                    )}
                 </label>
 
                 <label className="form-field">
@@ -477,10 +576,11 @@ export function CalendarModal({
 
                 <button
                   className="button button--red calendar-modal__submit"
+                  disabled={saving || !availabilityReady}
                   onClick={submitBooking}
                   type="button"
                 >
-                  Submit Reservation
+                  {saving ? "Submitting…" : "Submit Reservation"}
                 </button>
               </div>
             </div>

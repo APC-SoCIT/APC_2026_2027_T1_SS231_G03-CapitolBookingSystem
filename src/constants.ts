@@ -28,19 +28,6 @@ export type CateringPackage = {
   inclusions: string[];
 };
 
-/** Dates already reserved — blocked in the booking calendar (YYYY-MM-DD). */
-export const RESERVED_DATES: string[] = [
-  "2026-08-19",
-  "2026-08-22",
-  "2026-08-28",
-  "2026-09-03",
-  "2026-09-10",
-  "2026-09-15",
-  "2026-09-20",
-  "2026-09-25",
-  "2026-10-04",
-  "2026-10-11",
-];
 export type MenuItem = {
   id: string;
   name: string;

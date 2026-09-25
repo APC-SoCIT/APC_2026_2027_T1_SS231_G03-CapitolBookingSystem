@@ -1,4 +1,8 @@
 import type { OrderItem } from "./delivery";
+import { supabase } from "../lib/supabase";
+import { bookingTimeToSql } from "../lib/booking-time";
+
+export { BOOKING_TIME_OPTIONS, bookingTimeToSql, sqlTimeToBookingLabel } from "../lib/booking-time";
 
 export type ReservationStatus = "Pending" | "Confirmed" | "Completed" | "Cancelled";
 
@@ -48,6 +52,176 @@ export type CateringBooking = {
   subtotal?: number;
   total?: number;
 };
+
+export type BookingInventoryKind = "function_room" | CateringKind;
+
+export type BookingAvailability = {
+  kind: BookingInventoryKind;
+  resourceId: string;
+  date: string;
+  time: string;
+};
+
+export type MonthAvailability = {
+  reservedDates: string[];
+  bookedSlots: BookingAvailability[];
+};
+
+export const FUNCTION_ROOM_ID = "private_dining";
+
+export class SlotTakenError extends Error {
+  constructor() {
+    super("This booking slot was just taken");
+    this.name = "SlotTakenError";
+  }
+}
+
+function newBookingId(): string {
+  return `CAP-${crypto.randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase()}`;
+}
+
+export async function fetchMonthAvailability(
+  year: number,
+  month: number,
+): Promise<MonthAvailability> {
+  const from = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const nextMonth = new Date(year, month + 1, 1);
+  const to = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-01`;
+  const [slotsResult, datesResult] = await Promise.all([
+    supabase
+      .from("booking_availability")
+      .select("kind, resource_id, date, time")
+      .gte("date", from)
+      .lt("date", to),
+    supabase
+      .from("reserved_dates")
+      .select("date")
+      .gte("date", from)
+      .lt("date", to),
+  ]);
+
+  if (slotsResult.error) throw slotsResult.error;
+  if (datesResult.error) throw datesResult.error;
+
+  return {
+    reservedDates: (datesResult.data ?? []).map(({ date }) => date),
+    bookedSlots: (slotsResult.data ?? []).map((slot) => ({
+      kind: slot.kind as BookingInventoryKind,
+      resourceId: slot.resource_id as string,
+      date: slot.date as string,
+      time: slot.time as string,
+    })),
+  };
+}
+
+export function subscribeAvailability(onChange: () => void) {
+  return supabase
+    .channel("booking-calendar-availability")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "booking_availability" },
+      onChange,
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "reserved_dates" },
+      onChange,
+    )
+    .subscribe();
+}
+
+export async function createFunctionBooking(input: {
+  userId: string;
+  customer: string;
+  phone: string;
+  email: string;
+  guests: number;
+  eventType: string;
+  date: string;
+  time: string;
+  specialRequests: string;
+}): Promise<string> {
+  const id = newBookingId();
+  const { error } = await supabase.from("function_bookings").insert({
+    id,
+    user_id: input.userId,
+    room_id: FUNCTION_ROOM_ID,
+    customer: input.customer,
+    phone: input.phone,
+    email: input.email,
+    guests: input.guests,
+    event_type: input.eventType,
+    date: input.date,
+    time: bookingTimeToSql(input.time),
+    status: "Pending",
+    special_requests: input.specialRequests,
+    timeline: [{ status: "Pending", at: nowStamp() }],
+  });
+
+  if (error) {
+    if (
+      error.code === "23505" &&
+      error.message.includes("function_bookings_active_slot_unique")
+    ) {
+      throw new SlotTakenError();
+    }
+    throw error;
+  }
+  return id;
+}
+
+export async function createCateringBooking(input: {
+  userId: string;
+  kind: CateringKind;
+  customer: string;
+  phone: string;
+  email: string;
+  date: string;
+  time: string;
+  notes: string;
+  packageId?: string;
+  packageName?: string;
+  pax?: number;
+  pricePerPax?: number;
+  itemsList?: OrderItem[];
+  guestCount?: number;
+  subtotal?: number;
+  total?: number;
+}): Promise<string> {
+  const id = newBookingId();
+  const { error } = await supabase.from("catering_bookings").insert({
+    id,
+    user_id: input.userId,
+    kind: input.kind,
+    customer: input.customer,
+    phone: input.phone,
+    email: input.email,
+    date: input.date,
+    time: bookingTimeToSql(input.time),
+    status: "Pending",
+    timeline: [{ status: "Pending", at: nowStamp() }],
+    notes: input.notes,
+    package_id: input.packageId ?? null,
+    package_name: input.packageName ?? null,
+    pax: input.pax ?? null,
+    price_per_pax: input.pricePerPax ?? null,
+    items_list: input.itemsList ?? [],
+    guest_count: input.guestCount ?? null,
+    subtotal: input.subtotal ?? 0,
+    total: input.total ?? 0,
+  });
+
+  if (error) {
+    if (
+      error.code === "23505" &&
+      error.message.includes("catering_bookings_active_slot_unique")
+    ) {
+      throw new SlotTakenError();
+    }
+    throw error;
+  }
+  return id;
+}
 
 export const RESERVATION_STATUSES: ReservationStatus[] = [
   "Pending",
