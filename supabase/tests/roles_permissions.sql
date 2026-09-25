@@ -109,6 +109,9 @@ begin
       perform pg_temp.check_query(format('with changed as (update public.%I set user_id = user_id where %I = %L returning 1) select count(*) from changed', target.table_name, primary_key, target.row_key), can_write::integer);
       perform pg_temp.check_query(format('with changed as (delete from public.%I where %I = %L returning 1) select count(*) from changed', target.table_name, primary_key, target.row_key), can_write::integer);
       payload := target.payload || jsonb_build_object(primary_key, gen_random_uuid()::text);
+      if target.table_name in ('catering_bookings', 'function_bookings') then
+        payload := payload || jsonb_build_object('time', '12:30');
+      end if;
       select string_agg(format('%I', key), ', ' order by key) into columns_sql from jsonb_object_keys(payload) as key;
       query := format('with changed as (insert into public.%I (%s) select %s from jsonb_populate_record(null::public.%I, %L) returning 1) select count(*) from changed', target.table_name, columns_sql, columns_sql, target.table_name, payload);
       perform pg_temp.check_query(query, case when can_write then 1 else -1 end);
