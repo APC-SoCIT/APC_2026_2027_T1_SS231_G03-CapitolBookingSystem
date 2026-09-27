@@ -624,7 +624,7 @@ function OrderConfirmation({
         <div className="confirmation-actions">
           <Link
             className="button button--red"
-            to={`/delivery?reference=${reference}`}
+            to={`/profile?reference=${reference}`}
           >
             Track this order
           </Link>

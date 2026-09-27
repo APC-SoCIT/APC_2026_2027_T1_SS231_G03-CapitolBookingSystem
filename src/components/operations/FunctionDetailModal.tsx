@@ -3,6 +3,7 @@ import { Printer, X } from "lucide-react";
 import type { FunctionBooking, ReservationStatus } from "../../data/reservations";
 import { RESERVATION_STATUSES } from "../../data/reservations";
 import { StatusPill } from "./StatusPill";
+import { BookingTimeSelect } from "./BookingTimeSelect";
 import { buildFunctionSlipHtml, openPrintWindow } from "../../utils/print";
 
 type Tab = "overview" | "timeline";
@@ -19,10 +20,11 @@ export function FunctionDetailModal({ booking, onClose, onSave }: Props) {
   const [statusDraft, setStatusDraft] = useState<ReservationStatus>(booking.status);
 
   useEffect(() => {
+    if (draft.id === booking.id) return;
     setDraft(booking);
     setStatusDraft(booking.status);
     setTab("overview");
-  }, [booking]);
+  }, [booking, draft.id]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -37,6 +39,7 @@ export function FunctionDetailModal({ booking, onClose, onSave }: Props) {
 
   const hasChanges =
     JSON.stringify(draft) !== JSON.stringify(booking) || statusDraft !== booking.status;
+  const bookingChangedElsewhere = draft.updatedAt !== booking.updatedAt;
 
   const handleSave = () => {
     if (!draft.customer.trim() || !draft.email.trim()) {
@@ -82,6 +85,11 @@ export function FunctionDetailModal({ booking, onClose, onSave }: Props) {
           <button type="button" className="ops-tab ops-tab--print" onClick={handlePrint}><Printer size={14} /> Print slip</button>
         </div>
         <div className="ops-modal__body">
+          {bookingChangedElsewhere && (
+            <p className="field-error" role="alert">
+              This booking changed in another session. Close and reopen to load latest details.
+            </p>
+          )}
           {tab === "overview" && (
             <div className="ops-form-grid">
               <label className="ops-field"><span>Customer *</span><input className="ops-input" value={draft.customer} onChange={(e) => setDraft(d => ({ ...d, customer: e.target.value }))} /></label>
@@ -102,7 +110,7 @@ export function FunctionDetailModal({ booking, onClose, onSave }: Props) {
               </label>
               <label className="ops-field"><span>Room</span><input className="ops-input" value={draft.room} readOnly /></label>
               <label className="ops-field"><span>Date (YYYY-MM-DD)</span><input className="ops-input" value={draft.date} onChange={(e) => setDraft(d => ({ ...d, date: e.target.value }))} /></label>
-              <label className="ops-field"><span>Time</span><input className="ops-input" value={draft.time} onChange={(e) => setDraft(d => ({ ...d, time: e.target.value }))} /></label>
+              <label className="ops-field"><span>Time</span><BookingTimeSelect value={draft.time} onChange={(time) => setDraft(d => ({ ...d, time }))} /></label>
               <label className="ops-field"><span>Status</span>
                 <select className="ops-input" value={statusDraft} onChange={(e) => setStatusDraft(e.target.value as ReservationStatus)}>
                   {RESERVATION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -125,7 +133,7 @@ export function FunctionDetailModal({ booking, onClose, onSave }: Props) {
         </div>
         <footer className="ops-modal__footer">
           <button type="button" className="ops-btn ops-btn--ghost" onClick={onClose}>Cancel</button>
-          <button type="button" className="ops-btn ops-btn--primary" onClick={handleSave} disabled={!hasChanges}>Save changes</button>
+          <button type="button" className="ops-btn ops-btn--primary" onClick={handleSave} disabled={!hasChanges || bookingChangedElsewhere}>Save changes</button>
         </footer>
       </div>
     </div>

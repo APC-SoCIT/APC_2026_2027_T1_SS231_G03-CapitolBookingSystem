@@ -11,14 +11,16 @@ import {
   CATERING_PACKAGES,
   type CateringPackage,
 } from "../constants";
-import { addCateringBooking, nextCateringId } from "../data/reservations";
+import { createCateringBooking } from "../data/reservations";
 import { useAuthGate } from "../hooks/useAuthGate";
+import { useAuth } from "../context/AuthContext";
 
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
@@ -119,33 +121,30 @@ export function CateringBuffet() {
         )}
       </section>
       <CalendarModal
+        bookingKind="catering_buffet"
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onConfirm={(details: BookingDetails) => {
-          if (!selected) return;
-          const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-          addCateringBooking({
-            id: nextCateringId(),
+        onConfirm={async (details: BookingDetails) => {
+          if (!selected || !user) throw new Error("Booking details unavailable");
+          const id = await createCateringBooking({
+            userId: user.id,
             kind: "catering_buffet",
             customer: details.name,
             phone: details.contact,
             email: "",
             date: details.date,
             time: details.time,
-            status: "Pending",
-            placedAt: now,
-            timeline: [{ status: "Pending", at: now }],
             notes: `${selected.description}`,
             packageId: selected.id,
             packageName: selected.name,
             pax: details.pax,
-            packagePrice: selected.packagePrice,
-            pricePerPax: selected.packagePrice / details.pax,
+            pricePerPax: selected.pricePerPax,
             guestCount: details.pax,
             subtotal: selected.packagePrice,
             total: selected.packagePrice,
           });
           setSubmitted(true);
+          return id;
         }}
         initialPax={selected?.minPax ?? 10}
         maxPax={selected?.maxPax ?? 12}
