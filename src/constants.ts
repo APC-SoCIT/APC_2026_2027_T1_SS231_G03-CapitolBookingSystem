@@ -13,6 +13,7 @@ export const RESTAURANT_INFO = {
   phone: "8556-1313",
   email: "reservations@capitolrestaurant.com",
   address: "Pasay City, Metro Manila, Philippines",
+  location: { lat: 14.5447, lng: 121.003 },
 };
 
 export type CateringPackage = {
