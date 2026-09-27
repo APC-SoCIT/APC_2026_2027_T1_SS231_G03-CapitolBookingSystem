@@ -292,10 +292,10 @@ export const DELIVERY_MENU_ITEMS: MenuItem[] = [
   { id: "pm-87", name: "Grilled Pork", description: "Grilled pork. Good for 2–3 pax.", price: 290, category: "Pork", categories: ["Pork"] },
   { id: "pm-88", name: "Tokwa Baboy", description: "Tofu and pork in savory sauce. Good for 2–3 pax.", price: 290, category: "Pork", categories: ["Pork"] },
 
-  // ——— Capitol Best-Sellers ———
-  { id: "pm-89", name: "Crispy Pata", description: "Deep-fried pork leg. Good for 3–5 pax.", price: 680, category: "Capitol Best-Sellers", categories: ["Capitol Best-Sellers", "Pork"] },
-  { id: "pm-90", name: "Patatim", description: "Braised pork leg in sweet sauce. Good for 3–5 pax.", price: 780, category: "Capitol Best-Sellers", categories: ["Capitol Best-Sellers", "Pork"] },
-  { id: "pm-91", name: "Crispy Ulo", description: "Pasay's Famous crispy pig head. Good for 3–5 pax.", price: 750, category: "Capitol Best-Sellers", categories: ["Capitol Best-Sellers", "Pork"] },
+  // ——— Best Sellers ———
+  { id: "pm-89", name: "Crispy Pata", description: "Deep-fried pork leg. Good for 3–5 pax.", price: 680, category: "Best Sellers", categories: ["Best Sellers", "Pork"] },
+  { id: "pm-90", name: "Patatim", description: "Braised pork leg in sweet sauce. Good for 3–5 pax.", price: 780, category: "Best Sellers", categories: ["Best Sellers", "Pork"] },
+  { id: "pm-91", name: "Crispy Ulo", description: "Pasay's Famous crispy pig head. Good for 3–5 pax.", price: 750, category: "Best Sellers", categories: ["Best Sellers", "Pork"] },
 
   // ——— Seafood ———
   { id: "pm-92", name: "Sweet & Sour Fish Fillet", description: "Sweet and sour fish fillet. Good for 2–3 pax.", price: 290, category: "Seafood", categories: ["Seafood"] },

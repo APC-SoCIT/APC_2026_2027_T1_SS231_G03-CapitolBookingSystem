@@ -19,7 +19,7 @@ export const DEFAULT_CATEGORY_DEFS: CategoryDefinition[] = [
   { name: "Vegetables", hidden: false },
   { name: "Rice", hidden: false },
   { name: "Pork", hidden: false },
-  { name: "Capitol Best-Sellers", hidden: false },
+  { name: "Best Sellers", hidden: false },
   { name: "Seafood", hidden: false },
   { name: "Soup", hidden: false },
 ];
