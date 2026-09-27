@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { ROLE_LABELS } from "../lib/roles";
 import { BookingHistory } from "../components/profile/BookingHistory";
+import { DeliveryTracker } from "../components/profile/DeliveryTracker";
 import { SignInModal } from "../components/common";
 import {
   getStoredProfile,
@@ -124,6 +125,8 @@ export function Profile() {
             <h2>My bookings</h2>
             <BookingHistory userId={user.id} />
           </div>
+
+          <DeliveryTracker />
         </div>
 
         <div className="inquiry-form">
