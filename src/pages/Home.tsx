@@ -7,18 +7,21 @@ const services = [
     title: "Catering",
     text: "Bring Capitol's authentic flavors to your event with buffet packages or individually packed meals.",
     path: "/catering",
+    cta: "Book Now",
   },
   {
     label: "Events",
     title: "Function Rooms",
     text: "Host celebrations in our elegant function rooms, from corporate events to family gatherings.",
     path: "/function-rooms",
+    cta: "Reserve Now",
   },
   {
     label: "Delivery",
     title: "Delivery",
     text: "Enjoy Capitol's home-cooked favorites delivered straight to your door in select areas.",
     path: "/delivery",
+    cta: "Order Now",
   },
 ];
 
@@ -40,14 +43,6 @@ export function Home() {
             — bringing families, friends, and communities together through the
             warmth of authentic Filipino cuisine.
           </p>
-          <div className="hero-actions">
-            <Link className="button button--gold" to="/catering">
-              Book Catering
-            </Link>
-            <Link className="button button--outline" to="/function-rooms">
-              Reserve a Room
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -67,7 +62,7 @@ export function Home() {
               <h3>{service.title}</h3>
               <p>{service.text}</p>
               <span className="service-card__action">
-                Learn more <ArrowRight size={16} />
+                {service.cta} <ArrowRight size={16} />
               </span>
             </Link>
           ))}

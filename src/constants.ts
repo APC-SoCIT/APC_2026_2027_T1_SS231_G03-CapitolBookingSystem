@@ -10,7 +10,7 @@ export const RESTAURANT_INFO = {
   name: "Capitol",
   tagline: "Pasay City's Oldest Restaurant",
   since: "1940",
-  phone: "+63 (2) 8XXX-XXXX",
+  phone: "8556-1313",
   email: "reservations@capitolrestaurant.com",
   address: "Pasay City, Metro Manila, Philippines",
 };
@@ -18,74 +18,107 @@ export const RESTAURANT_INFO = {
 export type CateringPackage = {
   id: string;
   name: string;
+  packagePrice: number;
+  /** Effective per-person price retained for existing admin records. */
   pricePerPax: number;
   minPax: number;
+  maxPax: number;
+  servingSize: string;
   description: string;
   inclusions: string[];
 };
+
+/** Dates already reserved — blocked in the booking calendar (YYYY-MM-DD). */
+export const RESERVED_DATES: string[] = [
+  "2026-08-19",
+  "2026-08-22",
+  "2026-08-28",
+  "2026-09-03",
+  "2026-09-10",
+  "2026-09-15",
+  "2026-09-20",
+  "2026-09-25",
+  "2026-10-04",
+  "2026-10-11",
+];
 export type MenuItem = {
   id: string;
   name: string;
   description: string;
   price: number;
   category: string;
+  categories?: string[];
+  image?: string;
 };
 
 export const CATERING_PACKAGES: CateringPackage[] = [
   {
     id: "pkg-1",
-    name: "Package 1",
-    pricePerPax: 350,
-    minPax: 50,
-    description:
-      "Our starter package for intimate gatherings and small celebrations.",
+    name: "Package A",
+    packagePrice: 2850,
+    pricePerPax: 285,
+    minPax: 10,
+    maxPax: 12,
+    servingSize: "Good for 10 to 12 persons",
+    description: "A set menu for baptisms and other occasions.",
     inclusions: [
-      "Steamed Rice",
-      "Soup of the Day",
-      "2 Main Dish Selections",
-      "1 Vegetable Dish",
-      "Dessert of the Day",
-      "Round-trip Delivery within Pasay",
+      "Capitol Chicken",
+      "Lumpiang Shanghai",
+      "Chopsuey",
+      "Sweet & Sour Fish Fillet",
+      "Pancit (MikiBihon, Bihon, Canton, or Chami)",
+      "Nido Soup",
+      "2 Fried Rice Platters or 12 cups Plain Rice",
+      "2 XL Soft Drinks",
     ],
   },
   {
     id: "pkg-2",
-    name: "Package 2",
-    pricePerPax: 500,
-    minPax: 50,
-    description:
-      "A wider selection ideal for corporate events and family gatherings.",
+    name: "Package B",
+    packagePrice: 3150,
+    pricePerPax: 315,
+    minPax: 10,
+    maxPax: 12,
+    servingSize: "Good for 10 to 12 persons",
+    description: "A fuller set menu for baptisms and other occasions.",
     inclusions: [
-      "Steamed Rice",
-      "Soup of the Day",
-      "3 Main Dish Selections",
-      "1 Vegetable Dish",
-      "Pancit (choice of 1)",
-      "Dessert of the Day",
-      "Fresh Fruit Platter",
-      "Round-trip Delivery within Metro Manila",
+      "Buttered Chicken",
+      "Chopsuey",
+      "Beef Broccoli",
+      "Sweet and Sour Fish (Pla-Pla)",
+      "Pancit (MikiBihon, Bihon, Canton, or Chami)",
+      "Nido Soup",
+      "2 Fried Rice Platters or 12 cups Plain Rice",
+      "Crispy Pata",
+      "2 XL Soft Drinks",
     ],
   },
   {
     id: "pkg-3",
-    name: "Package 3",
-    pricePerPax: 750,
-    minPax: 50,
-    description:
-      "Full-service catering for grand celebrations and special occasions.",
+    name: "Package C",
+    packagePrice: 3450,
+    pricePerPax: 345,
+    minPax: 10,
+    maxPax: 12,
+    servingSize: "Good for 10 to 12 persons",
+    description: "The most complete set menu for special occasions.",
     inclusions: [
-      "Steamed Rice",
-      "Soup of the Day",
-      "4 Main Dish Selections",
-      "2 Vegetable Dishes",
-      "Pancit (choice of 2)",
-      "Lechon (per head allocation)",
-      "Dessert Spread (3 selections)",
-      "Fresh Fruit Platter",
-      "Waitstaff Service (up to 4 hours)",
-      "Round-trip Delivery (Anywhere in Metro Manila)",
+      "Buttered Chicken",
+      "Chopsuey",
+      "Beef Broccoli",
+      "Sweet and Sour Fish (Pla-Pla)",
+      "Pancit (MikiBihon, Bihon, Canton, or Chami)",
+      "Sinigang Hipon / Baboy",
+      "2 Fried Rice Platters or 12 cups Plain Rice",
+      "Crispy Ulo",
+      "2 XL Soft Drinks",
     ],
   },
+];
+
+export const CATERING_PACKAGE_NOTES = [
+  "Pancit choices: MikiBihon, Bihon, Canton, or Chami.",
+  "Rice choices: 12 cups of Plain Rice or 2 Fried Rice Platters.",
 ];
 
 export const PACKED_MENU_ITEMS: MenuItem[] = [
@@ -94,28 +127,32 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     name: "Adobong Manok",
     description: "Classic Filipino chicken adobo in garlic, soy, and vinegar.",
     price: 120,
-    category: "Chicken",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Chicken"],
   },
   {
     id: "pm-02",
     name: "Lechon Kawali",
     description: "Crispy deep-fried pork belly served with liver sauce.",
     price: 145,
-    category: "Pork",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Pork"],
   },
   {
     id: "pm-03",
     name: "Pork Sinigang",
     description: "Tamarind-based pork soup with fresh vegetables.",
     price: 135,
-    category: "Pork",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Pork"],
   },
   {
     id: "pm-04",
     name: "Beef Kaldereta",
     description: "Braised beef in tomato and liver sauce with bell peppers.",
     price: 165,
-    category: "Beef",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Beef"],
   },
   {
     id: "pm-05",
@@ -123,21 +160,24 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     description:
       "Ginger-based chicken soup with green papaya and chili leaves.",
     price: 115,
-    category: "Chicken",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Chicken"],
   },
   {
     id: "pm-06",
     name: "Pinakbet",
     description: "Mixed vegetables sautéed with shrimp paste and pork.",
     price: 100,
-    category: "Vegetables",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Vegetables"],
   },
   {
     id: "pm-07",
     name: "Laing",
     description: "Taro leaves simmered in coconut milk with chili.",
     price: 95,
-    category: "Vegetables",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Vegetables"],
   },
   {
     id: "pm-08",
@@ -145,7 +185,8 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     description:
       "Stir-fried rice noodles with pork, vegetables, and soy sauce.",
     price: 110,
-    category: "Noodles",
+    category: "Solo Meals",
+    categories: ["Solo Meals", "Pasta & Noodles"],
   },
   {
     id: "pm-09",
@@ -153,6 +194,7 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     description: "Freshly cooked premium white rice per serving.",
     price: 35,
     category: "Sides",
+    categories: ["Sides"],
   },
   {
     id: "pm-10",
@@ -160,5 +202,15 @@ export const PACKED_MENU_ITEMS: MenuItem[] = [
     description: "Classic Filipino caramel custard dessert.",
     price: 75,
     category: "Desserts",
+    categories: ["Desserts"],
   },
 ];
+
+export const PACKED_MEAL_GUIDELINES = {
+  intro: "Ideal for crew meals, events, office parties, and meetings.",
+  minimumOrder: "Minimum order: 10 packs per delivery and 10 packs per kind.",
+  advanceOrder: "Advance order required.",
+  bulkOrder: "Orders of 100 or more packs should be placed at least 2 days before the intended date.",
+  landline: "8556-1313",
+  mobile: "09175141300",
+} as const;

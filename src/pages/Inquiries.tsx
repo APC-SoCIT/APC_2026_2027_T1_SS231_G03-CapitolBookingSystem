@@ -50,7 +50,7 @@ export function Inquiries() {
   };
 
   return (
-    <div>
+    <div className="inquiries-page">
       <section className="page-hero">
         <p className="eyebrow">Capitol Restaurant</p>
         <h1>Inquiries</h1>
@@ -78,11 +78,11 @@ export function Inquiries() {
                 reservations@capitolrestaurant.com
               </span>
             </a>
-            <a href="tel:+6328XXXXXXX">
+            <a href="tel:8556-1313">
               <Phone size={18} />
               <span>
                 <small>Call us</small>
-                +63 (2) 8XXX-XXXX
+                8556-1313
               </span>
             </a>
             <div>

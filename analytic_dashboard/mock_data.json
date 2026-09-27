@@ -1,0 +1,11 @@
+{
+  "facebook": 120,
+  "website": 200,
+  "other": 15,
+  "types": {
+    "functionRoom": { "facebook": 30, "website": 50 },
+    "delivery": { "facebook": 20, "website": 90 },
+    "catering": { "facebook": 70, "website": 60 }
+  },
+  "inquiries": { "new": 12, "resolved": 8 }
+}

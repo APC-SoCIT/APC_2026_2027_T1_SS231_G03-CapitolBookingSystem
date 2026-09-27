@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Analytics Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Analytics Dashboard</h1>
+        <p>Auto-updating demo (replace simulated data with real API).</p>
+      </header>
+
+      <section class="row">
+        <div class="card">
+          <h2>Orders Source (Pie)</h2>
+          <canvas id="ordersPie"></canvas>
+          <div class="center-text" id="totalOrdersDisplay">Total: 0</div>
+        </div>
+
+        <div class="card">
+          <h2>Order Types by Source (Stacked)</h2>
+          <canvas id="stackedBar"></canvas>
+        </div>
+      </section>
+
+      <section class="row">
+        <div class="card inquiry">
+          <h2>Inquiry Tracking</h2>
+          <div class="inquiry-stats">
+            <div class="stat">
+              <div class="label">New</div>
+              <div class="value" id="inquiryNew">0</div>
+            </div>
+            <div class="stat">
+              <div class="label">Resolved</div>
+              <div class="value" id="inquiryResolved">0</div>
+            </div>
+          </div>
+          <canvas id="inquiryLine" height="80"></canvas>
+        </div>
+      </section>
+
+      <footer>Files: analytic_dashboard/index.html, styles.css, app.js</footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
