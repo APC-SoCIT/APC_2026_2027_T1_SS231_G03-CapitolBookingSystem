@@ -1239,7 +1239,6 @@ button, input, textarea, select { font: inherit; }
   .inquiries-page .page-hero > * { animation: delivery-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   .catering-page .catering-choice { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   .catering-page .catering-note { animation: delivery-rise 700ms 220ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .catering-subpage .breadcrumb { animation: delivery-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   .catering-subpage .subpage-hero > * { animation: delivery-rise 650ms 60ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   .catering-subpage .buffet-section,
   .catering-subpage .packed-section { animation: delivery-rise 700ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
