@@ -313,16 +313,13 @@ button, input, textarea, select { font: inherit; }
 .timeline-step strong, .timeline-step small { display: block; }
 .timeline-step strong { font-size: 0.9rem; }
 .timeline-step small { margin-top: 0.2rem; color: #8a5a5a; font-size: 0.75rem; }
-.delivery-map { position: relative; min-height: 260px; overflow: hidden; border-radius: 8px; background: #e6eadc; }
-.delivery-map__grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(108, 138, 107, 0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(108, 138, 107, 0.14) 1px, transparent 1px); background-size: 28px 28px; }
-.delivery-map__road { position: absolute; display: block; height: 12px; border-radius: 20px; background: rgba(255, 255, 255, 0.85); transform: rotate(-28deg); }
-.delivery-map__road--one { top: 45%; left: -10%; width: 120%; }
-.delivery-map__road--two { top: 15%; left: 52%; width: 70%; transform: rotate(62deg); }
-.map-marker { position: absolute; z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22); color: #fff; }
-.map-marker--restaurant { top: 28%; left: 24%; background: #640000; }
-.map-marker--home { right: 20%; bottom: 24%; background: #af0100; }
-.map-marker--delivered { background: #087443; }
-.delivery-map__label { position: absolute; right: 0.75rem; bottom: 0.75rem; z-index: 2; padding: 0.3rem 0.55rem; border-radius: 4px; background: rgba(255, 255, 255, 0.8); color: #640000; font-size: 0.7rem; font-weight: 700; }
+.delivery-map { position: relative; height: 320px; overflow: hidden; border-radius: 8px; background: #e6eadc; }
+.delivery-map__leaflet { height: 100%; }
+.leaflet-container { z-index: 0; }
+.delivery-marker { display: grid; place-items: center; width: 34px; height: 34px; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22); color: #fff; background: #640000; }
+.delivery-marker--home { background: #af0100; }
+.delivery-marker--delivered { background: #087443; }
+.delivery-map__label { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 500; padding: 0.3rem 0.55rem; border-radius: 4px; background: rgba(255, 255, 255, 0.85); color: #640000; font-size: 0.7rem; font-weight: 700; }
 .delivery-details { display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 1rem 1.5rem; border-top: 1px solid rgba(100, 0, 0, 0.1); color: #6a4a4a; font-size: 0.8rem; }
 .delivery-details span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .delivery-details svg { color: #af0100; }
@@ -452,7 +449,7 @@ button, input, textarea, select { font: inherit; }
 .profile-track .order-summary { flex-wrap: wrap; gap: 1rem 2.5rem; }
 .profile-track .order-summary .status-pill { margin-left: 0; }
 .profile-track .tracking-layout { grid-template-columns: 1fr; gap: 1.25rem; padding: 1.25rem; }
-.profile-track .delivery-map { min-height: 200px; }
+.profile-track .delivery-map { height: 240px; }
 .profile-track .delivery-details { padding: 1rem 1.25rem; }
 .profile-history { display: flex; flex-direction: column; gap: 1.5rem; }
 .profile-history__status { margin: 0; color: #8a5a5a; }

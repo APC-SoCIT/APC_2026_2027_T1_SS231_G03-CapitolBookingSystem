@@ -13,6 +13,7 @@ import {
   type DeliveryOrder,
   DELIVERY_STATUSES,
 } from "../../data/delivery";
+import { DeliveryMap } from "./DeliveryMap";
 
 export function DeliveryTracker() {
   const [searchParams] = useSearchParams();
@@ -98,6 +99,7 @@ function ReferenceHint({ onSelect }: { onSelect: (value: string) => void }) {
 
 function TrackingResult({ order }: { order: DeliveryOrder }) {
   const activeIndex = DELIVERY_STATUSES.indexOf(order.status);
+  const delivered = order.status === "Delivered";
   return (
     <div className="tracking-result">
       <div className="order-summary">
@@ -147,7 +149,7 @@ function TrackingResult({ order }: { order: DeliveryOrder }) {
             </div>
           ))}
         </div>
-        <DeliveryMap order={order} />
+        <DeliveryMap address={order.address} delivered={delivered} />
       </div>
       <div className="delivery-details">
         <span>
@@ -157,28 +159,6 @@ function TrackingResult({ order }: { order: DeliveryOrder }) {
           <Package size={16} /> {order.items}
         </span>
       </div>
-    </div>
-  );
-}
-
-function DeliveryMap({ order }: { order: DeliveryOrder }) {
-  const delivered = order.status === "Delivered";
-  return (
-    <div className="delivery-map">
-      <div className="delivery-map__grid" />
-      <span className="delivery-map__road delivery-map__road--one" />
-      <span className="delivery-map__road delivery-map__road--two" />
-      <div className="map-marker map-marker--restaurant">
-        <Package size={16} />
-      </div>
-      <div
-        className={`map-marker map-marker--home ${delivered ? "map-marker--delivered" : ""}`}
-      >
-        <MapPin size={17} />
-      </div>
-      <span className="delivery-map__label">
-        {delivered ? "Delivered" : "Delivery route"}
-      </span>
     </div>
   );
 }
