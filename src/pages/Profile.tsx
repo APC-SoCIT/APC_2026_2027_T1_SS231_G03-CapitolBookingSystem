@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { BookingHistory } from "../components/profile/BookingHistory";
 import { SignInModal } from "../components/common";
 import {
   getStoredProfile,
@@ -206,6 +207,11 @@ export function Profile() {
               </span>
             </div>
           )}
+        </div>
+
+        <div className="inquiry-form inquiry-form--wide">
+          <h2>My bookings</h2>
+          <BookingHistory userId={user.id} />
         </div>
       </section>
     </div>

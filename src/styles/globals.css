@@ -440,6 +440,30 @@ button, input, textarea, select { font: inherit; }
 .inquiry-form .button { align-self: flex-start; }
 .profile-address-block { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
 .profile-address-block .eyebrow { margin: 0; }
+.inquiries-grid .inquiry-form--wide { grid-column: 1 / -1; }
+.profile-history { display: flex; flex-direction: column; gap: 1.5rem; }
+.profile-history__status { margin: 0; color: #8a5a5a; }
+.profile-history__status--error { color: #af0100; }
+.profile-history__section .eyebrow { margin: 0 0 0.6rem; }
+.profile-history__cards { display: grid; gap: 0.9rem; }
+.profile-booking { display: flex; flex-direction: column; gap: 0.85rem; padding: 1.25rem 1.4rem; border: 1px solid rgba(100, 0, 0, 0.14); border-radius: 10px; background: #fdfaf4; }
+.profile-booking__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.profile-booking__ref { color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: 0.06em; }
+.profile-booking__meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7rem 1.2rem; margin: 0; }
+.profile-booking__meta dt { color: #8a5a5a; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.profile-booking__meta dd { margin: 0.15rem 0 0; color: #3a2a2a; font-size: 0.95rem; line-height: 1.5; }
+.profile-booking__notes { margin: 0; padding: 0.6rem 0.8rem; border-left: 3px solid rgba(175, 1, 0, 0.35); background: rgba(175, 1, 0, 0.05); color: #5a3a3a; font-size: 0.85rem; }
+.profile-booking__timeline { display: flex; flex-direction: column; gap: 0.35rem; margin: 0; padding: 0; list-style: none; border-top: 1px dashed rgba(100, 0, 0, 0.18); padding-top: 0.75rem; }
+.profile-timeline__row { display: flex; align-items: baseline; gap: 0.75rem; color: #8a5a5a; }
+.profile-timeline__row::before { content: "○"; font-size: 0.8rem; }
+.profile-timeline__row strong { color: #5a3a3a; font-size: 0.85rem; }
+.profile-timeline__row small { color: #a08080; font-size: 0.75rem; }
+.profile-timeline__row--current strong, .profile-timeline__row--current small { color: #af0100; }
+.profile-timeline__row--current::before { content: "●"; }
+@media (max-width: 640px) {
+  .profile-booking { padding: 1rem; }
+  .profile-booking__head { align-items: flex-start; flex-direction: column; }
+}
 .nav-link--dashboard { margin-left: 0.5rem; border-left: 1px solid rgba(242, 231, 169, 0.25); }
 /* Operations has no page-hero banner (admin, not customer-facing) — give the
    section its own, tighter top spacing instead of the hero-sized default. */
