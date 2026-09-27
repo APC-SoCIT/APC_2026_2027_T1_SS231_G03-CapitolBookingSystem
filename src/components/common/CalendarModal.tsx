@@ -134,6 +134,8 @@ export function CalendarModal({
       if (availabilityRequest.current === request) setAvailabilityLoading(false);
     }
   }, [availabilityRequest, viewMonth, viewYear]);
+  const refreshAvailabilityRef = useRef(refreshAvailability);
+  refreshAvailabilityRef.current = refreshAvailability;
 
   const resetAndClose = useCallback(() => {
     setSelectedDate("");
@@ -160,7 +162,7 @@ export function CalendarModal({
     document.body.classList.add("modal-open");
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") resetAndClose();
+      if (event.key === "Escape" && !saving) resetAndClose();
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -168,20 +170,25 @@ export function CalendarModal({
       document.body.classList.remove("modal-open");
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [effectiveContact, effectiveName, initialPax, minPax, isOpen, resetAndClose]);
+  }, [effectiveContact, effectiveName, initialPax, minPax, isOpen, resetAndClose, saving]);
 
   useEffect(() => {
     if (!isOpen) {
       availabilityRequest.current += 1;
       return;
     }
-    void refreshAvailability();
-    const channel = subscribeAvailability(() => void refreshAvailability());
+    const channel = subscribeAvailability(() => {
+      void refreshAvailabilityRef.current();
+    });
     return () => {
       availabilityRequest.current += 1;
       void channel.unsubscribe();
     };
-  }, [availabilityRequest, isOpen, refreshAvailability]);
+  }, [availabilityRequest, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) void refreshAvailability();
+  }, [isOpen, refreshAvailability]);
 
   if (!isOpen) return null;
 
@@ -284,7 +291,7 @@ export function CalendarModal({
     <div
       className="calendar-modal-backdrop"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) resetAndClose();
+        if (!saving && event.target === event.currentTarget) resetAndClose();
       }}
     >
       <div
@@ -296,6 +303,7 @@ export function CalendarModal({
         <button
           aria-label="Close booking calendar"
           className="calendar-modal__close"
+          disabled={saving}
           onClick={resetAndClose}
           type="button"
         >
@@ -378,7 +386,7 @@ export function CalendarModal({
                 <div className="booking-calendar__toolbar">
                   <button
                     aria-label="Previous month"
-                    disabled={viewedMonthKey <= currentMonthKey}
+                    disabled={saving || viewedMonthKey <= currentMonthKey}
                     onClick={() => moveMonth(-1)}
                     type="button"
                   >
@@ -389,6 +397,7 @@ export function CalendarModal({
                   </strong>
                   <button
                     aria-label="Next month"
+                    disabled={saving}
                     onClick={() => moveMonth(1)}
                     type="button"
                   >
@@ -423,7 +432,7 @@ export function CalendarModal({
                               ? "booking-day booking-day--reserved"
                             : "booking-day"
                         }
-                        disabled={blocked || reserved || !availabilityReady}
+                        disabled={saving || blocked || reserved || !availabilityReady}
                         key={dateKey}
                         onClick={() => {
                           setSelectedDate(dateKey);
@@ -489,7 +498,7 @@ export function CalendarModal({
                   <span>Preferred Time</span>
                   <select
                     className="input"
-                    disabled={!selectedDate || !availabilityReady}
+                    disabled={saving || !selectedDate || !availabilityReady}
                     value={time}
                     onChange={(event) => {
                       setTime(event.target.value);
@@ -519,6 +528,7 @@ export function CalendarModal({
                   <span>Full Name</span>
                   <input
                     className={showErrors && !nameValid ? "input input--error" : "input"}
+                    disabled={saving}
                     placeholder="Juan dela Cruz"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
@@ -534,6 +544,7 @@ export function CalendarModal({
                   <span>Contact Number</span>
                   <input
                     className={showErrors && !contactValid ? "input input--error" : "input"}
+                    disabled={saving}
                     placeholder="09XX XXX XXXX"
                     value={contact}
                     onChange={(event) => setContact(event.target.value)}
@@ -557,6 +568,7 @@ export function CalendarModal({
                     </span>
                     <input
                       className={showErrors && !paxValid ? "input input--error" : "input"}
+                      disabled={saving}
                       min={minPax}
                       max={maxPax}
                       placeholder={String(minPax)}

@@ -9,6 +9,8 @@ declare
   replacement_id text := gen_random_uuid()::text;
   buffet_id text := gen_random_uuid()::text;
   packed_id text := gen_random_uuid()::text;
+  original_updated_at timestamptz;
+  changed_rows integer;
 begin
   select id into test_room from public.function_rooms order by id limit 1;
   assert test_room is not null, 'No function room available for inventory test';
@@ -48,6 +50,17 @@ begin
     (id, room_id, customer, phone, email, guests, event_type, date, time, status)
   values
     (replacement_id, test_room, 'Inventory Test', '09170000000', 'inventory@test.invalid', 1, 'Test', test_date, '12:00', 'Pending');
+  select updated_at into original_updated_at from public.function_bookings where id = replacement_id;
+  update public.function_bookings
+  set status = 'Confirmed', updated_at = clock_timestamp() + interval '1 second'
+  where id = replacement_id and updated_at = original_updated_at;
+  get diagnostics changed_rows = row_count;
+  assert changed_rows = 1, 'Current booking version must update';
+  update public.function_bookings
+  set status = 'Cancelled'
+  where id = replacement_id and updated_at = original_updated_at;
+  get diagnostics changed_rows = row_count;
+  assert changed_rows = 0, 'Stale booking version must not overwrite newer edits';
   update public.function_bookings set time = '12:30' where id = replacement_id;
   assert not exists (
     select 1 from public.booking_availability

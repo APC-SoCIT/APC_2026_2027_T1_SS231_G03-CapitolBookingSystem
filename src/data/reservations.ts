@@ -1,6 +1,6 @@
 import type { OrderItem } from "./delivery";
 import { supabase } from "../lib/supabase";
-import { bookingTimeToSql } from "../lib/booking-time";
+import { bookingTimeToSql, sqlTimeToBookingLabel } from "../lib/booking-time";
 
 export { BOOKING_TIME_OPTIONS, bookingTimeToSql, sqlTimeToBookingLabel } from "../lib/booking-time";
 
@@ -14,7 +14,9 @@ export type ReservationTimeline = {
 export type FunctionBooking = {
   id: string;
   kind: "function_room";
-  room: "Private Dining Room";
+  room: string;
+  roomId: string;
+  updatedAt: string;
   customer: string;
   phone: string;
   email: string;
@@ -51,6 +53,7 @@ export type CateringBooking = {
   guestCount?: number;
   subtotal?: number;
   total?: number;
+  updatedAt: string;
 };
 
 export type BookingInventoryKind = "function_room" | CateringKind;
@@ -73,6 +76,13 @@ export class SlotTakenError extends Error {
   constructor() {
     super("This booking slot was just taken");
     this.name = "SlotTakenError";
+  }
+}
+
+export class BookingChangedError extends Error {
+  constructor() {
+    super("This booking changed in another session");
+    this.name = "BookingChangedError";
   }
 }
 
@@ -231,7 +241,11 @@ export const RESERVATION_STATUSES: ReservationStatus[] = [
 ];
 
 function nowStamp(): string {
-  return new Date().toLocaleString("en-US", {
+  return formatPlacedAt(new Date().toISOString());
+}
+
+function formatPlacedAt(value: string): string {
+  return new Date(value).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -239,159 +253,193 @@ function nowStamp(): string {
   });
 }
 
-const FUNC_KEY = "capitol-function-bookings";
-const CATERING_KEY = "capitol-catering-bookings";
+type FunctionBookingRow = {
+  id: string;
+  room_id: string;
+  function_rooms: { name: string } | null;
+  customer: string;
+  phone: string;
+  email: string;
+  guests: number;
+  event_type: string;
+  date: string;
+  time: string;
+  status: string;
+  special_requests: string | null;
+  placed_at: string;
+  updated_at: string;
+  timeline: ReservationTimeline[] | null;
+};
 
-const INITIAL_FUNCTION: FunctionBooking[] = [
-  {
-    id: "BK-F101",
-    kind: "function_room",
-    room: "Private Dining Room",
-    customer: "Rosa Mendoza",
-    phone: "0917 222 3344",
-    email: "rosa.mendoza@example.com",
-    guests: 30,
-    eventType: "Birthday Celebration",
-    date: "2026-09-18",
-    time: "6:00 PM",
-    status: "Pending",
-    specialRequests: "Need projector and birthday backdrop",
-    placedAt: "Today, 10:20 AM",
-    timeline: [{ status: "Pending", at: "Today, 10:20 AM" }],
-  },
-  {
-    id: "BK-F102",
-    kind: "function_room",
-    room: "Private Dining Room",
-    customer: "Paolo Garcia",
-    phone: "0918 333 4455",
-    email: "paolo.garcia@example.com",
-    guests: 80,
-    eventType: "Wedding Reception",
-    date: "2026-09-22",
-    time: "5:00 PM",
-    status: "Confirmed",
-    specialRequests: "Sound system + 8 extra chairs",
-    placedAt: "Yesterday, 4:45 PM",
-    timeline: [
-      { status: "Pending", at: "Yesterday, 4:45 PM" },
-      { status: "Confirmed", at: "Today, 9:00 AM" },
-    ],
-  },
-];
+type CateringBookingRow = {
+  id: string;
+  kind: CateringKind;
+  customer: string;
+  phone: string;
+  email: string;
+  date: string;
+  time: string;
+  status: string;
+  placed_at: string;
+  updated_at: string;
+  timeline: ReservationTimeline[] | null;
+  notes: string | null;
+  package_id: string | null;
+  package_name: string | null;
+  pax: number | null;
+  price_per_pax: number | null;
+  items_list: OrderItem[];
+  guest_count: number | null;
+  subtotal: number;
+  total: number;
+};
 
-const INITIAL_CATERING: CateringBooking[] = [
-  {
-    id: "BK-C201",
-    kind: "catering_buffet",
-    customer: "Maria Santos",
-    phone: "0917 123 4567",
-    email: "maria.santos@example.com",
-    date: "2026-09-19",
-    time: "11:00 AM",
-    status: "Pending",
-    placedAt: "Today, 2:15 PM",
-    timeline: [{ status: "Pending", at: "Today, 2:15 PM" }],
-    notes: "Round-trip delivery within Pasay",
-    packageId: "pkg-2",
-    packageName: "Package B",
-    packagePrice: 3150,
-    pax: 10,
-    pricePerPax: 315,
-    guestCount: 10,
-    subtotal: 3150,
-    total: 3150,
-  },
-  {
-    id: "BK-C202",
-    kind: "catering_packed",
-    customer: "Juan dela Cruz",
-    phone: "0918 987 6543",
-    email: "juan.delacruz@example.com",
-    date: "2026-09-20",
-    time: "12:00 PM",
-    status: "Confirmed",
-    placedAt: "Today, 3:40 PM",
-    timeline: [
-      { status: "Pending", at: "Today, 3:40 PM" },
-      { status: "Confirmed", at: "Today, 4:10 PM" },
-    ],
-    notes: "Extra utensils for 20 guests",
-    itemsList: [
-      { id: "pm-01", type: "packed_meal", name: "Buttered Chicken", quantity: 8, price: 100, category: "Solo meals" },
-      { id: "pm-02", type: "packed_meal", name: "Capitol Chicken", quantity: 6, price: 100, category: "Solo meals" },
-      { id: "pm-09", type: "packed_meal", name: "Sweet & Sour Fish", quantity: 6, price: 100, category: "Solo meals" },
-    ],
-    guestCount: 20,
-    subtotal: 2000,
-    total: 2000,
-  },
-];
+export async function fetchFunctionBookings(): Promise<FunctionBooking[]> {
+  const { data, error } = await supabase
+    .from("function_bookings")
+    .select("id, room_id, function_rooms(name), customer, phone, email, guests, event_type, date, time, status, special_requests, placed_at, updated_at, timeline")
+    .order("placed_at", { ascending: false });
+  if (error) throw error;
 
-function normalizeFunction(list: FunctionBooking[]): FunctionBooking[] {
-  return list.map((b) => ({
-    ...b,
-    timeline: b.timeline ?? [{ status: b.status, at: b.placedAt }],
-  }));
-}
-function normalizeCatering(list: CateringBooking[]): CateringBooking[] {
-  return list.map((b) => ({
-    ...b,
-    timeline: b.timeline ?? [{ status: b.status, at: b.placedAt }],
-  }));
+  return ((data ?? []) as unknown as FunctionBookingRow[]).map((row) => {
+    const status = row.status as ReservationStatus;
+    const placedAt = formatPlacedAt(row.placed_at);
+    return {
+      id: row.id,
+      kind: "function_room",
+      room: row.function_rooms?.name ?? row.room_id,
+      roomId: row.room_id,
+      updatedAt: row.updated_at,
+      customer: row.customer,
+      phone: row.phone,
+      email: row.email,
+      guests: row.guests,
+      eventType: row.event_type,
+      date: row.date,
+      time: sqlTimeToBookingLabel(row.time),
+      status,
+      specialRequests: row.special_requests ?? "",
+      placedAt,
+      timeline: row.timeline?.length ? row.timeline : [{ status, at: placedAt }],
+    };
+  });
 }
 
-export function getFunctionBookings(): FunctionBooking[] {
-  const raw = localStorage.getItem(FUNC_KEY);
-  if (!raw) return INITIAL_FUNCTION;
-  try {
-    return normalizeFunction(JSON.parse(raw) as FunctionBooking[]);
-  } catch {
-    return INITIAL_FUNCTION;
+export async function fetchCateringBookings(): Promise<CateringBooking[]> {
+  const { data, error } = await supabase
+    .from("catering_bookings")
+    .select("id, kind, customer, phone, email, date, time, status, placed_at, updated_at, timeline, notes, package_id, package_name, pax, price_per_pax, items_list, guest_count, subtotal, total")
+    .order("placed_at", { ascending: false });
+  if (error) throw error;
+
+  return ((data ?? []) as unknown as CateringBookingRow[]).map((row) => {
+    const status = row.status as ReservationStatus;
+    const placedAt = formatPlacedAt(row.placed_at);
+    return {
+      id: row.id,
+      kind: row.kind,
+      customer: row.customer,
+      phone: row.phone,
+      email: row.email,
+      date: row.date,
+      time: sqlTimeToBookingLabel(row.time),
+      status,
+      placedAt,
+      updatedAt: row.updated_at,
+      timeline: row.timeline?.length ? row.timeline : [{ status, at: placedAt }],
+      notes: row.notes ?? "",
+      packageId: row.package_id ?? undefined,
+      packageName: row.package_name ?? undefined,
+      packagePrice: row.total,
+      pax: row.pax ?? undefined,
+      pricePerPax: row.price_per_pax ?? undefined,
+      itemsList: row.items_list ?? [],
+      guestCount: row.guest_count ?? undefined,
+      subtotal: row.subtotal,
+      total: row.total,
+    };
+  });
+}
+
+function throwBookingError(error: { code: string; message: string }, indexName: string): never {
+  if (error.code === "23505" && error.message.includes(indexName)) {
+    throw new SlotTakenError();
   }
-}
-export function saveFunctionBookings(list: FunctionBooking[]) {
-  localStorage.setItem(FUNC_KEY, JSON.stringify(list));
-}
-export function getCateringBookings(): CateringBooking[] {
-  const raw = localStorage.getItem(CATERING_KEY);
-  if (!raw) return INITIAL_CATERING;
-  try {
-    return normalizeCatering(JSON.parse(raw) as CateringBooking[]);
-  } catch {
-    return INITIAL_CATERING;
-  }
-}
-export function saveCateringBookings(list: CateringBooking[]) {
-  localStorage.setItem(CATERING_KEY, JSON.stringify(list));
+  throw error;
 }
 
-export function addFunctionBooking(b: FunctionBooking) {
-  const list = getFunctionBookings();
-  list.push(b);
-  saveFunctionBookings(list);
-}
-export function addCateringBooking(b: CateringBooking) {
-  const list = getCateringBookings();
-  list.push(b);
-  saveCateringBookings(list);
-}
-export function updateFunctionBooking(updated: FunctionBooking) {
-  const list = getFunctionBookings().map((x) => (x.id === updated.id ? updated : x));
-  saveFunctionBookings(list);
-}
-export function updateCateringBooking(updated: CateringBooking) {
-  const list = getCateringBookings().map((x) => (x.id === updated.id ? updated : x));
-  saveCateringBookings(list);
+export async function updateFunctionBooking(updated: FunctionBooking): Promise<FunctionBooking> {
+  const { data, error } = await supabase
+    .from("function_bookings")
+    .update({
+      room_id: updated.roomId,
+      customer: updated.customer,
+      phone: updated.phone,
+      email: updated.email,
+      guests: updated.guests,
+      event_type: updated.eventType,
+      date: updated.date,
+      time: bookingTimeToSql(updated.time),
+      status: updated.status,
+      special_requests: updated.specialRequests,
+      timeline: updated.timeline,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", updated.id)
+    .eq("updated_at", updated.updatedAt)
+    .select("updated_at")
+    .maybeSingle();
+  if (error) throwBookingError(error, "function_bookings_active_slot_unique");
+  if (!data) throw new BookingChangedError();
+  return { ...updated, updatedAt: data.updated_at };
 }
 
-export function nextFunctionId(): string {
-  const count = getFunctionBookings().length;
-  return `BK-F${101 + count}`;
+export async function updateCateringBooking(updated: CateringBooking): Promise<CateringBooking> {
+  const { data, error } = await supabase
+    .from("catering_bookings")
+    .update({
+      kind: updated.kind,
+      customer: updated.customer,
+      phone: updated.phone,
+      email: updated.email,
+      date: updated.date,
+      time: bookingTimeToSql(updated.time),
+      status: updated.status,
+      timeline: updated.timeline,
+      notes: updated.notes,
+      package_id: updated.packageId ?? null,
+      package_name: updated.packageName ?? null,
+      pax: updated.pax ?? null,
+      price_per_pax: updated.pricePerPax ?? null,
+      items_list: updated.itemsList ?? [],
+      guest_count: updated.guestCount ?? null,
+      subtotal: updated.subtotal ?? 0,
+      total: updated.total ?? 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", updated.id)
+    .eq("updated_at", updated.updatedAt)
+    .select("updated_at")
+    .maybeSingle();
+  if (error) throwBookingError(error, "catering_bookings_active_slot_unique");
+  if (!data) throw new BookingChangedError();
+  return { ...updated, updatedAt: data.updated_at };
 }
-export function nextCateringId(): string {
-  const count = getCateringBookings().length;
-  return `BK-C${201 + count}`;
+
+export function subscribeReservationChanges(onChange: () => void) {
+  return supabase
+    .channel("operations-booking-changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "function_bookings" },
+      onChange,
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "catering_bookings" },
+      onChange,
+    )
+    .subscribe();
 }
 
 export function pushTimeline(
