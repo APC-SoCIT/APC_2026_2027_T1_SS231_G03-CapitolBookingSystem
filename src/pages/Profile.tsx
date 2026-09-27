@@ -130,28 +130,6 @@ export function Profile() {
           <h2>Contact details</h2>
 
           <label className="form-field">
-            <span>Full Name</span>
-            <input
-              className="input"
-              value={user.displayName}
-              disabled
-              readOnly
-              autoComplete="name"
-            />
-          </label>
-
-          <label className="form-field">
-            <span>Email Address</span>
-            <input
-              className="input"
-              value={user.email}
-              disabled
-              readOnly
-              autoComplete="email"
-            />
-          </label>
-
-          <label className="form-field">
             <span>Phone Number</span>
             <input
               className="input"
