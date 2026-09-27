@@ -11,7 +11,7 @@ import {
   Users,
   UtensilsCrossed,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getDeliveryOrders,
   type DeliveryOrder,
@@ -38,6 +38,7 @@ import { OrderDetailModal } from "../components/operations/OrderDetailModal";
 import { FunctionDetailModal } from "../components/operations/FunctionDetailModal";
 import { CateringDetailModal } from "../components/operations/CateringDetailModal";
 import { StatusPill } from "../components/operations/StatusPill";
+import { supabase } from "../lib/supabase";
 
 type ResFilter = ReservationStatus | "All";
 
@@ -55,11 +56,63 @@ export function Operations() {
   const [selectedFunctionId, setSelectedFunctionId] = useState<string | null>(null);
   const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadInquiries = async () => {
+      const { data, error } = await supabase
+        .from("inquiries")
+        .select("id, name, email, type, message, status, submitted_at, created_at")
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+      if (error) {
+        console.error("Unable to load staff inquiries from Supabase:", error.message);
+        return;
+      }
+
+      setInquiries((data ?? []).map((row) => ({
+        id: String(row.id),
+        name: row.name,
+        email: row.email,
+        type: row.type,
+        message: row.message,
+        status: row.status as InquiryStatus,
+        submittedAt: new Date(row.submitted_at || row.created_at).toLocaleString(),
+      })));
+    };
+
+    void loadInquiries();
+    const refreshTimer = window.setInterval(() => void loadInquiries(), 10_000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+    };
+  }, []);
+
   const refreshDashboard = () => {
     setOrders(getDeliveryOrders());
     setFunctionBookings(getFunctionBookings());
     setCateringBookings(getCateringBookings());
-    setInquiries(getInquiries());
+    void supabase
+      .from("inquiries")
+      .select("id, name, email, type, message, status, submitted_at, created_at")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Unable to refresh staff inquiries:", error.message);
+          return;
+        }
+        setInquiries((data ?? []).map((row) => ({
+          id: String(row.id),
+          name: row.name,
+          email: row.email,
+          type: row.type,
+          message: row.message,
+          status: row.status as InquiryStatus,
+          submittedAt: new Date(row.submitted_at || row.created_at).toLocaleString(),
+        })));
+      });
   };
 
   const updateFunctionStatus = (id: string, status: ReservationStatus) => {
@@ -97,6 +150,13 @@ export function Operations() {
     );
     setInquiries(updatedInquiries);
     saveInquiries(updatedInquiries);
+    void supabase
+      .from("inquiries")
+      .update({ status })
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) console.error("Unable to update inquiry status:", error.message);
+      });
   };
 
   const filteredFunction = useMemo(() => {
@@ -129,6 +189,9 @@ export function Operations() {
   );
 
   const newInquiryCount = inquiries.filter((inquiry) => inquiry.status === "New").length;
+  const manualResponseInquiries = inquiries.filter(
+    (inquiry) => inquiry.status === "New" && inquiry.type === "Manual Order Request",
+  );
   const activeDeliveryCount = orders.filter((order) => order.status !== "Delivered").length;
   const revenueToday = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
   const functionPending = functionBookings.filter((b) => b.status === "Pending").length;
@@ -229,6 +292,14 @@ export function Operations() {
             <span className="dashboard-count">{inquiries.length} total</span>
           </div>
           <div className="dashboard-inquiries">
+            {manualResponseInquiries.length > 0 && (
+              <aside className="inquiry-alert" role="status" aria-live="polite">
+                <strong>
+                  {manualResponseInquiries.length} order {manualResponseInquiries.length === 1 ? "request needs" : "requests need"} a manual reply
+                </strong>
+                <span>Review the highlighted new inquiries and contact customers using their listed email address.</span>
+              </aside>
+            )}
             {inquiries.length > 0 ? inquiries.map((inquiry) => (
               <InquiryRow inquiry={inquiry} key={inquiry.id} onStatusChange={updateInquiryStatus} />
             )) : <EmptyDashboardState message="No inquiries have been submitted yet." />}
@@ -288,9 +359,10 @@ function CateringRow({ booking, onOpen, onStatusChange }: { booking: CateringBoo
 }
 
 function InquiryRow({ inquiry, onStatusChange }: { inquiry: Inquiry; onStatusChange: (id: string, status: InquiryStatus) => void }) {
+  const needsManualReply = inquiry.status === "New" && inquiry.type === "Manual Order Request";
   return (
-    <article className="dashboard-inquiry-row">
-      <div className="dashboard-row__identity"><strong>{inquiry.name}</strong><span>{inquiry.email}</span></div>
+    <article className={`dashboard-inquiry-row${needsManualReply ? " dashboard-inquiry-row--manual" : ""}`}>
+      <div className="dashboard-row__identity"><strong>{inquiry.name}</strong><span>{inquiry.email}</span>{needsManualReply && <small className="inquiry-manual-badge">Manual reply needed</small>}</div>
       <div className="dashboard-row__details"><span>{inquiry.type}</span><small>{inquiry.message}</small></div>
       <select className={`dashboard-status dashboard-status--${inquiry.status.toLowerCase().replaceAll(" ", "-")}`} value={inquiry.status} onChange={(event) => onStatusChange(inquiry.id, event.target.value as InquiryStatus)}>
         {INQUIRY_STATUSES.map((status) => <option key={status}>{status}</option>)}

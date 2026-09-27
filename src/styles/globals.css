@@ -220,6 +220,11 @@ button, input, textarea, select { font: inherit; }
 .field-error { color: #b84040; font-size: 0.72rem; font-style: italic; font-weight: 400; line-height: 1.4; letter-spacing: 0; }
 .reservation-submit { width: 100%; margin-top: 0.5rem; }
 .success-message { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem; border-radius: 6px; background: rgba(8, 116, 67, 0.08); color: #087443; font-size: 0.875rem; }
+.success-message--error { background: rgba(175, 1, 0, 0.08); color: #a30000; }
+.inquiry-alert { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; padding: 0.9rem 1rem; border: 1px solid rgba(175, 1, 0, 0.25); border-left: 4px solid #af0100; border-radius: 6px; background: rgba(175, 1, 0, 0.07); color: #640000; font-size: 0.875rem; }
+.inquiry-alert span { color: #704545; }
+.dashboard-inquiry-row--manual { border-color: rgba(175, 1, 0, 0.35); background: rgba(175, 1, 0, 0.035); }
+.inquiry-manual-badge { width: fit-content; padding: 0.18rem 0.45rem; border-radius: 999px; background: rgba(175, 1, 0, 0.1); color: #a30000; font-size: 0.68rem; font-weight: 700; }
 .button--red:not(:disabled):hover { background: #c30b09; box-shadow: 0 8px 22px rgba(175, 1, 0, 0.2); }
 .function-rooms-page { background: radial-gradient(circle at 88% 42%, rgba(242, 231, 169, 0.22), transparent 26rem), #fdf6e3; }
 
