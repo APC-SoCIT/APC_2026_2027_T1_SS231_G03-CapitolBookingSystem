@@ -444,7 +444,8 @@ button, input, textarea, select { font: inherit; }
 .profile-track__intro { margin: 0 0 0.25rem; color: #8a5a5a; font-size: 0.85rem; }
 .profile-track-search { display: flex; align-items: flex-end; gap: 0.6rem; }
 .profile-track-search .form-field { flex: 1; min-width: 0; margin: 0; }
-.profile-track-search .button { flex-shrink: 0; padding: 0.7rem 1.1rem; line-height: 1.2; }
+.profile-track-search .input { height: 2.75rem; }
+.profile-track-search .button { flex-shrink: 0; height: 2.75rem; padding-top: 0; padding-bottom: 0; }
 .profile-track .reference-hint { margin: 0; }
 .profile-track .empty-state { padding: 1.5rem; }
 .profile-track .tracking-result { margin-top: 0.25rem; }
