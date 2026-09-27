@@ -1,5 +1,5 @@
-import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingBag } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingBag, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SignInModal } from "../components/common";
 import type { MenuItem } from "../constants";
@@ -31,6 +31,17 @@ type FieldKey = "name" | "phone" | "address" | "items";
 type OrderErrors = FieldKey[];
 type FieldMessages = Partial<Record<FieldKey, string>>;
 
+type ProductGroup = {
+  kind: "group";
+  key: string;
+  name: string;
+  category: string;
+  description: string;
+  minPrice: number;
+  selectedQty: number;
+  variants: MenuItem[];
+};
+
 // Philippine mobile number: 11 digits, starting with 09 (spaces/dashes ignored).
 const PH_MOBILE_PATTERN = /^09\d{9}$/;
 
@@ -59,6 +70,12 @@ export function DeliveryOrder() {
     null,
   );
   const [menuSearch, setMenuSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [variantProduct, setVariantProduct] = useState<ProductGroup | null>(
+    null,
+  );
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [awaitingSignIn, setAwaitingSignIn] = useState(false);
 
   // Autofill name + previously used contact number once the session is known.
   useEffect(() => {
@@ -70,6 +87,18 @@ export function DeliveryOrder() {
     }));
   }, [user]);
 
+  // Guest placed an order, signed in, and closed the sign-in dialog:
+  // continue straight into the details modal instead of a second click.
+  const handleCloseSignIn = useCallback(() => {
+    if (awaitingSignIn) {
+      setAwaitingSignIn(false);
+      closeSignIn();
+      if (user) setShowDetailsModal(true);
+      return;
+    }
+    closeSignIn();
+  }, [awaitingSignIn, closeSignIn, user]);
+
   const selectedItems = useMemo(
     () => menuItems.filter((item) => cart[item.id]),
     [menuItems, cart],
@@ -77,23 +106,73 @@ export function DeliveryOrder() {
 
 
   const visibleMenuItems = useMemo(() => {
+    let items = menuItems;
+    if (activeCategory !== "All") {
+      items = items.filter((item) => item.category === activeCategory);
+    }
     const query = menuSearch.trim().toLowerCase();
-    if (!query) return menuItems;
-    return menuItems.filter(
+    if (!query) return items;
+    return items.filter(
       (item) =>
         item.name.toLowerCase().includes(query) ||
+        (item.variantGroup ?? "").toLowerCase().includes(query) ||
         item.category.toLowerCase().includes(query) ||
         item.description.toLowerCase().includes(query),
     );
-  }, [menuSearch, menuItems]);
+  }, [activeCategory, menuSearch, menuItems]);
+
+  // Variant items (Half/Whole, Bilao sizes) collapse into one product card each.
+  type Product =
+    | { kind: "single"; key: string; item: MenuItem }
+    | ProductGroup;
+  const products = useMemo<Product[]>(() => {
+    const out: Product[] = [];
+    const groupIndex = new Map<string, ProductGroup>();
+    for (const item of visibleMenuItems) {
+      if (item.variantGroup) {
+        const existing = groupIndex.get(item.variantGroup);
+        if (existing) {
+          existing.variants.push(item);
+        } else {
+          const group: ProductGroup = {
+            kind: "group",
+            key: item.variantGroup,
+            name: item.variantGroup,
+            category: item.category,
+            description: item.description,
+            minPrice: item.price,
+            selectedQty: 0,
+            variants: [item],
+          };
+          groupIndex.set(item.variantGroup, group);
+          out.push(group);
+        }
+      } else {
+        out.push({ kind: "single", key: item.id, item });
+      }
+    }
+    for (const group of groupIndex.values()) {
+      group.minPrice = Math.min(...group.variants.map((v) => v.price));
+      group.selectedQty = group.variants.reduce(
+        (sum, v) => sum + (cart[v.id] ?? 0),
+        0,
+      );
+    }
+    return out;
+  }, [visibleMenuItems, cart]);
 
   // Show six dishes at a time so the page doesn't stretch on big menus.
   const MENU_PAGE_SIZE = 6;
   const [menuPage, setMenuPage] = useState(1);
-  const menuPageCount = Math.ceil(visibleMenuItems.length / MENU_PAGE_SIZE) || 1;
-  const shownMenuItems = visibleMenuItems.slice(
+  const menuPageCount = Math.ceil(products.length / MENU_PAGE_SIZE) || 1;
+  const shownProducts = products.slice(
     (menuPage - 1) * MENU_PAGE_SIZE,
     menuPage * MENU_PAGE_SIZE,
+  );
+
+  const visibleCategories = useMemo(
+    () => categoryDefs.filter((def) => !def.hidden).map((def) => def.name),
+    [categoryDefs],
   );
 
   const totalQuantity = selectedItems.reduce(
@@ -117,9 +196,33 @@ export function DeliveryOrder() {
 
   const updateDetail = (field: keyof CustomerDetails, value: string) => {
     setDetails((prev) => ({ ...prev, [field]: value }));
+    if (errors.includes(field as FieldKey)) {
+      setErrors((prev) => prev.filter((key) => key !== field));
+    }
   };
 
-  const submitOrder = () => {
+  const openDetailsModal = () => {
+    if (!selectedItems.length) {
+      setErrors(["items"]);
+      setFieldMessages({ items: "Select at least one item to order" });
+      return;
+    }
+    setErrors((prev) => prev.filter((key) => key !== "items"));
+    setFieldMessages((prev) => {
+      const { items: _dropped, ...rest } = prev;
+      return rest;
+    });
+
+    if (!user) {
+      setAwaitingSignIn(true);
+      setShowDetailsModal(false);
+      requireAuth();
+      return;
+    }
+    setShowDetailsModal(true);
+  };
+
+  const handleConfirmDetails = () => {
     const nextErrors: OrderErrors = [];
     const nextMessages: FieldMessages = {};
 
@@ -141,16 +244,11 @@ export function DeliveryOrder() {
       nextErrors.push("address");
       nextMessages.address = "Delivery address is required";
     }
-    if (!selectedItems.length) {
-      nextErrors.push("items");
-      nextMessages.items = "Select at least one item to order";
-    }
 
     setErrors(nextErrors);
     setFieldMessages(nextMessages);
 
     if (nextErrors.length > 0) return;
-    if (!requireAuth()) return;
 
     const existingOrders = getDeliveryOrders();
     const reference = `CAP-${1050 + existingOrders.length}`;
@@ -183,6 +281,7 @@ export function DeliveryOrder() {
 
     saveDeliveryOrders([...existingOrders, order]);
     setSubmittedReference(reference);
+    setShowDetailsModal(false);
     setCart({});
   };
 
@@ -238,18 +337,53 @@ export function DeliveryOrder() {
               />
             </label>
 
-            {visibleMenuItems.length ? (
+            <div className="order-filter-row" role="group" aria-label="Filter by category">
+              <button
+                className={`ops-filter-chip ${activeCategory === "All" ? "ops-filter-chip--active" : ""}`}
+                onClick={() => {
+                  setActiveCategory("All");
+                  setMenuPage(1);
+                }}
+                type="button"
+              >
+                All
+              </button>
+              {visibleCategories.map((name) => (
+                <button
+                  className={`ops-filter-chip ${activeCategory === name ? "ops-filter-chip--active" : ""}`}
+                  key={name}
+                  onClick={() => {
+                    setActiveCategory(name);
+                    setMenuPage(1);
+                  }}
+                  type="button"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+
+            {products.length ? (
               <>
                 <div className="order-menu-grid">
-                  {shownMenuItems.map((item) => (
-                    <MenuOrderCard
-                      categoryDefs={categoryDefs}
-                      item={item}
-                      key={item.id}
-                      quantity={cart[item.id] ?? 0}
-                      onChange={(quantity) => updateQuantity(item, quantity)}
-                    />
-                  ))}
+                  {shownProducts.map((product) =>
+                    product.kind === "single" ? (
+                      <MenuOrderCard
+                        categoryDefs={categoryDefs}
+                        item={product.item}
+                        key={product.key}
+                        quantity={cart[product.item.id] ?? 0}
+                        onChange={(quantity) => updateQuantity(product.item, quantity)}
+                      />
+                    ) : (
+                      <VariantGroupCard
+                        product={product}
+                        key={product.key}
+                        categoryDefs={categoryDefs}
+                        onOpen={() => setVariantProduct(product)}
+                      />
+                    ),
+                  )}
                 </div>
                 {menuPageCount > 1 && (
                   <div className="order-menu-pager">
@@ -290,18 +424,41 @@ export function DeliveryOrder() {
               deliveryFee={deliveryFee}
               total={total}
             />
-            <CustomerFormCard
-              details={details}
-              errors={errors}
-              fieldMessages={fieldMessages}
-              total={total}
-              onChange={updateDetail}
-              onSubmit={submitOrder}
-            />
+            <button
+              className="button button--red order-submit"
+              onClick={openDetailsModal}
+              type="button"
+            >
+              Place order · ₱{total.toLocaleString()}
+            </button>
+            {errors.includes("items") && (
+              <p className="field-error order-sidebar__error" role="alert">
+                {fieldMessages.items}
+              </p>
+            )}
           </aside>
         </div>
       </section>
-      {showSignIn && <SignInModal onClose={closeSignIn} />}
+      {showDetailsModal && (
+        <DeliveryDetailsModal
+          details={details}
+          errors={errors}
+          fieldMessages={fieldMessages}
+          total={total}
+          onClose={() => setShowDetailsModal(false)}
+          onChange={updateDetail}
+          onConfirm={handleConfirmDetails}
+        />
+      )}
+      {variantProduct && (
+        <VariantPickerModal
+          product={variantProduct}
+          cart={cart}
+          onClose={() => setVariantProduct(null)}
+          onChange={updateQuantity}
+        />
+      )}
+      {showSignIn && <SignInModal onClose={handleCloseSignIn} />}
     </div>
   );
 }
@@ -386,6 +543,170 @@ function MenuOrderCard({
   );
 }
 
+function VariantGroupCard({
+  product,
+  categoryDefs,
+  onOpen,
+}: {
+  product: ProductGroup;
+  categoryDefs: ReturnType<typeof useDeliveryCategoryDefs>;
+  onOpen: () => void;
+}) {
+  return (
+    <article className="order-menu-card" key={product.key}>
+      <div className="order-menu-card__media">
+        <div
+          className="order-menu-card__img order-menu-card__img--blank"
+          aria-label="No image available"
+        />
+      </div>
+
+      <div className="order-menu-card__body">
+        <div className="order-menu-card__header-row">
+          <h2>{product.name}</h2>
+          <strong className="order-menu-card__price">
+            from ₱{product.minPrice.toLocaleString()}
+          </strong>
+        </div>
+        <span className="order-menu-card__category">
+          {getVisibleCategoryName(product.variants[0], categoryDefs)}
+        </span>
+        <p>{product.description}</p>
+
+        <div className="order-menu-card__bottom">
+          {product.selectedQty > 0 && (
+            <span className="order-menu-card__count">
+              {product.selectedQty} selected
+            </span>
+          )}
+          <button
+            className="order-menu-card__add"
+            onClick={onOpen}
+            type="button"
+          >
+            <Plus size={14} />
+            {product.selectedQty > 0 ? "Options" : "Add"}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function VariantPickerModal({
+  product,
+  cart,
+  onClose,
+  onChange,
+}: {
+  product: ProductGroup;
+  cart: Cart;
+  onClose: () => void;
+  onChange: (item: MenuItem, quantity: number) => void;
+}) {
+  useEffect(() => {
+    document.body.classList.add("modal-open");
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.classList.remove("modal-open");
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  const totalSelected = product.variants.reduce(
+    (sum, variant) => sum + (cart[variant.id] ?? 0),
+    0,
+  );
+
+  return (
+    <div className="signin-backdrop" onClick={onClose}>
+      <div
+        className="variant-modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Choose an option for ${product.name}`}
+      >
+        <button
+          className="signin-modal__close"
+          onClick={onClose}
+          type="button"
+          aria-label="Close options"
+        >
+          <X size={18} />
+        </button>
+
+        <div className="signin-modal__header">
+          <div className="signin-modal__header-icon">
+            <ShoppingBag size={24} />
+          </div>
+          <div>
+            <p className="eyebrow">Choose an option</p>
+            <h2>{product.name}</h2>
+          </div>
+        </div>
+
+        <div className="variant-modal__body">
+          {product.variants.map((variant) => {
+            const quantity = cart[variant.id] ?? 0;
+            return (
+              <div className="variant-option" key={variant.id}>
+                <div className="variant-option__info">
+                  <strong>{variant.variantLabel}</strong>
+                  <span>₱{variant.price.toLocaleString()}</span>
+                </div>
+                {quantity > 0 ? (
+                  <div className="quantity-control">
+                    <button
+                      aria-label={`Remove one ${variant.name}`}
+                      onClick={() => onChange(variant, quantity - 1)}
+                      type="button"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span>{quantity}</span>
+                    <button
+                      aria-label={`Add one more ${variant.name}`}
+                      disabled={quantity >= MAX_QUANTITY_PER_ITEM}
+                      onClick={() => onChange(variant, quantity + 1)}
+                      type="button"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="order-menu-card__add"
+                    onClick={() => onChange(variant, 1)}
+                    type="button"
+                  >
+                    <Plus size={14} />
+                    Add
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          <button
+            className="button button--red variant-modal__done"
+            onClick={onClose}
+            type="button"
+            disabled={totalSelected === 0}
+          >
+            {totalSelected > 0 ? `Done · ${totalSelected} selected` : "Done"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OrderSummaryCard({
   selectedItems,
   cart,
@@ -459,106 +780,145 @@ function SummaryRow({
   );
 }
 
-function CustomerFormCard({
+function DeliveryDetailsModal({
   details,
   errors,
   fieldMessages,
   total,
+  onClose,
   onChange,
-  onSubmit,
+  onConfirm,
 }: {
   details: CustomerDetails;
   errors: OrderErrors;
   fieldMessages: FieldMessages;
   total: number;
+  onClose: () => void;
   onChange: (key: keyof CustomerDetails, value: string) => void;
-  onSubmit: () => void;
+  onConfirm: () => void;
 }) {
+  useEffect(() => {
+    document.body.classList.add("modal-open");
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.classList.remove("modal-open");
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
   return (
-    <div className="customer-form-card">
-      <h2>Delivery details</h2>
-
-      <div className="form-section">
-        <div className="form-section-title">Contact Information</div>
-        <FormField
-          error={errors.includes("name")}
-          message={fieldMessages.name}
-          label="Full Name"
-          name="name"
-          placeholder="Juan dela Cruz"
-          value={details.name}
-          onChange={onChange}
-        />
-        <FormField
-          error={errors.includes("phone")}
-          message={fieldMessages.phone}
-          label="Contact Number"
-          name="phone"
-          placeholder="09XX XXX XXXX"
-          value={details.phone}
-          onChange={onChange}
-        />
-      </div>
-
-      <div className="form-section">
-        <div className="form-section-title">Delivery</div>
-        <label
-          className={`form-field ${errors.includes("address") ? "form-field--error" : ""}`}
-        >
-          <span>Delivery Address</span>
-          <textarea
-            className="input"
-            placeholder="House number, street, barangay, city"
-            rows={3}
-            value={details.address}
-            onChange={(event) => onChange("address", event.target.value)}
-          />
-          {errors.includes("address") && (
-            <small className="field-error">{fieldMessages.address}</small>
-          )}
-        </label>
-      </div>
-
-      <div className="form-section">
-        <div className="form-section-title">Payment & Notes</div>
-        <label className="form-field">
-          <span>Payment Method</span>
-          <select
-            className="input"
-            value={details.payment}
-            onChange={(event) => onChange("payment", event.target.value)}
-          >
-            <option>Cash on delivery</option>
-            <option>GCash</option>
-            <option>Card</option>
-          </select>
-        </label>
-
-        <label className="form-field">
-          <span>
-            Notes <em>(optional)</em>
-          </span>
-          <textarea
-            className="input"
-            placeholder="Delivery instructions"
-            rows={2}
-            value={details.notes}
-            onChange={(event) => onChange("notes", event.target.value)}
-          />
-        </label>
-      </div>
-
-      {errors.includes("items") && (
-        <p className="field-error">{fieldMessages.items}</p>
-      )}
-
-      <button
-        className="button button--red order-submit"
-        onClick={onSubmit}
-        type="button"
+    <div className="signin-backdrop" onClick={onClose}>
+      <div
+        className="delivery-details-modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Delivery details"
       >
-        Place order · ₱{total.toLocaleString()}
-      </button>
+        <button
+          className="signin-modal__close"
+          onClick={onClose}
+          type="button"
+          aria-label="Close delivery details"
+        >
+          <X size={18} />
+        </button>
+
+        <div className="signin-modal__header">
+          <div className="signin-modal__header-icon">
+            <ShoppingBag size={24} />
+          </div>
+          <div>
+            <p className="eyebrow">Capitol Restaurant</p>
+            <h2>Delivery details</h2>
+          </div>
+        </div>
+
+        <div className="delivery-details-modal__body">
+          <div className="form-section">
+            <div className="form-section-title">Contact Information</div>
+            <FormField
+              error={errors.includes("name")}
+              message={fieldMessages.name}
+              label="Full Name"
+              name="name"
+              placeholder="Juan dela Cruz"
+              value={details.name}
+              onChange={onChange}
+            />
+            <FormField
+              error={errors.includes("phone")}
+              message={fieldMessages.phone}
+              label="Contact Number"
+              name="phone"
+              placeholder="09XX XXX XXXX"
+              value={details.phone}
+              onChange={onChange}
+            />
+          </div>
+
+          <div className="form-section">
+            <div className="form-section-title">Delivery</div>
+            <label
+              className={`form-field ${errors.includes("address") ? "form-field--error" : ""}`}
+            >
+              <span>Delivery Address</span>
+              <textarea
+                className="input"
+                placeholder="House number, street, barangay, city"
+                rows={3}
+                value={details.address}
+                onChange={(event) => onChange("address", event.target.value)}
+              />
+              {errors.includes("address") && (
+                <small className="field-error">{fieldMessages.address}</small>
+              )}
+            </label>
+          </div>
+
+          <div className="form-section">
+            <div className="form-section-title">Payment & Notes</div>
+            <label className="form-field">
+              <span>Payment Method</span>
+              <select
+                className="input"
+                value={details.payment}
+                onChange={(event) => onChange("payment", event.target.value)}
+              >
+                <option>Cash on delivery</option>
+                <option>GCash</option>
+                <option>Card</option>
+              </select>
+            </label>
+
+            <label className="form-field">
+              <span>
+                Notes <em>(optional)</em>
+              </span>
+              <textarea
+                className="input"
+                placeholder="Delivery instructions"
+                rows={2}
+                value={details.notes}
+                onChange={(event) => onChange("notes", event.target.value)}
+              />
+            </label>
+          </div>
+
+          <button
+            className="button button--red order-submit"
+            onClick={onConfirm}
+            type="button"
+          >
+            Place order · ₱{total.toLocaleString()}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

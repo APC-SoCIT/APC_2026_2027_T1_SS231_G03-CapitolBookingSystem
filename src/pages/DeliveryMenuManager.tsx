@@ -22,6 +22,7 @@ import {
   deleteMenuItem,
   generateMenuItemId,
   getVisibleCategoryName,
+  MENU_CATEGORIES,
   resetCategories,
   resetMenuItems,
   saveMenuItems,
@@ -44,8 +45,8 @@ const EMPTY_FORM: MenuItem = {
   name: "",
   description: "",
   price: 0,
-  category: "Solo Meals",
-  categories: ["Solo Meals"],
+  category: MENU_CATEGORIES[0],
+  categories: [MENU_CATEGORIES[0]],
   image: "",
 };
 
@@ -454,8 +455,8 @@ function MenuItemModal({
     return {
       ...EMPTY_FORM,
       id: generateMenuItemId(),
-      categories: ["Solo Meals"],
-      category: "Solo Meals",
+      categories: [MENU_CATEGORIES[0]],
+      category: MENU_CATEGORIES[0],
     };
   });
 
