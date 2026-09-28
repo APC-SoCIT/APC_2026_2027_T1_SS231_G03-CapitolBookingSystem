@@ -311,7 +311,7 @@ export function DeliveryOrder() {
           <div className="order-menu">
             <Link className="back-link" to="/delivery">
               <ArrowLeft size={15} />
-              Back to delivery tracking
+              Back
             </Link>
 
             <div className="order-section-heading">

@@ -100,7 +100,7 @@ export function FunctionRoomReservation() {
       <section className="section fr-reserve-layout" aria-labelledby="fr-reserve-title">
         <Link className="back-link" to="/function-rooms">
           <ArrowLeft size={15} />
-          Back to function rooms
+          Back
         </Link>
 
         <h2 className="content-heading" id="fr-reserve-title">
