@@ -165,20 +165,6 @@ insert into public.settings (key, value, description)
 values ('delivery_fee', 60, 'Default delivery fee in PHP, used when subtotal > 0')
 on conflict (key) do nothing;
 
-insert into public.reserved_dates (date, reason)
-values
-  ('2026-08-19', 'Blocked'),
-  ('2026-08-22', 'Blocked'),
-  ('2026-08-28', 'Blocked'),
-  ('2026-09-03', 'Blocked'),
-  ('2026-09-10', 'Blocked'),
-  ('2026-09-15', 'Blocked'),
-  ('2026-09-20', 'Blocked'),
-  ('2026-09-25', 'Blocked'),
-  ('2026-10-04', 'Blocked'),
-  ('2026-10-11', 'Blocked')
-on conflict (date) do nothing;
-
 do $$
 declare
   table_name text;
