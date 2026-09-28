@@ -316,7 +316,7 @@ function FunctionRow({ booking, onOpen, onStatusChange }: { booking: FunctionBoo
   return (
     <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter" && onOpen()}>
       <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small></div>
-      <div className="ops-order-row__items"><span>{booking.eventType} · {booking.guests} guests</span><small><Building2 size={10}/> {booking.room}</small><small style={{color:"#af0100"}}><Users size={10}/> {booking.email}</small></div>
+      <div className="ops-order-row__items"><span>{booking.eventType} · {booking.guests} guests</span><small><Building2 size={10}/> {booking.room}</small><small style={{color:"#b70100"}}><Users size={10}/> {booking.email}</small></div>
       <div className="ops-order-row__when"><span><CalendarDays size={12}/> {booking.date} {booking.time}</span><small>Placed {booking.placedAt}</small></div>
       <div className="ops-order-row__status" onClick={(e)=>e.stopPropagation()}>
         <select className={`ops-status-select ops-status-select--${booking.status.toLowerCase()}`} value={booking.status} onChange={(e)=>onStatusChange(booking.id, e.target.value as ReservationStatus)}>

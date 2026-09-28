@@ -232,7 +232,7 @@ export function Dashboard() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Calendar size={16} style={{ color: "#af0100" }} />
+            <Calendar size={16} style={{ color: "#b70100" }} />
             <span style={{ fontSize: "0.95rem", fontWeight: 600 }}>
               {formatDate(currentTime)}
             </span>
@@ -282,9 +282,9 @@ export function Dashboard() {
         {/* Summary cards */}
         {data && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-            <div className="card" style={{ padding: "1.25rem", borderLeft: "4px solid #af0100" }}>
+            <div className="card" style={{ padding: "1.25rem", borderLeft: "4px solid #b70100" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <ShoppingBag size={18} style={{ color: "#af0100" }} />
+                <ShoppingBag size={18} style={{ color: "#b70100" }} />
                 <span style={{ fontSize: "0.7rem", color: "#8a5a5a", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   Total Orders Today
                 </span>
@@ -293,7 +293,7 @@ export function Dashboard() {
                 {totalOrders(data)}
               </div>
               <div style={{ fontSize: "0.75rem", color: "#8a5a5a", marginTop: 4 }}>
-                Peak source: <strong style={{ color: "#af0100" }}>{peakSource(data).name}</strong> ({peakSource(data).value})
+                Peak source: <strong style={{ color: "#b70100" }}>{peakSource(data).name}</strong> ({peakSource(data).value})
               </div>
             </div>
 

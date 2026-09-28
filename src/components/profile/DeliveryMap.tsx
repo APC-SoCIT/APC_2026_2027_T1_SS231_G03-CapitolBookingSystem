@@ -110,7 +110,7 @@ export function DeliveryMap({ address, delivered }: DeliveryMapProps) {
           <Polyline
             positions={path}
             pathOptions={{
-              color: delivered ? "#087443" : "#af0100",
+              color: delivered ? "#087443" : "#b70100",
               weight: 5,
               opacity: 0.85,
             }}

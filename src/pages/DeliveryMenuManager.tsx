@@ -588,7 +588,7 @@ function MenuItemModal({
                   style={{
                     border: "none",
                     background: "none",
-                    color: "#af0100",
+                    color: "#b70100",
                     fontSize: "0.75rem",
                     cursor: "pointer",
                     textDecoration: "underline",
@@ -628,7 +628,7 @@ function MenuItemModal({
 
               <p className="category-select-hint">
                 {(form.categories || []).length === 0 ? (
-                  <span style={{ color: "#af0100" }}>
+                  <span style={{ color: "#b70100" }}>
                     ⚠️ No categories selected. In the delivery menu, this item
                     will display "Category".
                   </span>
@@ -981,7 +981,7 @@ function CategoryManagerModal({
                     className="category-item-row category-item-row--deleting"
                   >
                     <div className="category-delete-box">
-                      <strong style={{ color: "#af0100" }}>
+                      <strong style={{ color: "#b70100" }}>
                         Delete "{cat}" category?
                       </strong>
                       {itemCount > 0 ? (
