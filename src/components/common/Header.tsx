@@ -67,7 +67,11 @@ export function Header() {
       >
         <div className="site-header__inner">
           <Link className="brand" to="/" aria-label="Capitol Restaurant home">
-            <span className="brand__name">{RESTAURANT_INFO.name}</span>
+            <img
+              className="brand__logo"
+              src="/brand/wordmark-beige-600.png"
+              alt=""
+            />
             <span className="brand__meta">
               Since {RESTAURANT_INFO.since} · Pasay City
             </span>

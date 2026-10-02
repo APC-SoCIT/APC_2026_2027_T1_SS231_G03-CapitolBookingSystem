@@ -7,7 +7,13 @@ export function Footer() {
       <div className="site-footer__ornament" />
       <div className="site-footer__grid">
         <section>
-          <h2 className="footer-brand">{RESTAURANT_INFO.name}</h2>
+          <h2 className="footer-brand">
+            <img
+              className="footer-brand__logo"
+              src="/brand/wordmark-beige-600.png"
+              alt="Capitol Restaurant"
+            />
+          </h2>
           <p className="footer-since">Since {RESTAURANT_INFO.since}</p>
           <p className="footer-copy">
             {RESTAURANT_INFO.tagline}.<br />
