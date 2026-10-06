@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { PACKED_MENU_ITEMS, type MenuItem } from "../constants";
+import { DELIVERY_MENU_ITEMS, type MenuItem } from "../constants";
 
-const STORAGE_KEY = "capitol-delivery-menu-items";
-const CATEGORIES_STORAGE_KEY = "capitol-delivery-menu-categories";
+const STORAGE_KEY = "capitol-delivery-menu-items-v2";
+const CATEGORIES_STORAGE_KEY = "capitol-delivery-menu-categories-v2";
 const MENU_UPDATE_EVENT = "capitol-delivery-menu-updated";
 const MENU_BROADCAST_CHANNEL = "capitol-delivery-menu-channel";
 
@@ -12,29 +12,24 @@ export type CategoryDefinition = {
 };
 
 export const DEFAULT_CATEGORY_DEFS: CategoryDefinition[] = [
-  { name: "Solo Meals", hidden: false },
-  { name: "Sides", hidden: false },
-  { name: "Desserts", hidden: false },
-  { name: "Chicken", hidden: true },
-  { name: "Pork", hidden: true },
-  { name: "Beef", hidden: true },
-  { name: "Vegetables", hidden: true },
-  { name: "Pasta & Noodles", hidden: true },
+  { name: "Pancit / Noodles", hidden: false },
+  { name: "Pancit sa Bilao", hidden: false },
+  { name: "Chicken", hidden: false },
+  { name: "Kabayo", hidden: false },
+  { name: "Vegetables", hidden: false },
+  { name: "Rice", hidden: false },
+  { name: "Pork", hidden: false },
+  { name: "Best Sellers", hidden: false },
+  { name: "Seafood", hidden: false },
+  { name: "Soup", hidden: false },
 ];
 
 export const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_DEFS.map((c) => c.name);
 export const MENU_CATEGORIES = DEFAULT_CATEGORIES;
 export type MenuCategory = string;
 
-const HIDDEN_DEFAULT_NAMES = new Set([
-  "chicken",
-  "beef",
-  "pork",
-  "vegetables",
-  "noodles",
-  "pasta & noodles",
-  "pasta&noodles",
-]);
+// Legacy solo-meal categories are no longer hidden by default; nothing is hidden now.
+const HIDDEN_DEFAULT_NAMES = new Set<string>();
 
 function notifyMenuUpdated(): void {
   // 1. Notify listeners in the same window/tab
@@ -95,12 +90,8 @@ export function parseCategoryDefs(raw: unknown): CategoryDefinition[] {
     }
   }
 
-  // Ensure "Solo Meals" is present if migrating from an older array
-  if (!seen.has("solo meals")) {
-    defs.unshift({ name: "Solo Meals", hidden: false });
-  }
-
-  return defs.length > 0 ? defs : [...DEFAULT_CATEGORY_DEFS];
+  if (defs.length > 0) return defs;
+  return [...DEFAULT_CATEGORY_DEFS];
 }
 
 export function getCategoryDefs(): CategoryDefinition[] {
@@ -371,17 +362,17 @@ export function getVisibleCategoryName(
 
 export function getMenuItems(): MenuItem[] {
   if (typeof window === "undefined" || typeof localStorage === "undefined") {
-    return [...PACKED_MENU_ITEMS];
+    return [...DELIVERY_MENU_ITEMS];
   }
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return [...PACKED_MENU_ITEMS];
+  if (!stored) return [...DELIVERY_MENU_ITEMS];
   try {
     const parsed = JSON.parse(stored) as MenuItem[];
     if (Array.isArray(parsed)) {
       return parsed.map((item) => {
         // Normalize categories array for older stored items
         if (!item.categories || item.categories.length === 0) {
-          const defaultItem = PACKED_MENU_ITEMS.find((d) => d.id === item.id);
+          const defaultItem = DELIVERY_MENU_ITEMS.find((d) => d.id === item.id);
           if (defaultItem?.categories) {
             return {
               ...item,
@@ -397,9 +388,9 @@ export function getMenuItems(): MenuItem[] {
         return item;
       });
     }
-    return [...PACKED_MENU_ITEMS];
+    return [...DELIVERY_MENU_ITEMS];
   } catch {
-    return [...PACKED_MENU_ITEMS];
+    return [...DELIVERY_MENU_ITEMS];
   }
 }
 

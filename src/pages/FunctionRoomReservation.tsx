@@ -6,21 +6,11 @@ import {
   SignInModal,
   type BookingDetails,
 } from "../components/common";
-import { addFunctionBooking, nextFunctionId } from "../data/reservations";
+import { createFunctionBooking, FUNCTION_ROOM_ID } from "../data/reservations";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
 import { getStoredContact } from "../lib/contact";
-
-const EVENT_TYPES = [
-  "Birthday Celebration",
-  "Debut / 18th Birthday",
-  "Wedding Reception",
-  "Corporate Event",
-  "Family Reunion",
-  "Christmas Party",
-  "Seminar / Conference",
-  "Other",
-];
+import { FUNCTION_ROOM_EVENT_TYPES as EVENT_TYPES } from "../constants";
 
 const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'-]{3,60}$/;
 const CONTACT_REGEX = /^(09|\+639)\d{9}$/;
@@ -85,8 +75,11 @@ export function FunctionRoomReservation() {
     if (!EMAIL_REGEX.test(form.email.trim())) {
       next.email = "Enter a valid email address (e.g. juan@example.com)";
     }
-    if (!form.guests || Number(form.guests) < 1)
-      next.guests = "Please enter expected guest count";
+    if (!form.guests || !Number.isInteger(Number(form.guests)) || Number(form.guests) < 1) {
+      next.guests = "Enter a whole-number guest count";
+    } else if (Number(form.guests) > 30) {
+      next.guests = "This room holds up to 30 guests";
+    }
     if (!form.eventType) next.eventType = "Please select an event type";
     setErrors(next);
     if (!Object.keys(next).length && requireAuth()) setModalOpen(true);
@@ -97,7 +90,7 @@ export function FunctionRoomReservation() {
       <section className="section fr-reserve-layout" aria-labelledby="fr-reserve-title">
         <Link className="back-link" to="/function-rooms">
           <ArrowLeft size={15} />
-          Back to function rooms
+          Back
         </Link>
 
         <h2 className="content-heading" id="fr-reserve-title">
@@ -134,9 +127,12 @@ export function FunctionRoomReservation() {
             id="function-room-guests"
             label="Expected Guests"
             type="number"
+            min={1}
+            max={30}
+            step={1}
             value={form.guests}
             error={errors.guests}
-            placeholder="e.g. 80"
+            placeholder="e.g. 20"
             onChange={(value) => update("guests", value)}
           />
           <label className="form-field">
@@ -196,30 +192,29 @@ export function FunctionRoomReservation() {
         </div>
       </section>
       <CalendarModal
+        bookingKind="function_room"
+        roomId={FUNCTION_ROOM_ID}
         initialContact={form.contact}
         initialName={form.name}
         initialPax={Number(form.guests)}
+        maxPax={30}
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onConfirm={(details: BookingDetails) => {
-          const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-          addFunctionBooking({
-            id: nextFunctionId(),
-            kind: "function_room",
-            room: "Private Dining Room",
+        onConfirm={async (details: BookingDetails) => {
+          if (!user) throw new Error("Authentication required");
+          const id = await createFunctionBooking({
+            userId: user.id,
             customer: details.name || form.name,
             phone: details.contact || form.contact,
             email: form.email,
-            guests: Number(form.guests) || 30,
+            guests: details.pax,
             eventType: form.eventType || "Private Dining",
             date: details.date,
             time: details.time,
-            status: "Pending",
             specialRequests: form.specialRequests,
-            placedAt: now,
-            timeline: [{ status: "Pending", at: now }],
           });
           setSubmitted(true);
+          return id;
         }}
         title="Select Your Event Date"
       />
@@ -235,6 +230,9 @@ function Field({
   error,
   placeholder,
   type = "text",
+  min,
+  max,
+  step,
   onChange,
 }: {
   id: string;
@@ -243,6 +241,9 @@ function Field({
   error?: string;
   placeholder: string;
   type?: string;
+  min?: number;
+  max?: number;
+  step?: number;
   onChange: (value: string) => void;
 }) {
   return (
@@ -255,6 +256,9 @@ function Field({
         id={id}
         name={id}
         type={type}
+        min={min}
+        max={max}
+        step={step}
         placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(event.target.value)}

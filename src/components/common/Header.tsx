@@ -9,6 +9,7 @@ import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
 const EMPLOYEE_NAVIGATION_ITEMS = [
   { label: "Operations", path: "/operations" },
   { label: "Delivery", path: "/delivery/staff" },
+  { label: "Inquiry Bot", path: "/inquiry-bot" },
   { label: "Menu Items", path: "/delivery/items" },
   { label: "Dashboard", path: "/dashboard" },
   { label: "My Deliveries", path: "/delivery/rider" },
@@ -67,7 +68,11 @@ export function Header() {
       >
         <div className="site-header__inner">
           <Link className="brand" to="/" aria-label="Capitol Restaurant home">
-            <span className="brand__name">{RESTAURANT_INFO.name}</span>
+            <img
+              className="brand__logo"
+              src="/brand/wordmark-beige-600.png"
+              alt=""
+            />
             <span className="brand__meta">
               Since {RESTAURANT_INFO.since} · Pasay City
             </span>

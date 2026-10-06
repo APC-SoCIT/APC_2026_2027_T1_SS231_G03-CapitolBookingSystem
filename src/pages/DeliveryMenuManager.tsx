@@ -22,6 +22,7 @@ import {
   deleteMenuItem,
   generateMenuItemId,
   getVisibleCategoryName,
+  MENU_CATEGORIES,
   resetCategories,
   resetMenuItems,
   saveMenuItems,
@@ -44,8 +45,8 @@ const EMPTY_FORM: MenuItem = {
   name: "",
   description: "",
   price: 0,
-  category: "Solo Meals",
-  categories: ["Solo Meals"],
+  category: MENU_CATEGORIES[0],
+  categories: [MENU_CATEGORIES[0]],
   image: "",
 };
 
@@ -454,8 +455,8 @@ function MenuItemModal({
     return {
       ...EMPTY_FORM,
       id: generateMenuItemId(),
-      categories: ["Solo Meals"],
-      category: "Solo Meals",
+      categories: [MENU_CATEGORIES[0]],
+      category: MENU_CATEGORIES[0],
     };
   });
 
@@ -587,7 +588,7 @@ function MenuItemModal({
                   style={{
                     border: "none",
                     background: "none",
-                    color: "#af0100",
+                    color: "#b70100",
                     fontSize: "0.75rem",
                     cursor: "pointer",
                     textDecoration: "underline",
@@ -627,7 +628,7 @@ function MenuItemModal({
 
               <p className="category-select-hint">
                 {(form.categories || []).length === 0 ? (
-                  <span style={{ color: "#af0100" }}>
+                  <span style={{ color: "#b70100" }}>
                     ⚠️ No categories selected. In the delivery menu, this item
                     will display "Category".
                   </span>
@@ -980,7 +981,7 @@ function CategoryManagerModal({
                     className="category-item-row category-item-row--deleting"
                   >
                     <div className="category-delete-box">
-                      <strong style={{ color: "#af0100" }}>
+                      <strong style={{ color: "#b70100" }}>
                         Delete "{cat}" category?
                       </strong>
                       {itemCount > 0 ? (

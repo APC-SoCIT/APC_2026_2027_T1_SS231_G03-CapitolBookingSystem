@@ -11,8 +11,9 @@ import {
   PACKED_MENU_ITEMS,
   type MenuItem,
 } from "../constants";
-import { addCateringBooking, nextCateringId } from "../data/reservations";
+import { createCateringBooking } from "../data/reservations";
 import { useAuthGate } from "../hooks/useAuthGate";
+import { useAuth } from "../context/AuthContext";
 
 const MIN_PACKED_MEAL_QUANTITY = 10;
 
@@ -28,6 +29,7 @@ export function CateringPacked() {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
+  const { user } = useAuth();
 
   const displayItems = useMemo(() => {
     let items =
@@ -277,22 +279,19 @@ export function CateringPacked() {
         )}
       </section>
       <CalendarModal
+        bookingKind="catering_packed"
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onConfirm={(details: BookingDetails) => {
-          if (!canProceed) return;
-          const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-          addCateringBooking({
-            id: nextCateringId(),
+        onConfirm={async (details: BookingDetails) => {
+          if (!canProceed || !user) throw new Error("Booking details unavailable");
+          const id = await createCateringBooking({
+            userId: user.id,
             kind: "catering_packed",
             customer: details.name,
             phone: details.contact,
             email: "",
             date: details.date,
             time: details.time,
-            status: "Pending",
-            placedAt: now,
-            timeline: [{ status: "Pending", at: now }],
             notes: `Packed meals: ${selectedMeals.map((meal) => `${meal.name} (${mealQuantities[meal.id]} packs)`).join(", ")}`,
             itemsList: selectedMeals.map((meal) => ({ id: meal.id, type: "packed_meal" as const, name: meal.name, quantity: mealQuantities[meal.id], price: meal.price, category: meal.category })),
             guestCount: totalPacks,
@@ -300,6 +299,7 @@ export function CateringPacked() {
             total,
           });
           setSubmitted(true);
+          return id;
         }}
         initialPax={totalPacks || MIN_PACKED_MEAL_QUANTITY}
         showCount={false}

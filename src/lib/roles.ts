@@ -35,7 +35,7 @@ const CUSTOMER_PATHS = [
   "/profile",
 ];
 
-const OPERATIONS_PATHS = ["/operations", "/delivery/staff", "/delivery/items"];
+const OPERATIONS_PATHS = ["/operations", "/delivery/staff", "/delivery/items", "/inquiry-bot"];
 
 type RoleAccount = { role: unknown } | null;
 
@@ -57,10 +57,11 @@ export function canAccessRoute(account: RoleAccount, pathname: string): boolean 
 
   switch (account?.role) {
     case "front_of_house":
-    case "restaurant_manager":
       return OPERATIONS_PATHS.includes(path);
+    case "restaurant_manager":
+      return OPERATIONS_PATHS.includes(path) || path === "/dashboard";
     case "system_admin":
-      return path === "/dashboard";
+      return OPERATIONS_PATHS.includes(path) || path === "/dashboard" || path === "/delivery/rider";
     case "delivery_rider":
       return path === "/delivery/rider";
     default:

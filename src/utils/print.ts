@@ -24,7 +24,7 @@ export function openPrintWindow(innerHtml: string, title = "Print") {
     tfoot td { border-top:1.5px solid #640000; font-weight:700; }
     .ps-notes { margin-top:0.6rem; padding:0.5rem 0.6rem; background: rgba(100,0,0,0.04); border-radius:6px; font-size:0.78rem; }
     .ps-footer { margin-top:0.8rem; text-align:center; color:#8a5a5a; font-size:0.68rem; border-top:1px solid rgba(100,0,0,0.1); padding-top:0.6rem; }
-    .ps-kicker { color:#af0100; font-size:0.65rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; }
+    .ps-kicker { color:#b70100; font-size:0.65rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; }
   `;
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>${styles}</style></head><body>${innerHtml}</body></html>`);
   w.document.close();

@@ -52,6 +52,7 @@ declare
   room_key text := gen_random_uuid()::text;
   row_key text;
   columns_sql text;
+  booking_index integer := 0;
 begin
   if to_regclass('public.function_rooms') is not null then
     insert into public.function_rooms (id, name, capacity) values (room_key, 'Role verification', 10);
@@ -62,11 +63,12 @@ begin
       continue;
     end if;
     for u in select * from role_test_users loop
+      booking_index := booking_index + 1;
       row_key := gen_random_uuid()::text;
       payload := jsonb_build_object('user_id', u.id) || case t
         when 'delivery_orders' then jsonb_build_object('reference', row_key, 'customer', 'Test', 'address', 'Test', 'status', 'Preparing', 'eta', 'Test')
-        when 'catering_bookings' then jsonb_build_object('id', row_key, 'kind', 'catering_buffet', 'customer', 'Test', 'phone', 'Test', 'email', 'test@role-test.invalid', 'date', '2099-01-01', 'time', '12:00', 'status', 'Pending')
-        when 'function_bookings' then jsonb_build_object('id', row_key, 'room_id', room_key, 'customer', 'Test', 'phone', 'Test', 'email', 'test@role-test.invalid', 'guests', 1, 'event_type', 'Test', 'date', '2099-01-01', 'time', '12:00', 'status', 'Pending')
+        when 'catering_bookings' then jsonb_build_object('id', row_key, 'kind', 'catering_buffet', 'customer', 'Test', 'phone', 'Test', 'email', 'test@role-test.invalid', 'date', (date '2099-01-01' + booking_index)::text, 'time', '12:00', 'status', 'Pending')
+        when 'function_bookings' then jsonb_build_object('id', row_key, 'room_id', room_key, 'customer', 'Test', 'phone', 'Test', 'email', 'test@role-test.invalid', 'guests', 1, 'event_type', 'Test', 'date', (date '2099-01-01' + booking_index)::text, 'time', '12:00', 'status', 'Pending')
         when 'inquiries' then jsonb_build_object('id', row_key, 'name', 'Test', 'email', 'test@role-test.invalid', 'type', 'Test', 'message', 'Test', 'status', 'New') end;
       select string_agg(format('%I', key), ', ' order by key) into columns_sql from jsonb_object_keys(payload) as key;
       execute format('insert into public.%I (%s) select %s from jsonb_populate_record(null::public.%I, %L)', t, columns_sql, columns_sql, t, payload);
@@ -107,6 +109,9 @@ begin
       perform pg_temp.check_query(format('with changed as (update public.%I set user_id = user_id where %I = %L returning 1) select count(*) from changed', target.table_name, primary_key, target.row_key), can_write::integer);
       perform pg_temp.check_query(format('with changed as (delete from public.%I where %I = %L returning 1) select count(*) from changed', target.table_name, primary_key, target.row_key), can_write::integer);
       payload := target.payload || jsonb_build_object(primary_key, gen_random_uuid()::text);
+      if target.table_name in ('catering_bookings', 'function_bookings') then
+        payload := payload || jsonb_build_object('time', '12:30');
+      end if;
       select string_agg(format('%I', key), ', ' order by key) into columns_sql from jsonb_object_keys(payload) as key;
       query := format('with changed as (insert into public.%I (%s) select %s from jsonb_populate_record(null::public.%I, %L) returning 1) select count(*) from changed', target.table_name, columns_sql, columns_sql, target.table_name, payload);
       perform pg_temp.check_query(query, case when can_write then 1 else -1 end);
@@ -152,23 +157,30 @@ begin
   end loop;
 
   foreach client_role in array array['anon', 'authenticated'] loop
-    foreach t in array array['profiles', 'delivery_orders', 'catering_bookings', 'function_bookings', 'inquiries', 'catering_packages', 'packed_menu_items', 'function_rooms', 'settings', 'reserved_dates'] loop
+    foreach t in array array['profiles', 'delivery_orders', 'catering_bookings', 'function_bookings', 'inquiries', 'catering_packages', 'packed_menu_items', 'function_rooms', 'settings', 'reserved_dates', 'booking_availability'] loop
       if to_regclass(format('public.%I', t)) is null then continue; end if;
       assert not has_table_privilege(client_role, format('public.%I', t), 'TRUNCATE'), 'Client TRUNCATE bypasses RLS';
       if t = 'profiles' then
         assert not has_any_column_privilege(client_role, 'public.profiles', 'INSERT'), 'Client profile inserts';
         assert not has_any_column_privilege(client_role, 'public.profiles', 'UPDATE'), 'Client role updates';
         assert not has_table_privilege(client_role, 'public.profiles', 'DELETE'), 'Client profile deletes';
+      elsif t = 'booking_availability' then
+        assert not has_table_privilege(client_role, 'public.booking_availability', 'INSERT'), 'Client availability inserts';
+        assert not has_table_privilege(client_role, 'public.booking_availability', 'UPDATE'), 'Client availability updates';
+        assert not has_table_privilege(client_role, 'public.booking_availability', 'DELETE'), 'Client availability deletes';
       end if;
     end loop;
   end loop;
 
   perform set_config('request.jwt.claim.sub', '', true);
   perform set_config('request.jwt.claims', '{}', true);
-  foreach t in array array['catering_packages', 'packed_menu_items', 'function_rooms', 'settings', 'reserved_dates'] loop
+  foreach t in array array['catering_packages', 'packed_menu_items', 'function_rooms', 'settings', 'reserved_dates', 'booking_availability'] loop
     if to_regclass(format('public.%I', t)) is null then continue; end if;
     execute format('select count(*) from public.%I', t) into visible_count;
     set local role anon;
+    perform pg_temp.check_query(format('select count(*) from public.%I', t), visible_count);
+    reset role;
+    set local role authenticated;
     perform pg_temp.check_query(format('select count(*) from public.%I', t), visible_count);
     reset role;
   end loop;

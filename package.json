@@ -3,22 +3,34 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
+    "start": "node webhook.js",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test:roles": "node --experimental-strip-types --no-warnings scripts/test-roles.ts",
+    "test:booking-time": "node --experimental-strip-types --no-warnings scripts/test-booking-time.ts",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^2.24.0",
     "@supabase/supabase-js": "2.112.4",
+    "axios": "^1.20.0",
     "chart.js": "^4.5.1",
+    "dotenv": "^18.0.4",
+    "express": "^5.2.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.1.1"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.22",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

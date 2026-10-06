@@ -32,9 +32,13 @@ export function Home() {
         <div className="hero-orbit hero-orbit--top" />
         <div className="hero-orbit hero-orbit--bottom" />
         <div className="hero-content">
-          <p className="hero-tag">Est. 1940 · Pasay City, Metro Manila</p>
-          <h1>Capitol</h1>
-          <p className="hero-subtitle">Pasay City&apos;s Oldest Restaurant</p>
+          <h1 className="hero-logo-heading">
+            <img
+              className="hero-logo"
+              src="/brand/logo-official-1200.png"
+              alt="Capitol, since 1940, Pasay City&apos;s oldest restaurant"
+            />
+          </h1>
           <div className="ornament-divider">
             <span>◆</span>
           </div>

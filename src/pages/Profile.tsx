@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { ROLE_LABELS } from "../lib/roles";
+import { BookingHistory } from "../components/profile/BookingHistory";
+import { DeliveryTracker } from "../components/profile/DeliveryTracker";
 import { SignInModal } from "../components/common";
 import {
   getStoredProfile,
@@ -92,36 +95,42 @@ export function Profile() {
 
   return (
     <div className="inquiries-page">
-      <section className="section inquiries-grid">
-        <div className="inquiry-info">
-          <p className="eyebrow">Account</p>
-          <h2>{user.displayName}</h2>
+      <section className="section profile-layout">
+        <div className="profile-side">
+          <div className="inquiry-form profile-account-card">
+            <p className="eyebrow">Account</p>
+            <h2>{user.displayName}</h2>
+            <span className="profile-role-badge">
+              {user.role ? ROLE_LABELS[user.role] : "Customer"}
+            </span>
+            <dl className="profile-account-meta">
+              <div>
+                <dt>Email</dt>
+                <dd>{user.email}</dd>
+              </div>
+              {phone.trim() !== "" && (
+                <div>
+                  <dt>Phone</dt>
+                  <dd>{phone}</dd>
+                </div>
+              )}
+            </dl>
+            <p className="profile-account-note">
+              Reservations and orders made with this account show up in your
+              booking history automatically.
+            </p>
+          </div>
+
+          <div className="inquiry-form profile-bookings-card">
+            <h2>My bookings</h2>
+            <BookingHistory userId={user.id} />
+          </div>
+
+          <DeliveryTracker />
         </div>
 
         <div className="inquiry-form">
           <h2>Contact details</h2>
-
-          <label className="form-field">
-            <span>Full Name</span>
-            <input
-              className="input"
-              value={user.displayName}
-              disabled
-              readOnly
-              autoComplete="name"
-            />
-          </label>
-
-          <label className="form-field">
-            <span>Email Address</span>
-            <input
-              className="input"
-              value={user.email}
-              disabled
-              readOnly
-              autoComplete="email"
-            />
-          </label>
 
           <label className="form-field">
             <span>Phone Number</span>

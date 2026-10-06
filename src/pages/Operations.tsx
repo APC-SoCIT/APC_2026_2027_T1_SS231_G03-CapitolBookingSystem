@@ -11,7 +11,7 @@ import {
   Users,
   UtensilsCrossed,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getDeliveryOrders,
   type DeliveryOrder,
@@ -25,11 +25,15 @@ import {
   type InquiryStatus,
 } from "../data/inquiries";
 import {
-  getCateringBookings,
-  getFunctionBookings,
+  BookingChangedError,
+  fetchCateringBookings,
+  fetchFunctionBookings,
   RESERVATION_STATUSES,
-  saveCateringBookings,
-  saveFunctionBookings,
+  SlotTakenError,
+  pushTimeline,
+  subscribeReservationChanges,
+  updateCateringBooking,
+  updateFunctionBooking,
   type CateringBooking,
   type FunctionBooking,
   type ReservationStatus,
@@ -38,12 +42,14 @@ import { OrderDetailModal } from "../components/operations/OrderDetailModal";
 import { FunctionDetailModal } from "../components/operations/FunctionDetailModal";
 import { CateringDetailModal } from "../components/operations/CateringDetailModal";
 import { StatusPill } from "../components/operations/StatusPill";
+import { supabase } from "../lib/supabase";
 
 type ResFilter = ReservationStatus | "All";
 
 export function Operations() {
-  const [functionBookings, setFunctionBookings] = useState<FunctionBooking[]>(getFunctionBookings);
-  const [cateringBookings, setCateringBookings] = useState<CateringBooking[]>(getCateringBookings);
+  const [functionBookings, setFunctionBookings] = useState<FunctionBooking[]>([]);
+  const [cateringBookings, setCateringBookings] = useState<CateringBooking[]>([]);
+  const [bookingLoadError, setBookingLoadError] = useState("");
   const [inquiries, setInquiries] = useState<Inquiry[]>(getInquiries);
   // Orders are read-only here — status/assignment work lives in the Delivery tab.
   const [orders, setOrders] = useState<DeliveryOrder[]>(getDeliveryOrders);
@@ -54,41 +60,148 @@ export function Operations() {
   const [cateringKindFilter, setCateringKindFilter] = useState<"All" | "Buffet" | "Packed">("All");
   const [selectedFunctionId, setSelectedFunctionId] = useState<string | null>(null);
   const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
+  const bookingFetchVersion = useRef(0);
+
+  const loadBookings = useCallback(async () => {
+    const version = ++bookingFetchVersion.current;
+    try {
+      const [functions, catering] = await Promise.all([
+        fetchFunctionBookings(),
+        fetchCateringBookings(),
+      ]);
+      if (version !== bookingFetchVersion.current) return;
+      setFunctionBookings(functions);
+      setCateringBookings(catering);
+      setBookingLoadError("");
+    } catch (error) {
+      if (version === bookingFetchVersion.current) throw error;
+    }
+  }, []);
+
+  const refreshBookings = useCallback(() => {
+    void loadBookings().catch(() => {
+      setBookingLoadError("Bookings could not be loaded. Refresh and try again.");
+    });
+  }, [loadBookings]);
+
+  useEffect(() => {
+    refreshBookings();
+    const channel = subscribeReservationChanges(refreshBookings);
+    return () => {
+      bookingFetchVersion.current += 1;
+      void channel.unsubscribe();
+    };
+  }, [refreshBookings]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadInquiries = async () => {
+      const { data, error } = await supabase
+        .from("inquiries")
+        .select("id, name, email, type, message, status, submitted_at, created_at")
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+      if (error) {
+        console.error("Unable to load staff inquiries from Supabase:", error.message);
+        return;
+      }
+
+      setInquiries((data ?? []).map((row) => ({
+        id: String(row.id),
+        name: row.name,
+        email: row.email,
+        type: row.type,
+        message: row.message,
+        status: row.status as InquiryStatus,
+        submittedAt: new Date(row.submitted_at || row.created_at).toLocaleString(),
+      })));
+    };
+
+    void loadInquiries();
+    const refreshTimer = window.setInterval(() => void loadInquiries(), 10_000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+    };
+  }, []);
 
   const refreshDashboard = () => {
     setOrders(getDeliveryOrders());
-    setFunctionBookings(getFunctionBookings());
-    setCateringBookings(getCateringBookings());
-    setInquiries(getInquiries());
+    refreshBookings();
+    void supabase
+      .from("inquiries")
+      .select("id, name, email, type, message, status, submitted_at, created_at")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Unable to refresh staff inquiries:", error.message);
+          return;
+        }
+        setInquiries((data ?? []).map((row) => ({
+          id: String(row.id),
+          name: row.name,
+          email: row.email,
+          type: row.type,
+          message: row.message,
+          status: row.status as InquiryStatus,
+          submittedAt: new Date(row.submitted_at || row.created_at).toLocaleString(),
+        })));
+      });
   };
 
-  const updateFunctionStatus = (id: string, status: ReservationStatus) => {
-    const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-    const next = functionBookings.map((b) =>
-      b.id === id ? { ...b, status, timeline: [...(b.timeline ?? []), { status, at: now }] } : b,
+  const showBookingSaveError = (error: unknown) => {
+    window.alert(
+      error instanceof SlotTakenError
+        ? "That time slot is already reserved. Choose another time."
+        : error instanceof BookingChangedError
+          ? "This booking changed elsewhere. Close and reopen it before saving."
+          : "Booking could not be saved. Please try again.",
     );
-    setFunctionBookings(next);
-    saveFunctionBookings(next);
+    refreshBookings();
   };
-  const updateCateringStatus = (id: string, status: ReservationStatus) => {
-    const now = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-    const next = cateringBookings.map((b) =>
-      b.id === id ? { ...b, status, timeline: [...(b.timeline ?? []), { status, at: now }] } : b,
-    );
-    setCateringBookings(next);
-    saveCateringBookings(next);
+
+  const updateFunctionStatus = async (id: string, status: ReservationStatus) => {
+    const booking = functionBookings.find((item) => item.id === id);
+    if (!booking) return;
+    const updated = { ...booking, status, timeline: pushTimeline(booking.timeline, status) };
+    try {
+      const saved = await updateFunctionBooking(updated);
+      setFunctionBookings((current) => current.map((item) => item.id === id ? saved : item));
+    } catch (error) {
+      showBookingSaveError(error);
+    }
   };
-  const handleFunctionSave = (updated: FunctionBooking) => {
-    const next = functionBookings.map((b) => (b.id === updated.id ? updated : b));
-    setFunctionBookings(next);
-    saveFunctionBookings(next);
-    setSelectedFunctionId(null);
+
+  const updateCateringStatus = async (id: string, status: ReservationStatus) => {
+    const booking = cateringBookings.find((item) => item.id === id);
+    if (!booking) return;
+    const updated = { ...booking, status, timeline: pushTimeline(booking.timeline, status) };
+    try {
+      const saved = await updateCateringBooking(updated);
+      setCateringBookings((current) => current.map((item) => item.id === id ? saved : item));
+    } catch (error) {
+      showBookingSaveError(error);
+    }
   };
-  const handleCateringSave = (updated: CateringBooking) => {
-    const next = cateringBookings.map((b) => (b.id === updated.id ? updated : b));
-    setCateringBookings(next);
-    saveCateringBookings(next);
-    setSelectedCateringId(null);
+  const handleFunctionSave = async (updated: FunctionBooking) => {
+    try {
+      const saved = await updateFunctionBooking(updated);
+      setFunctionBookings((current) => current.map((item) => item.id === updated.id ? saved : item));
+      setSelectedFunctionId((current) => current === updated.id ? null : current);
+    } catch (error) {
+      showBookingSaveError(error);
+    }
+  };
+  const handleCateringSave = async (updated: CateringBooking) => {
+    try {
+      const saved = await updateCateringBooking(updated);
+      setCateringBookings((current) => current.map((item) => item.id === updated.id ? saved : item));
+      setSelectedCateringId((current) => current === updated.id ? null : current);
+    } catch (error) {
+      showBookingSaveError(error);
+    }
   };
 
   const updateInquiryStatus = (id: string, status: InquiryStatus) => {
@@ -97,6 +210,13 @@ export function Operations() {
     );
     setInquiries(updatedInquiries);
     saveInquiries(updatedInquiries);
+    void supabase
+      .from("inquiries")
+      .update({ status })
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) console.error("Unable to update inquiry status:", error.message);
+      });
   };
 
   const filteredFunction = useMemo(() => {
@@ -129,6 +249,9 @@ export function Operations() {
   );
 
   const newInquiryCount = inquiries.filter((inquiry) => inquiry.status === "New").length;
+  const manualResponseInquiries = inquiries.filter(
+    (inquiry) => inquiry.status === "New" && inquiry.type === "Manual Order Request",
+  );
   const activeDeliveryCount = orders.filter((order) => order.status !== "Delivered").length;
   const revenueToday = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
   const functionPending = functionBookings.filter((b) => b.status === "Pending").length;
@@ -148,6 +271,7 @@ export function Operations() {
             Refresh data
           </button>
         </div>
+        {bookingLoadError && <p className="field-error" role="alert">{bookingLoadError}</p>}
 
         <div className="dashboard-stats dashboard-stats--5">
           <StatCard icon={<Truck size={20} />} label="Active deliveries" value={activeDeliveryCount} hint="Not delivered" />
@@ -229,6 +353,14 @@ export function Operations() {
             <span className="dashboard-count">{inquiries.length} total</span>
           </div>
           <div className="dashboard-inquiries">
+            {manualResponseInquiries.length > 0 && (
+              <aside className="inquiry-alert" role="status" aria-live="polite">
+                <strong>
+                  {manualResponseInquiries.length} order {manualResponseInquiries.length === 1 ? "request needs" : "requests need"} a manual reply
+                </strong>
+                <span>Review the highlighted new inquiries and contact customers using their listed email address.</span>
+              </aside>
+            )}
             {inquiries.length > 0 ? inquiries.map((inquiry) => (
               <InquiryRow inquiry={inquiry} key={inquiry.id} onStatusChange={updateInquiryStatus} />
             )) : <EmptyDashboardState message="No inquiries have been submitted yet." />}
@@ -255,7 +387,7 @@ function FunctionRow({ booking, onOpen, onStatusChange }: { booking: FunctionBoo
   return (
     <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter" && onOpen()}>
       <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small></div>
-      <div className="ops-order-row__items"><span>{booking.eventType} · {booking.guests} guests</span><small><Building2 size={10}/> {booking.room}</small><small style={{color:"#af0100"}}><Users size={10}/> {booking.email}</small></div>
+      <div className="ops-order-row__items"><span>{booking.eventType} · {booking.guests} guests</span><small><Building2 size={10}/> {booking.room}</small><small style={{color:"#b70100"}}><Users size={10}/> {booking.email}</small></div>
       <div className="ops-order-row__when"><span><CalendarDays size={12}/> {booking.date} {booking.time}</span><small>Placed {booking.placedAt}</small></div>
       <div className="ops-order-row__status" onClick={(e)=>e.stopPropagation()}>
         <select className={`ops-status-select ops-status-select--${booking.status.toLowerCase()}`} value={booking.status} onChange={(e)=>onStatusChange(booking.id, e.target.value as ReservationStatus)}>
@@ -288,9 +420,10 @@ function CateringRow({ booking, onOpen, onStatusChange }: { booking: CateringBoo
 }
 
 function InquiryRow({ inquiry, onStatusChange }: { inquiry: Inquiry; onStatusChange: (id: string, status: InquiryStatus) => void }) {
+  const needsManualReply = inquiry.status === "New" && inquiry.type === "Manual Order Request";
   return (
-    <article className="dashboard-inquiry-row">
-      <div className="dashboard-row__identity"><strong>{inquiry.name}</strong><span>{inquiry.email}</span></div>
+    <article className={`dashboard-inquiry-row${needsManualReply ? " dashboard-inquiry-row--manual" : ""}`}>
+      <div className="dashboard-row__identity"><strong>{inquiry.name}</strong><span>{inquiry.email}</span>{needsManualReply && <small className="inquiry-manual-badge">Manual reply needed</small>}</div>
       <div className="dashboard-row__details"><span>{inquiry.type}</span><small>{inquiry.message}</small></div>
       <select className={`dashboard-status dashboard-status--${inquiry.status.toLowerCase().replaceAll(" ", "-")}`} value={inquiry.status} onChange={(event) => onStatusChange(inquiry.id, event.target.value as InquiryStatus)}>
         {INQUIRY_STATUSES.map((status) => <option key={status}>{status}</option>)}
