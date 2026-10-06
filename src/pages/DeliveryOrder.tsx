@@ -2,7 +2,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingBag 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SignInModal } from "../components/common";
-import type { MenuItem } from "../constants";
+import { DELIVERY_FEE, type MenuItem } from "../constants";
 import {
   getVisibleCategoryName,
   useDeliveryCategoryDefs,
@@ -42,7 +42,6 @@ const EMPTY_DETAILS: CustomerDetails = {
   payment: "Cash on delivery",
 };
 
-const DELIVERY_FEE = 60;
 const MAX_QUANTITY_PER_ITEM = 20;
 
 export function DeliveryOrder() {

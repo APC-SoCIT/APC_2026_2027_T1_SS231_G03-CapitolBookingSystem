@@ -15,6 +15,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Operations } from "./pages/Operations";
 import { Home } from "./pages/Home";
 import { Inquiries } from "./pages/Inquiries";
+import { InquiryBot } from "./pages/InquiryBot";
 import { Profile } from "./pages/Profile";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/delivery/items" element={<DeliveryMenuManager />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/operations" element={<Operations />} />
+          <Route path="/inquiry-bot" element={<InquiryBot />} />
           <Route path="/delivery/rider" element={<DeliveryRider />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

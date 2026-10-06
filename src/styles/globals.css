@@ -1068,7 +1068,6 @@ button, input, textarea, select { font: inherit; }
   .menu-manager-row { grid-template-columns: 1fr; gap: 0.6rem; }
   .menu-manager-row__actions { justify-content: start; }
   .menu-manager-search { max-width: 100%; }
-}
   .ops-table-head { display: none; }
   .ops-order-row { grid-template-columns: 1fr; }
   .ops-order-row__status { flex-direction: row; align-items: center; }
@@ -1081,8 +1080,9 @@ button, input, textarea, select { font: inherit; }
   .ops-modal__body { padding: 1rem; }
   .ops-form-grid { grid-template-columns: 1fr; }
   .ops-item-row { flex-direction: column; }
-.ops-item-row__top { flex-direction: column; }
+  .ops-item-row__top { flex-direction: column; }
   .ops-totals-compact { flex-wrap: wrap; }
+}
 
 /* Keep detail dialogs compact on desktop; mobile keeps the bottom-sheet layout above. */
 @media (min-width: 641px) {
@@ -1560,3 +1560,28 @@ button, input, textarea, select { font: inherit; }
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Inquiry Bot: Messenger inquiries the AI agent passed to staff. */
+.bot-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.bot-card { display: flex; flex-direction: column; gap: 0.7rem; padding: 1.1rem 1.25rem; border: 1px solid rgba(100,0,0,0.08); border-radius: 8px; background: #fdfbf3; }
+.bot-card--open { border-left: 4px solid #af0100; }
+.bot-card__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.bot-card__who { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.bot-card__who strong { color: #640000; font-size: 0.98rem; }
+.bot-card__meta { display: flex; align-items: center; gap: 0.6rem; }
+.bot-card__meta small { color: #8a5a5a; font-size: 0.8rem; }
+.bot-type-pill { padding: 0.2rem 0.55rem; border-radius: 20px; background: rgba(15,92,167,0.1); color: #0f5ca7; font-size: 0.72rem; font-weight: 800; }
+.bot-card__message { margin: 0; color: #3a0000; font-size: 0.92rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bot-card__reply, .bot-card__quote { padding: 0.7rem 0.9rem; border-radius: 6px; background: rgba(8,116,67,0.07); }
+.bot-card__quote { margin-bottom: 0.85rem; background: rgba(100,0,0,0.05); }
+.bot-card__reply small, .bot-card__quote small { display: inline-flex; align-items: center; gap: 0.3rem; color: #5a3a3a; font-size: 0.75rem; font-weight: 700; }
+.bot-card__reply p, .bot-card__quote p { margin: 0.3rem 0 0; color: #3a0000; font-size: 0.88rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bot-card__actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.bot-action { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.42rem 0.7rem; border-radius: 6px; font-size: 0.78rem; font-weight: 800; cursor: pointer; border: 1.5px solid rgba(100,0,0,0.18); background: #fff; color: #640000; }
+.bot-action:disabled { opacity: 0.5; cursor: not-allowed; }
+.bot-action--primary { border-color: #af0100; background: #af0100; color: #f2e7a9; }
+.bot-type-select { width: auto; min-width: 160px; }
+.bot-banner { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.75rem; padding: 0.8rem 1rem; border-radius: 6px; font-size: 0.875rem; }
+.bot-banner--error { border: 1px solid rgba(175,1,0,0.3); background: rgba(175,1,0,0.07); color: #640000; }
+.bot-banner--success { border: 1px solid rgba(8,116,67,0.3); background: rgba(8,116,67,0.08); color: #054d2c; }
+.bot-modal--narrow { width: min(560px, 100%); }

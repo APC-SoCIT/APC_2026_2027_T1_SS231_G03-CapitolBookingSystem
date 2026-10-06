@@ -1,3 +1,6 @@
+// Service data is shared with webhook.js (the Messenger agent) through this JSON file.
+import serviceCatalog from "./data/serviceCatalog.json";
+
 export type NavigationItem = { label: string; path: string };
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
@@ -51,166 +54,16 @@ export type MenuItem = {
   image?: string;
 };
 
-export const CATERING_PACKAGES: CateringPackage[] = [
-  {
-    id: "pkg-1",
-    name: "Package A",
-    packagePrice: 2850,
-    pricePerPax: 285,
-    minPax: 10,
-    maxPax: 12,
-    servingSize: "Good for 10 to 12 persons",
-    description: "A set menu for baptisms and other occasions.",
-    inclusions: [
-      "Capitol Chicken",
-      "Lumpiang Shanghai",
-      "Chopsuey",
-      "Sweet & Sour Fish Fillet",
-      "Pancit (MikiBihon, Bihon, Canton, or Chami)",
-      "Nido Soup",
-      "2 Fried Rice Platters or 12 cups Plain Rice",
-      "2 XL Soft Drinks",
-    ],
-  },
-  {
-    id: "pkg-2",
-    name: "Package B",
-    packagePrice: 3150,
-    pricePerPax: 315,
-    minPax: 10,
-    maxPax: 12,
-    servingSize: "Good for 10 to 12 persons",
-    description: "A fuller set menu for baptisms and other occasions.",
-    inclusions: [
-      "Buttered Chicken",
-      "Chopsuey",
-      "Beef Broccoli",
-      "Sweet and Sour Fish (Pla-Pla)",
-      "Pancit (MikiBihon, Bihon, Canton, or Chami)",
-      "Nido Soup",
-      "2 Fried Rice Platters or 12 cups Plain Rice",
-      "Crispy Pata",
-      "2 XL Soft Drinks",
-    ],
-  },
-  {
-    id: "pkg-3",
-    name: "Package C",
-    packagePrice: 3450,
-    pricePerPax: 345,
-    minPax: 10,
-    maxPax: 12,
-    servingSize: "Good for 10 to 12 persons",
-    description: "The most complete set menu for special occasions.",
-    inclusions: [
-      "Buttered Chicken",
-      "Chopsuey",
-      "Beef Broccoli",
-      "Sweet and Sour Fish (Pla-Pla)",
-      "Pancit (MikiBihon, Bihon, Canton, or Chami)",
-      "Sinigang Hipon / Baboy",
-      "2 Fried Rice Platters or 12 cups Plain Rice",
-      "Crispy Ulo",
-      "2 XL Soft Drinks",
-    ],
-  },
-];
+export const CATERING_PACKAGES: CateringPackage[] = serviceCatalog.cateringPackages;
 
-export const CATERING_PACKAGE_NOTES = [
-  "Pancit choices: MikiBihon, Bihon, Canton, or Chami.",
-  "Rice choices: 12 cups of Plain Rice or 2 Fried Rice Platters.",
-];
+export const CATERING_PACKAGE_NOTES: string[] = serviceCatalog.cateringPackageNotes;
 
-export const PACKED_MENU_ITEMS: MenuItem[] = [
-  {
-    id: "pm-01",
-    name: "Adobong Manok",
-    description: "Classic Filipino chicken adobo in garlic, soy, and vinegar.",
-    price: 120,
-    category: "Solo Meals",
-    categories: ["Solo Meals", "Chicken"],
-  },
-  {
-    id: "pm-02",
-    name: "Lechon Kawali",
-    description: "Crispy deep-fried pork belly served with liver sauce.",
-    price: 145,
-    category: "Solo Meals",
-    categories: ["Solo Meals", "Pork"],
-  },
-  {
-    id: "pm-03",
-    name: "Pork Sinigang",
-    description: "Tamarind-based pork soup with fresh vegetables.",
-    price: 135,
-    category: "Solo Meals",
-    categories: ["Solo Meals", "Pork"],
-  },
-  {
-    id: "pm-04",
-    name: "Beef Kaldereta",
-    description: "Braised beef in tomato and liver sauce with bell peppers.",
-    price: 165,
-    category: "Solo Meals",
-    categories: ["Solo Meals", "Beef"],
-  },
-  {
-    id: "pm-05",
-    name: "Chicken Tinola",
-    description:
-      "Ginger-based chicken soup with green papaya and chili leaves.",
-    price: 115,
-    category: "Solo Meals",
-    categories: ["Solo Meals", "Chicken"],
-  },
-  {
-    id: "pm-06",
-    name: "Pinakbet",
-    description: "Mixed vegetables sautéed with shrimp paste and pork.",
-    price: 100,
-    category: "Solo Meals",
-    categories: ["Solo Meals", "Vegetables"],
-  },
-  {
-    id: "pm-07",
-    name: "Laing",
-    description: "Taro leaves simmered in coconut milk with chili.",
-    price: 95,
-    category: "Solo Meals",
-    categories: ["Solo Meals", "Vegetables"],
-  },
-  {
-    id: "pm-08",
-    name: "Pancit Bihon",
-    description:
-      "Stir-fried rice noodles with pork, vegetables, and soy sauce.",
-    price: 110,
-    category: "Solo Meals",
-    categories: ["Solo Meals", "Pasta & Noodles"],
-  },
-  {
-    id: "pm-09",
-    name: "Steamed Rice",
-    description: "Freshly cooked premium white rice per serving.",
-    price: 35,
-    category: "Sides",
-    categories: ["Sides"],
-  },
-  {
-    id: "pm-10",
-    name: "Leche Flan",
-    description: "Classic Filipino caramel custard dessert.",
-    price: 75,
-    category: "Desserts",
-    categories: ["Desserts"],
-  },
-];
+export const PACKED_MENU_ITEMS: MenuItem[] = serviceCatalog.packedMenuItems;
 
-export const PACKED_MEAL_GUIDELINES = {
-  intro: "Ideal for crew meals, events, office parties, and meetings.",
-  minimumOrder: "Minimum order: 10 packs per delivery and 10 packs per kind.",
-  advanceOrder: "Advance order required.",
-  bulkOrder: "Orders of 100 or more packs should be placed at least 2 days before the intended date.",
-  landline: "8556-1313",
-  mobile: "09175141300",
-} as const;
+export const PACKED_MEAL_GUIDELINES = serviceCatalog.packedMealGuidelines;
+
+export const DELIVERY_FEE: number = serviceCatalog.deliveryFee;
+
+export const FUNCTION_ROOMS: { title: string; detail: string }[] = serviceCatalog.functionRooms;
+export const FUNCTION_ROOM_AMENITIES: string[] = serviceCatalog.functionRoomAmenities;
+export const FUNCTION_ROOM_EVENT_TYPES: string[] = serviceCatalog.functionRoomEventTypes;

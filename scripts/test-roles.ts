@@ -6,12 +6,12 @@ const CUSTOMER_PATHS = [
   "/function-rooms", "/function-rooms/reserve", "/inquiries",
   "/delivery", "/delivery/order", "/profile",
 ];
-const STAFF_PATHS = ["/operations", "/delivery/staff", "/delivery/items"];
+const STAFF_PATHS = ["/operations", "/delivery/staff", "/delivery/items", "/inquiry-bot"];
 
 const ROLE_CASES: [string, { role: unknown } | null, string[], string[]][] = [
   ["front_of_house", { role: "front_of_house" }, STAFF_PATHS, ["/dashboard", "/delivery/rider", "/"]],
-  ["restaurant_manager", { role: "restaurant_manager" }, STAFF_PATHS, ["/dashboard", "/delivery/rider"]],
-  ["system_admin", { role: "system_admin" }, ["/dashboard"], [...STAFF_PATHS, "/delivery/rider", "/"]],
+  ["restaurant_manager", { role: "restaurant_manager" }, [...STAFF_PATHS, "/dashboard"], ["/delivery/rider", "/"]],
+  ["system_admin", { role: "system_admin" }, [...STAFF_PATHS, "/dashboard", "/delivery/rider"], ["/"]],
   ["delivery_rider", { role: "delivery_rider" }, ["/delivery/rider"], [...STAFF_PATHS, "/dashboard", "/"]],
   ["customer", { role: "customer" }, CUSTOMER_PATHS, [...STAFF_PATHS, "/dashboard", "/delivery/rider"]],
   ["unauthenticated", null, CUSTOMER_PATHS, [...STAFF_PATHS, "/dashboard", "/delivery/rider"]],

@@ -10,17 +10,7 @@ import { addFunctionBooking, nextFunctionId } from "../data/reservations";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
 import { getStoredContact } from "../lib/contact";
-
-const EVENT_TYPES = [
-  "Birthday Celebration",
-  "Debut / 18th Birthday",
-  "Wedding Reception",
-  "Corporate Event",
-  "Family Reunion",
-  "Christmas Party",
-  "Seminar / Conference",
-  "Other",
-];
+import { FUNCTION_ROOM_EVENT_TYPES as EVENT_TYPES } from "../constants";
 
 const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'-]{3,60}$/;
 const CONTACT_REGEX = /^(09|\+639)\d{9}$/;

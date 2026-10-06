@@ -9,6 +9,7 @@ import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
 const EMPLOYEE_NAVIGATION_ITEMS = [
   { label: "Operations", path: "/operations" },
   { label: "Delivery", path: "/delivery/staff" },
+  { label: "Inquiry Bot", path: "/inquiry-bot" },
   { label: "Menu Items", path: "/delivery/items" },
   { label: "Dashboard", path: "/dashboard" },
   { label: "My Deliveries", path: "/delivery/rider" },
