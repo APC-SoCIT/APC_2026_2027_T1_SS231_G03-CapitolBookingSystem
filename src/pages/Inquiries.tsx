@@ -1,5 +1,5 @@
 import { Mail, MapPin, Phone } from "lucide-react";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { saveInquiries, getInquiries, type Inquiry } from "../data/inquiries";
 
 const inquiryTypes = [
@@ -21,32 +21,71 @@ const EMPTY_FORM: InquiryForm = {
 
 export function Inquiries() {
   const [form, setForm] = useState<InquiryForm>(EMPTY_FORM);
-  const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    title: string;
+    detail: string;
+    error?: boolean;
+  } | null>(null);
 
   const updateForm = (key: keyof InquiryForm, value: string) => {
     setForm((currentForm) => ({ ...currentForm, [key]: value }));
   };
 
-  const submitInquiry = () => {
-    if (
-      !form.name.trim() ||
-      !form.email.trim() ||
-      !form.type ||
-      !form.message.trim()
-    ) {
-      return;
+  const submitInquiry = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFeedback(null);
+
+    const webhookUrl = (import.meta.env.VITE_WEBHOOK_URL || window.location.origin)
+      .replace(/\/+$/, "");
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${webhookUrl}/inquiries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const result = (await response.json()) as {
+        inquiryId?: string;
+        status?: string;
+        reply?: string;
+        notificationSent?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(result.error || "We could not send your inquiry. Please try again.");
+      }
+
+      const manualResponse = result.status === "manual-response-required";
+      const inquiry: Inquiry = {
+        ...form,
+        id: result.inquiryId || `INQ-${String(getInquiries().length + 1).padStart(3, "0")}`,
+        status: manualResponse ? "New" : "Resolved",
+        submittedAt: "Just now",
+      };
+      saveInquiries([...getInquiries(), inquiry]);
+      setForm(EMPTY_FORM);
+      setFeedback({
+        title: manualResponse
+          ? "Your request was sent to our staff."
+          : "Thank you for your inquiry.",
+        detail: manualResponse
+          ? result.notificationSent
+            ? "A staff member will review your order request and contact you directly."
+            : "Your request was recorded, but the staff alert could not be delivered. Please call us to follow up."
+          : result.reply || "Your message has been recorded and our team is here to help.",
+      });
+    } catch (error) {
+      setFeedback({
+        title: "We couldn't send your inquiry.",
+        detail: error instanceof Error ? error.message : "Please try again or contact us by phone.",
+        error: true,
+      });
+    } finally {
+      setSubmitting(false);
     }
-
-    const inquiry: Inquiry = {
-      ...form,
-      id: `INQ-${String(getInquiries().length + 1).padStart(3, "0")}`,
-      status: "New",
-      submittedAt: "Just now",
-    };
-
-    saveInquiries([...getInquiries(), inquiry]);
-    setForm(EMPTY_FORM);
-    setSent(true);
   };
 
   return (
@@ -95,7 +134,7 @@ export function Inquiries() {
           </div>
         </div>
 
-        <div className="inquiry-form">
+        <form className="inquiry-form" onSubmit={submitInquiry}>
           <h2>Send an inquiry</h2>
 
           <label className="form-field">
@@ -103,6 +142,7 @@ export function Inquiries() {
             <input
               className="input"
               placeholder="Juan dela Cruz"
+              required
               value={form.name}
               onChange={(event) => updateForm("name", event.target.value)}
             />
@@ -114,6 +154,7 @@ export function Inquiries() {
               className="input"
               placeholder="juan@example.com"
               type="email"
+              required
               value={form.email}
               onChange={(event) => updateForm("email", event.target.value)}
             />
@@ -124,6 +165,7 @@ export function Inquiries() {
             <select
               className="input"
               value={form.type}
+              required
               onChange={(event) => updateForm("type", event.target.value)}
             >
               <option value="">Select inquiry type...</option>
@@ -139,6 +181,7 @@ export function Inquiries() {
               className="input"
               placeholder="How can we help?"
               rows={5}
+              required
               value={form.message}
               onChange={(event) => updateForm("message", event.target.value)}
             />
@@ -146,22 +189,19 @@ export function Inquiries() {
 
           <button
             className="button button--red"
-            onClick={submitInquiry}
-            type="button"
+            disabled={submitting}
+            type="submit"
           >
-            Send Inquiry →
+            {submitting ? "Sending…" : "Send Inquiry →"}
           </button>
 
-          {sent && (
-            <div className="success-message">
-              <strong>Thank you for your inquiry.</strong>
-              <span>
-                Your submission has been recorded and is now visible in the
-                staff dashboard.
-              </span>
+          {feedback && (
+            <div className={`success-message${feedback.error ? " success-message--error" : ""}`} role="status" aria-live="polite">
+              <strong>{feedback.title}</strong>
+              <span>{feedback.detail}</span>
             </div>
           )}
-        </div>
+        </form>
       </section>
     </div>
   );

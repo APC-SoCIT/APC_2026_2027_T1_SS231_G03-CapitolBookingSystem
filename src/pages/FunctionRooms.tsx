@@ -7,26 +7,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { FUNCTION_ROOM_AMENITIES as amenities, FUNCTION_ROOMS as rooms } from "../constants";
 
 const GALLERY_SLIDES = [
   "Private Dining Room",
   "Event Setup",
   "Banquet Arrangement",
-];
-const rooms = [
-  {
-    title: "Private Dining Room",
-    detail:
-      "An intimate space for up to 30 guests. Perfect for board meetings, small family celebrations, birthdays, baptisms, or private dinners."
-  }
-];
-const amenities = [
-  "Tables & Chairs",
-  "Air Conditioning",
-  "Sound System",
-  "Projector & Screen",
-  "Event Coordination",
-  "Parking Space",
 ];
 
 export function FunctionRooms() {
