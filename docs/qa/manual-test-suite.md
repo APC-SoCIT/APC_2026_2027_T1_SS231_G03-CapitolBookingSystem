@@ -374,6 +374,7 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 | Date | Build / commit | Tester | Section | Pass | Fail | Blocked | Notes / defect IDs |
 |---|---|---|---|---|---|---|---|
 | 2026-10-07 | live site (Railway `main`); repo `db90eeb` | Claude (no-account automated checks) | Smoke, Features, DB / Security | 9 | 1 | 1 | S-01, S-20, MA-01, MA-02, IQ-03, DB-01, DB-02, DB-03, DB-16 pass; DB-15 fail → F-18 (also: live verify token is the `test-agent` fallback); IB-09 blocked (needs CUST JWT); new F-32. All account-based cases not yet run |
+| 2026-10-07 | live bundle `index-Bq1AsZVl.js`; source `010694c` | Claude (inspection) | Features | 2 | 24 | 0 | Inspection of the deployed code for missing features and fixed rules: FR-04, FR-05 pass; FR-02, FR-03, FR-10, FR-12 to FR-16, DO-08 to DO-10, DO-13, DO-14, DS-06, DS-08, DS-11, DS-13, DS-14, IQ-01, IQ-07, IB-08, MA-07, OP-08, OP-09 fail (all map to known findings). Re-confirm by test in the manual run |
 | | | | Smoke | | | | |
 | | | | Features | | | | |
 | | | | Role matrix | | | | |
