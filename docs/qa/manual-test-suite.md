@@ -351,7 +351,7 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 | **F-15** | P2 | The booking form has no data-privacy consent checkbox | No "consent" in `src/` | §5.3 Data Privacy | FR-14 |
 | **F-16** | P1 | The 2-day lead time is enforced only in the client. The DB accepts same-day bookings | `CalendarModal.tsx:201-209`; no DB check | BR Lead Time | DB-10 |
 | **F-17** | P2 | system_admin can open Operations but RLS denies writes, so status changes fail or silently revert | Migration `20260917082142` (`operational_predicate` excludes system_admin) | §2.3 (Administrator: full access), REQ-ADM-001 | DB-14 |
-| **F-18** | P1 | `POST /inquiry-bot` has no Meta signature check, and `VERIFY_TOKEN` falls back to `test-agent` when the env var is unset | `webhook.js:75`, `:975` | §5.3, §2.5 Vendor | DB-15 |
+| **F-18** | P1 | `POST /inquiry-bot` has no Meta signature check, and `VERIFY_TOKEN` falls back to `test-agent` when the env var is unset | `webhook.js:75`, `:975`. **Confirmed live 2026-10-07:** unsigned POST returns 200, and the verify token `test-agent` is accepted, so `VERIFY_TOKEN` is not set on Railway | §5.3, §2.5 Vendor | DB-15, MA-01 |
 | **F-19** | P2 | Phone rules differ between forms: function room and catering accept `+639…`, delivery and profile accept only `09…` | `FunctionRoomReservation.tsx:16` vs `DeliveryOrder.tsx:46` | — (internal consistency) | FR-06, DO-05 |
 | **F-20** | P2 | The delivery status flow differs: the SRS has *Received → Preparing → Out for Delivery → Delivered*; the app has *Preparing → Ready for pickup → Out for delivery → Delivered* | `delivery.ts:49` | §4.3.2-5 | DS-02 |
 | **F-21** | P2 | Packed-meal bookings are saved with `email = ""`, so staff cannot email the customer | `CateringPacked.tsx:292` | §3.3 SMTP | CT-12 (check the DB row) |
@@ -365,6 +365,7 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 | **F-29** | P2 | Staff cannot flag late cancellations or no-shows | `ReservationStatus` has no such value (`reservations.ts:7`) | BR Cancellation | FR-16 |
 | **F-30** | P2 | Operations stat cards differ from the SRS widgets: no *Room Occupancy*, and revenue appears only as a hint | `Operations.tsx:277-281` | §4.4.2-3 | OP-08 |
 | **F-31** | P2 (docs) | The SRS architecture doesn't match the build: Python FastAPI backend vs. Express `webhook.js`; `SELECT FOR UPDATE` vs. a partial unique index for slot locking. Behaviour is equivalent; update the SRS (§2.1, §2.4, REQ-RES-002) or record a design decision | `webhook.js`; migration unique index `function_bookings_active_slot_unique` | §2.1, §2.4, REQ-RES-002 | DB-08 |
+| **F-32** | P2 | The Supabase catalog tables (`catering_packages`, `packed_menu_items`, `function_rooms`) are never read by the app, and their data disagrees with what customers see: the DB has *Package 1–3* for 50–500 guests, the site shows *Package A–C* for 10–12 guests from `serviceCatalog.json`. Catalog edits in the DB never reach the site, so the catalog write access in F-08 has no UI effect and REQ-ADM-003 cannot be met through the DB | No query on those tables in `src/` or `webhook.js`; seed in migration `20260827090541:139-141`; live anon GET on 2026-10-07 | REQ-ADM-003, §4.4.2-4 | DS-06 |
 
 ---
 
@@ -372,6 +373,7 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 
 | Date | Build / commit | Tester | Section | Pass | Fail | Blocked | Notes / defect IDs |
 |---|---|---|---|---|---|---|---|
+| 2026-10-07 | live site (Railway `main`); repo `db90eeb` | Claude (no-account automated checks) | Smoke, Features, DB / Security | 9 | 1 | 1 | S-01, S-20, MA-01, MA-02, IQ-03, DB-01, DB-02, DB-03, DB-16 pass; DB-15 fail → F-18 (also: live verify token is the `test-agent` fallback); IB-09 blocked (needs CUST JWT); new F-32. All account-based cases not yet run |
 | | | | Smoke | | | | |
 | | | | Features | | | | |
 | | | | Role matrix | | | | |
