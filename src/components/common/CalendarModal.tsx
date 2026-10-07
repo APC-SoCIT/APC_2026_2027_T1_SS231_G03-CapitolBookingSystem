@@ -12,16 +12,21 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
   BOOKING_TIME_OPTIONS,
-  FUNCTION_ROOM_ID,
+  FUNCTION_ROOM_A_ID,
+  FUNCTION_ROOM_CHOICES,
   SlotTakenError,
-  bookingTimeToSql,
   fetchMonthAvailability,
   subscribeAvailability,
   type BookingAvailability,
   type BookingInventoryKind,
+  type CateringVenue,
   type MonthAvailability,
 } from "../../data/reservations";
-import { getStoredContact, saveStoredContact } from "../../lib/contact";
+import {
+  fetchStoredProfile,
+  getStoredContact,
+  saveStoredContact,
+} from "../../lib/contact";
 
 export type BookingDetails = {
   date: string;
@@ -29,6 +34,12 @@ export type BookingDetails = {
   name: string;
   contact: string;
   pax: number;
+  /** Catering only: where the food is served. */
+  venueType?: CateringVenue;
+  /** Catering in-room only: chosen function room. */
+  functionRoomId?: string;
+  /** Catering delivered only: delivery address. */
+  deliveryAddress?: string;
 };
 
 type CalendarModalProps = {
@@ -46,6 +57,8 @@ type CalendarModalProps = {
   countLabel?: string;
   countUnit?: string;
   showCount?: boolean;
+  /** Catering only: let the customer pick in-room vs delivered. */
+  showVenueSelector?: boolean;
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -94,6 +107,7 @@ export function CalendarModal({
   countLabel = "Number of Guests",
   countUnit = "guest",
   showCount = true,
+  showVenueSelector = false,
 }: CalendarModalProps) {
   const today = useMemo(() => new Date(), []);
   const navigate = useNavigate();
@@ -109,6 +123,9 @@ export function CalendarModal({
   const [name, setName] = useState(effectiveName);
   const [contact, setContact] = useState(effectiveContact);
   const [pax, setPax] = useState(String(initialPax ?? minPax));
+  const [venueType, setVenueType] = useState<CateringVenue>("delivery");
+  const [venueRoomId, setVenueRoomId] = useState<string>(FUNCTION_ROOM_A_ID);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
@@ -143,6 +160,9 @@ export function CalendarModal({
     setName(effectiveName);
     setContact(effectiveContact);
     setPax(String(initialPax ?? minPax));
+    setVenueType("delivery");
+    setVenueRoomId(FUNCTION_ROOM_A_ID);
+    setDeliveryAddress("");
     setSubmitted(false);
     setShowErrors(false);
     setBookingRef("");
@@ -159,6 +179,12 @@ export function CalendarModal({
     setName(effectiveName);
     setContact(effectiveContact);
     setPax(String(initialPax ?? minPax));
+    // Server copy wins over the offline cache once it arrives.
+    if (user?.id) {
+      void fetchStoredProfile(user.id).then((server) => {
+        if (server.phone) setContact(server.phone);
+      });
+    }
     document.body.classList.add("modal-open");
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -209,22 +235,30 @@ export function CalendarModal({
     return candidate < minDate;
   };
 
-  const inventoryKind = bookingKind;
-  const inventoryResource =
-    bookingKind === "function_room" ? roomId ?? FUNCTION_ROOM_ID : bookingKind;
-  const isTimeUnavailable = (dateKey: string, timeLabel: string) => {
-    const slot = bookingTimeToSql(timeLabel).slice(0, 5);
-    return (availability?.bookedSlots ?? []).some(
+  /** Room this date-check applies to: explicit room for function bookings,
+   * venue room for in-room catering, otherwise the catering kind itself. */
+  const dateCheckResource =
+    bookingKind === "function_room"
+      ? (roomId ?? FUNCTION_ROOM_A_ID)
+      : showVenueSelector && venueType === "function_room"
+        ? venueRoomId
+        : bookingKind;
+  const dateCheckKind: BookingInventoryKind =
+    bookingKind === "function_room" ||
+    (showVenueSelector && venueType === "function_room")
+      ? "function_room"
+      : bookingKind;
+  /** Whole-date rule: any active booking on the date blocks it. */
+  const isDateUnavailable = (dateKey: string) =>
+    (availability?.bookedSlots ?? []).some(
       (booked: BookingAvailability) =>
-        booked.kind === inventoryKind &&
-        booked.resourceId === inventoryResource &&
-        booked.date === dateKey &&
-        booked.time.slice(0, 5) === slot,
+        booked.kind === dateCheckKind &&
+        booked.resourceId === dateCheckResource &&
+        booked.date === dateKey,
     );
-  };
   const isReserved = (dateKey: string) =>
     (availability?.reservedDates ?? []).includes(dateKey) ||
-    BOOKING_TIME_OPTIONS.every((option) => isTimeUnavailable(dateKey, option));
+    isDateUnavailable(dateKey);
 
   const moveMonth = (direction: -1 | 1) => {
     const next = new Date(viewYear, viewMonth + direction, 1);
@@ -248,12 +282,16 @@ export function CalendarModal({
       !availabilityLoading &&
       !availabilityError &&
       selectedDate &&
-      isTimeUnavailable(selectedDate, time)
+      isDateUnavailable(selectedDate)
     ) {
-      setSubmitError("That time was just booked. Choose another available time.");
+      setSubmitError("That date was just booked. Choose another available date.");
       return;
     }
-    if (!selectedDate || !nameValid || !contactValid || !paxValid) {
+    const venueAddressValid =
+      !showVenueSelector ||
+      venueType === "function_room" ||
+      deliveryAddress.trim().length > 0;
+    if (!selectedDate || !nameValid || !contactValid || !paxValid || !venueAddressValid) {
       setShowErrors(true);
       return;
     }
@@ -272,13 +310,18 @@ export function CalendarModal({
         name: name.trim(),
         contact: contact.trim(),
         pax: paxNum,
+        ...(showVenueSelector
+          ? venueType === "function_room"
+            ? { venueType, functionRoomId: venueRoomId }
+            : { venueType, deliveryAddress: deliveryAddress.trim() }
+          : {}),
       });
       setBookingRef(id);
       setSubmitted(true);
     } catch (error) {
       setSubmitError(
         error instanceof SlotTakenError
-          ? "That time was just booked. Choose another available time."
+          ? "That date was just booked. Choose another available date."
           : "Reservation could not be submitted. Please try again.",
       );
       void refreshAvailability();
@@ -333,6 +376,20 @@ export function CalendarModal({
                 <span>Time</span>
                 <strong>{time}</strong>
               </div>
+              {showVenueSelector && venueType === "function_room" && (
+                <div className="booking-summary__row">
+                  <span>Venue</span>
+                  <strong>
+                    {FUNCTION_ROOM_CHOICES.find((room) => room.id === venueRoomId)?.name ?? venueRoomId}
+                  </strong>
+                </div>
+              )}
+              {showVenueSelector && venueType === "delivery" && (
+                <div className="booking-summary__row">
+                  <span>Deliver to</span>
+                  <strong>{deliveryAddress}</strong>
+                </div>
+              )}
               {showCount && (
                 <div className="booking-summary__row">
                   <span>{countLabel}</span>
@@ -437,10 +494,6 @@ export function CalendarModal({
                         onClick={() => {
                           setSelectedDate(dateKey);
                           setSubmitError("");
-                          const firstAvailable = BOOKING_TIME_OPTIONS.find(
-                            (option) => !isTimeUnavailable(dateKey, option),
-                          );
-                          if (firstAvailable) setTime(firstAvailable);
                         }}
                         type="button"
                       >
@@ -505,24 +558,89 @@ export function CalendarModal({
                       setSubmitError("");
                     }}
                   >
-                    {BOOKING_TIME_OPTIONS.map((option) => {
-                      const unavailable =
-                        Boolean(selectedDate) && isTimeUnavailable(selectedDate, option);
-                      return (
-                        <option disabled={unavailable} key={option} value={option}>
-                          {option}{unavailable ? " — Reserved" : ""}
-                        </option>
-                      );
-                    })}
+                    {BOOKING_TIME_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
                   </select>
-                  {selectedDate &&
-                    availabilityReady &&
-                    isTimeUnavailable(selectedDate, time) && (
-                      <span className="field-error" role="alert">
-                        This time was just booked. Choose another.
-                      </span>
-                    )}
                 </label>
+
+                {showVenueSelector && (
+                  <>
+                    <div className="form-field">
+                      <span>Where will this be served?</span>
+                      <label className="venue-option">
+                        <input
+                          type="radio"
+                          name="catering-venue"
+                          checked={venueType === "function_room"}
+                          disabled={saving}
+                          onChange={() => {
+                            setVenueType("function_room");
+                            setSubmitError("");
+                          }}
+                        />
+                        In our function room
+                      </label>
+                      <label className="venue-option">
+                        <input
+                          type="radio"
+                          name="catering-venue"
+                          checked={venueType === "delivery"}
+                          disabled={saving}
+                          onChange={() => {
+                            setVenueType("delivery");
+                            setSubmitError("");
+                          }}
+                        />
+                        Deliver to my venue
+                      </label>
+                    </div>
+
+                    {venueType === "function_room" ? (
+                      <label className="form-field">
+                        <span>Function Room</span>
+                        <select
+                          className="input"
+                          disabled={saving}
+                          value={venueRoomId}
+                          onChange={(event) => {
+                            setVenueRoomId(event.target.value);
+                            setSubmitError("");
+                          }}
+                        >
+                          {FUNCTION_ROOM_CHOICES.map((room) => (
+                            <option key={room.id} value={room.id}>
+                              {room.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : (
+                      <label className="form-field">
+                        <span>Delivery Address</span>
+                        <textarea
+                          className={
+                            showErrors && !deliveryAddress.trim()
+                              ? "input input--error"
+                              : "input"
+                          }
+                          disabled={saving}
+                          placeholder="Office, wedding venue, street, barangay, city"
+                          rows={2}
+                          value={deliveryAddress}
+                          onChange={(event) => setDeliveryAddress(event.target.value)}
+                        />
+                        {showErrors && !deliveryAddress.trim() && (
+                          <span className="field-error">
+                            Delivery address is required
+                          </span>
+                        )}
+                      </label>
+                    )}
+                  </>
+                )}
 
                 <label className="form-field">
                   <span>Full Name</span>

@@ -6,7 +6,11 @@ import {
   SignInModal,
   type BookingDetails,
 } from "../components/common";
-import { createFunctionBooking, FUNCTION_ROOM_ID } from "../data/reservations";
+import {
+  createFunctionBooking,
+  FUNCTION_ROOM_A_ID,
+  FUNCTION_ROOM_CHOICES,
+} from "../data/reservations";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
 import { getStoredContact } from "../lib/contact";
@@ -23,6 +27,7 @@ type FormData = {
   guests: string;
   eventType: string;
   specialRequests: string;
+  roomId: string;
 };
 const initialForm: FormData = {
   name: "",
@@ -31,6 +36,7 @@ const initialForm: FormData = {
   guests: "",
   eventType: "",
   specialRequests: "",
+  roomId: FUNCTION_ROOM_A_ID,
 };
 
 export function FunctionRoomReservation() {
@@ -43,13 +49,14 @@ export function FunctionRoomReservation() {
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
   const { user } = useAuth();
 
-  // Autofill name + previously used contact number once the session is known.
+  // Autofill name + contact + email once the session is known.
   useEffect(() => {
     if (!user) return;
     setForm((current) => ({
       ...current,
       name: current.name || user.displayName,
       contact: current.contact || getStoredContact(user.id),
+      email: current.email || user.email,
     }));
   }, [user]);
 
@@ -75,10 +82,10 @@ export function FunctionRoomReservation() {
     if (!EMAIL_REGEX.test(form.email.trim())) {
       next.email = "Enter a valid email address (e.g. juan@example.com)";
     }
-    if (!form.guests || !Number.isInteger(Number(form.guests)) || Number(form.guests) < 1) {
-      next.guests = "Enter a whole-number guest count";
-    } else if (Number(form.guests) > 30) {
-      next.guests = "This room holds up to 30 guests";
+    if (!form.guests || !Number.isInteger(Number(form.guests)) || Number(form.guests) < 10) {
+      next.guests = "Minimum 10 guests required";
+    } else if (Number(form.guests) > 50) {
+      next.guests = "Each room holds up to 50 guests";
     }
     if (!form.eventType) next.eventType = "Please select an event type";
     setErrors(next);
@@ -123,12 +130,28 @@ export function FunctionRoomReservation() {
             placeholder="juan@example.com"
             onChange={(value) => update("email", value)}
           />
+          <label className="form-field">
+            <span>Function Room</span>
+            <select
+              className="input"
+              id="function-room-choice"
+              name="roomId"
+              value={form.roomId}
+              onChange={(event) => update("roomId", event.target.value)}
+            >
+              {FUNCTION_ROOM_CHOICES.map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.name} (up to 50 guests)
+                </option>
+              ))}
+            </select>
+          </label>
           <Field
             id="function-room-guests"
             label="Expected Guests"
             type="number"
-            min={1}
-            max={30}
+            min={10}
+            max={50}
             step={1}
             value={form.guests}
             error={errors.guests}
@@ -193,17 +216,19 @@ export function FunctionRoomReservation() {
       </section>
       <CalendarModal
         bookingKind="function_room"
-        roomId={FUNCTION_ROOM_ID}
+        roomId={form.roomId}
         initialContact={form.contact}
         initialName={form.name}
         initialPax={Number(form.guests)}
-        maxPax={30}
+        minPax={10}
+        maxPax={50}
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onConfirm={async (details: BookingDetails) => {
           if (!user) throw new Error("Authentication required");
           const id = await createFunctionBooking({
             userId: user.id,
+            roomId: form.roomId,
             customer: details.name || form.name,
             phone: details.contact || form.contact,
             email: form.email,

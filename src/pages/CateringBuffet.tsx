@@ -131,10 +131,13 @@ export function CateringBuffet() {
             kind: "catering_buffet",
             customer: details.name,
             phone: details.contact,
-            email: "",
+            email: user.email,
             date: details.date,
             time: details.time,
             notes: `${selected.description}`,
+            venueType: details.venueType,
+            functionRoomId: details.functionRoomId,
+            deliveryAddress: details.deliveryAddress,
             packageId: selected.id,
             packageName: selected.name,
             pax: details.pax,
@@ -146,6 +149,7 @@ export function CateringBuffet() {
           setSubmitted(true);
           return id;
         }}
+        showVenueSelector
         initialPax={selected?.minPax ?? 10}
         maxPax={selected?.maxPax ?? 12}
         minPax={selected?.minPax ?? 10}

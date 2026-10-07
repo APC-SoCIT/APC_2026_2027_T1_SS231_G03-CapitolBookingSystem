@@ -188,8 +188,12 @@
   },
   "functionRooms": [
     {
-      "title": "Private Dining Room",
-      "detail": "An intimate space for up to 30 guests. Perfect for board meetings, small family celebrations, birthdays, baptisms, or private dinners."
+      "title": "Function Room A",
+      "detail": "A spacious hall for up to 50 guests. Perfect for birthdays, debuts, weddings, corporate events, and family celebrations."
+    },
+    {
+      "title": "Function Room B",
+      "detail": "A versatile hall for up to 50 guests. Ideal for seminars, conferences, Christmas parties, reunions, and private dinners."
     }
   ],
   "functionRoomAmenities": [

@@ -8,11 +8,7 @@ import {
   useDeliveryCategoryDefs,
   useDeliveryMenuItems,
 } from "../data/deliveryMenu";
-import {
-  getDeliveryOrders,
-  saveDeliveryOrders,
-  type DeliveryOrder as DeliveryOrderData,
-} from "../data/delivery";
+import { createSupabaseDeliveryOrder } from "../data/deliveryOrders";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
 import { getStoredContact } from "../lib/contact";
@@ -68,6 +64,7 @@ export function DeliveryOrder() {
   const [submittedReference, setSubmittedReference] = useState<string | null>(
     null,
   );
+  const [submitting, setSubmitting] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [variantProduct, setVariantProduct] = useState<ProductGroup | null>(
@@ -221,7 +218,7 @@ export function DeliveryOrder() {
     setShowDetailsModal(true);
   };
 
-  const handleConfirmDetails = () => {
+  const handleConfirmDetails = async () => {
     const nextErrors: OrderErrors = [];
     const nextMessages: FieldMessages = {};
 
@@ -247,10 +244,8 @@ export function DeliveryOrder() {
     setErrors(nextErrors);
     setFieldMessages(nextMessages);
 
-    if (nextErrors.length > 0) return;
+    if (nextErrors.length > 0 || !user) return;
 
-    const existingOrders = getDeliveryOrders();
-    const reference = `CAP-${1050 + existingOrders.length}`;
     const itemsList = selectedItems.map((it) => ({
       id: it.id,
       type: "packed_meal" as const,
@@ -260,28 +255,32 @@ export function DeliveryOrder() {
       category: it.category,
     }));
     const itemsDisplay = `${totalQuantity} item${totalQuantity === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
-    const order: DeliveryOrderData = {
-      reference,
-      customer: details.name,
-      phone: details.phone,
-      address: details.address,
-      items: itemsDisplay,
-      itemsList,
-      subtotal,
-      deliveryFee,
-      total,
-      paymentMethod: details.payment,
-      notes: details.notes,
-      eta: "Today, 6:30 PM",
-      status: "Preparing",
-      placedAt: "Just now",
-      timeline: [{ status: "Preparing", at: "Just now" }],
-    };
 
-    saveDeliveryOrders([...existingOrders, order]);
-    setSubmittedReference(reference);
-    setShowDetailsModal(false);
-    setCart({});
+    setSubmitting(true);
+    try {
+      const reference = await createSupabaseDeliveryOrder({
+        userId: user.id,
+        customer: details.name.trim(),
+        phone: details.phone.trim(),
+        address: details.address.trim(),
+        itemsList,
+        itemsDisplay,
+        subtotal,
+        deliveryFee,
+        total,
+        paymentMethod: details.payment,
+        notes: details.notes.trim(),
+      });
+      setSubmittedReference(reference);
+      setShowDetailsModal(false);
+      setCart({});
+    } catch {
+      setFieldMessages({
+        items: "Order could not be placed. Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submittedReference) {
@@ -444,6 +443,7 @@ export function DeliveryOrder() {
           errors={errors}
           fieldMessages={fieldMessages}
           total={total}
+          submitting={submitting}
           onClose={() => setShowDetailsModal(false)}
           onChange={updateDetail}
           onConfirm={handleConfirmDetails}
@@ -784,6 +784,7 @@ function DeliveryDetailsModal({
   errors,
   fieldMessages,
   total,
+  submitting,
   onClose,
   onChange,
   onConfirm,
@@ -792,6 +793,7 @@ function DeliveryDetailsModal({
   errors: OrderErrors;
   fieldMessages: FieldMessages;
   total: number;
+  submitting: boolean;
   onClose: () => void;
   onChange: (key: keyof CustomerDetails, value: string) => void;
   onConfirm: () => void;
@@ -912,9 +914,10 @@ function DeliveryDetailsModal({
           <button
             className="button button--red order-submit"
             onClick={onConfirm}
+            disabled={submitting}
             type="button"
           >
-            Place order · ₱{total.toLocaleString()}
+            {submitting ? "Placing order…" : `Place order · ₱${total.toLocaleString()}`}
           </button>
         </div>
       </div>

@@ -1,8 +1,10 @@
 export type DeliveryStatus =
+  | "Pending Confirmation"
   | "Preparing"
   | "Ready for pickup"
   | "Out for delivery"
-  | "Delivered";
+  | "Delivered"
+  | "Cancelled";
 
 export type OrderItemType = "package" | "packed_meal";
 
@@ -47,10 +49,12 @@ export type DeliveryRider = {
 };
 
 export const DELIVERY_STATUSES: DeliveryStatus[] = [
+  "Pending Confirmation",
   "Preparing",
   "Ready for pickup",
   "Out for delivery",
   "Delivered",
+  "Cancelled",
 ];
 
 const DEFAULT_RIDERS: DeliveryRider[] = [

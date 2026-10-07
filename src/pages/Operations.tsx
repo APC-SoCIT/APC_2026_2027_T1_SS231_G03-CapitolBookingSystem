@@ -154,7 +154,7 @@ export function Operations() {
   const showBookingSaveError = (error: unknown) => {
     window.alert(
       error instanceof SlotTakenError
-        ? "That time slot is already reserved. Choose another time."
+        ? "That date is already reserved. Choose another date."
         : error instanceof BookingChangedError
           ? "This booking changed elsewhere. Close and reopen it before saving."
           : "Booking could not be saved. Please try again.",
@@ -250,7 +250,10 @@ export function Operations() {
 
   const newInquiryCount = inquiries.filter((inquiry) => inquiry.status === "New").length;
   const manualResponseInquiries = inquiries.filter(
-    (inquiry) => inquiry.status === "New" && inquiry.type === "Manual Order Request",
+    (inquiry) =>
+      inquiry.status === "New" &&
+      (inquiry.type === "Manual Order Request" ||
+        inquiry.type === "Cancellation Request"),
   );
   const activeDeliveryCount = orders.filter((order) => order.status !== "Delivered").length;
   const revenueToday = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
@@ -421,9 +424,11 @@ function CateringRow({ booking, onOpen, onStatusChange }: { booking: CateringBoo
 
 function InquiryRow({ inquiry, onStatusChange }: { inquiry: Inquiry; onStatusChange: (id: string, status: InquiryStatus) => void }) {
   const needsManualReply = inquiry.status === "New" && inquiry.type === "Manual Order Request";
+  const isCancellationRequest = inquiry.type === "Cancellation Request";
+  const highlighted = needsManualReply || (isCancellationRequest && inquiry.status === "New");
   return (
-    <article className={`dashboard-inquiry-row${needsManualReply ? " dashboard-inquiry-row--manual" : ""}`}>
-      <div className="dashboard-row__identity"><strong>{inquiry.name}</strong><span>{inquiry.email}</span>{needsManualReply && <small className="inquiry-manual-badge">Manual reply needed</small>}</div>
+    <article className={`dashboard-inquiry-row${highlighted ? " dashboard-inquiry-row--manual" : ""}`}>
+      <div className="dashboard-row__identity"><strong>{inquiry.name}</strong><span>{inquiry.email}</span>{needsManualReply && <small className="inquiry-manual-badge">Manual reply needed</small>}{isCancellationRequest && <small className="inquiry-manual-badge">Cancellation request</small>}</div>
       <div className="dashboard-row__details"><span>{inquiry.type}</span><small>{inquiry.message}</small></div>
       <select className={`dashboard-status dashboard-status--${inquiry.status.toLowerCase().replaceAll(" ", "-")}`} value={inquiry.status} onChange={(event) => onStatusChange(inquiry.id, event.target.value as InquiryStatus)}>
         {INQUIRY_STATUSES.map((status) => <option key={status}>{status}</option>)}

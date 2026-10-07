@@ -5,6 +5,7 @@ import { BookingHistory } from "../components/profile/BookingHistory";
 import { DeliveryTracker } from "../components/profile/DeliveryTracker";
 import { SignInModal } from "../components/common";
 import {
+  fetchStoredProfile,
   getStoredProfile,
   saveStoredProfile,
   type StoredAddress,
@@ -32,11 +33,16 @@ export function Profile() {
 
   useEffect(() => {
     if (!user) return;
-    const stored = getStoredProfile(user.id);
-    setPhone(stored.phone);
-    setAddresses(defaultAddresses(stored.addresses));
+    const cached = getStoredProfile(user.id);
+    setPhone(cached.phone);
+    setAddresses(defaultAddresses(cached.addresses));
     setError("");
     setSaved(false);
+    // Server copy wins once it arrives (cross-device).
+    void fetchStoredProfile(user.id).then((server) => {
+      setPhone(server.phone);
+      setAddresses(defaultAddresses(server.addresses));
+    });
   }, [user]);
 
   if (loading) return <div className="auth-loading">Loading account...</div>;

@@ -12,7 +12,7 @@ import {
   Settings,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   DELIVERY_STATUSES,
@@ -25,6 +25,12 @@ import {
   type DeliveryRider,
   type DeliveryStatus,
 } from "../data/delivery";
+import {
+  fetchAllDeliveryOrders,
+  subscribeDeliveryOrders,
+  toLocalDeliveryOrder,
+  updateSupabaseDeliveryOrder,
+} from "../data/deliveryOrders";
 import { OrderDetailModal } from "../components/operations/OrderDetailModal";
 import { StatusPill } from "../components/operations/StatusPill";
 
@@ -33,6 +39,7 @@ type RiderFilter = string; // "all" | "unassigned" | rider id
 
 export function AdminDelivery() {
   const [orders, setOrders] = useState<DeliveryOrder[]>(getDeliveryOrders);
+  const [remoteRefs, setRemoteRefs] = useState<string[]>([]);
   const [riders, setRiders] = useState<DeliveryRider[]>(getDeliveryRiders);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderFilter>("All");
@@ -42,15 +49,37 @@ export function AdminDelivery() {
   const [newRiderPhone, setNewRiderPhone] = useState("");
   const [riderError, setRiderError] = useState("");
 
+  const loadRemote = async () => {
+    try {
+      const remote = await fetchAllDeliveryOrders();
+      const refs = new Set(remote.map((order) => order.reference));
+      setRemoteRefs([...refs]);
+      const localBase = getDeliveryOrders().filter(
+        (order) => !refs.has(order.reference),
+      );
+      setOrders([...remote.map(toLocalDeliveryOrder), ...localBase]);
+    } catch {
+      // Staff without select access keep the local demo dataset.
+    }
+  };
+
+  useEffect(() => {
+    void loadRemote();
+    const channel = subscribeDeliveryOrders(() => void loadRemote());
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, []);
+
   const refresh = () => {
-    setOrders(getDeliveryOrders());
     setRiders(getDeliveryRiders());
+    void loadRemote();
   };
 
   const resetOrders = () => {
     resetDeliveryOrders();
-    setOrders(getDeliveryOrders());
     setSelectedRef(null);
+    void loadRemote();
   };
 
   const updateOrderStatus = (reference: string, status: DeliveryStatus) => {
@@ -58,7 +87,14 @@ export function AdminDelivery() {
       order.reference === reference ? { ...order, status } : order,
     );
     setOrders(next);
-    saveDeliveryOrders(next);
+    if (remoteRefs.includes(reference)) {
+      void updateSupabaseDeliveryOrder({ reference, status }).then(
+        () => loadRemote(),
+        () => loadRemote(),
+      );
+    } else {
+      saveDeliveryOrders(next);
+    }
   };
 
   const assignRider = (reference: string, riderId: string | null) => {
@@ -68,14 +104,43 @@ export function AdminDelivery() {
         : order,
     );
     setOrders(next);
-    saveDeliveryOrders(next);
+    if (remoteRefs.includes(reference)) {
+      void updateSupabaseDeliveryOrder({ reference, riderId }).then(
+        () => loadRemote(),
+        () => loadRemote(),
+      );
+    } else {
+      saveDeliveryOrders(next);
+    }
   };
 
   const handleOrderSave = (updated: DeliveryOrder) => {
     const next = orders.map((o) => (o.reference === updated.reference ? updated : o));
     setOrders(next);
-    saveDeliveryOrders(next);
     setSelectedRef(null);
+    if (remoteRefs.includes(updated.reference)) {
+      void updateSupabaseDeliveryOrder({
+        reference: updated.reference,
+        status: updated.status,
+        riderId: updated.riderId ?? null,
+        eta: updated.eta,
+        customer: updated.customer,
+        phone: updated.phone,
+        address: updated.address,
+        itemsList: updated.itemsList,
+        itemsDisplay: updated.items,
+        subtotal: updated.subtotal,
+        deliveryFee: updated.deliveryFee,
+        total: updated.total,
+        paymentMethod: updated.paymentMethod,
+        notes: updated.notes,
+      }).then(
+        () => loadRemote(),
+        () => loadRemote(),
+      );
+    } else {
+      saveDeliveryOrders(next);
+    }
   };
 
   const removeRider = (id: string) => {

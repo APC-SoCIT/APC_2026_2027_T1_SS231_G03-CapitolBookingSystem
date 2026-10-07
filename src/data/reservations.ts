@@ -44,6 +44,10 @@ export type CateringBooking = {
   placedAt: string;
   timeline: ReservationTimeline[];
   notes: string;
+  venueType: CateringVenue;
+  functionRoomId?: string;
+  functionRoomName?: string;
+  deliveryAddress?: string;
   packageId?: string;
   packageName?: string;
   packagePrice?: number;
@@ -62,7 +66,6 @@ export type BookingAvailability = {
   kind: BookingInventoryKind;
   resourceId: string;
   date: string;
-  time: string;
 };
 
 export type MonthAvailability = {
@@ -70,7 +73,15 @@ export type MonthAvailability = {
   bookedSlots: BookingAvailability[];
 };
 
-export const FUNCTION_ROOM_ID = "private_dining";
+export const FUNCTION_ROOM_A_ID = "room_a";
+export const FUNCTION_ROOM_B_ID = "room_b";
+/** Back-compat default; new code passes an explicit room. */
+export const FUNCTION_ROOM_ID = FUNCTION_ROOM_A_ID;
+
+export const FUNCTION_ROOM_CHOICES = [
+  { id: FUNCTION_ROOM_A_ID, name: "Function Room A" },
+  { id: FUNCTION_ROOM_B_ID, name: "Function Room B" },
+] as const;
 
 export class SlotTakenError extends Error {
   constructor() {
@@ -100,7 +111,7 @@ export async function fetchMonthAvailability(
   const [slotsResult, datesResult] = await Promise.all([
     supabase
       .from("booking_availability")
-      .select("kind, resource_id, date, time")
+      .select("kind, resource_id, date")
       .gte("date", from)
       .lt("date", to),
     supabase
@@ -119,7 +130,6 @@ export async function fetchMonthAvailability(
       kind: slot.kind as BookingInventoryKind,
       resourceId: slot.resource_id as string,
       date: slot.date as string,
-      time: slot.time as string,
     })),
   };
 }
@@ -142,6 +152,7 @@ export function subscribeAvailability(onChange: () => void) {
 
 export async function createFunctionBooking(input: {
   userId: string;
+  roomId: string;
   customer: string;
   phone: string;
   email: string;
@@ -155,7 +166,7 @@ export async function createFunctionBooking(input: {
   const { error } = await supabase.from("function_bookings").insert({
     id,
     user_id: input.userId,
-    room_id: FUNCTION_ROOM_ID,
+    room_id: input.roomId,
     customer: input.customer,
     phone: input.phone,
     email: input.email,
@@ -169,16 +180,12 @@ export async function createFunctionBooking(input: {
   });
 
   if (error) {
-    if (
-      error.code === "23505" &&
-      error.message.includes("function_bookings_active_slot_unique")
-    ) {
-      throw new SlotTakenError();
-    }
-    throw error;
+    throwBookingError(error, "function_bookings_active_date_unique");
   }
   return id;
 }
+
+export type CateringVenue = "function_room" | "delivery";
 
 export async function createCateringBooking(input: {
   userId: string;
@@ -189,6 +196,9 @@ export async function createCateringBooking(input: {
   date: string;
   time: string;
   notes: string;
+  venueType?: CateringVenue;
+  functionRoomId?: string;
+  deliveryAddress?: string;
   packageId?: string;
   packageName?: string;
   pax?: number;
@@ -199,6 +209,7 @@ export async function createCateringBooking(input: {
   total?: number;
 }): Promise<string> {
   const id = newBookingId();
+  const venueType = input.venueType ?? "delivery";
   const { error } = await supabase.from("catering_bookings").insert({
     id,
     user_id: input.userId,
@@ -211,6 +222,11 @@ export async function createCateringBooking(input: {
     status: "Pending",
     timeline: [{ status: "Pending", at: nowStamp() }],
     notes: input.notes,
+    venue_type: venueType,
+    function_room_id:
+      venueType === "function_room" ? (input.functionRoomId ?? null) : null,
+    delivery_address:
+      venueType === "delivery" ? (input.deliveryAddress ?? null) : null,
     package_id: input.packageId ?? null,
     package_name: input.packageName ?? null,
     pax: input.pax ?? null,
@@ -222,13 +238,7 @@ export async function createCateringBooking(input: {
   });
 
   if (error) {
-    if (
-      error.code === "23505" &&
-      error.message.includes("catering_bookings_active_slot_unique")
-    ) {
-      throw new SlotTakenError();
-    }
-    throw error;
+    throwBookingError(error, "catering_bookings_active");
   }
   return id;
 }
@@ -284,6 +294,10 @@ type CateringBookingRow = {
   updated_at: string;
   timeline: ReservationTimeline[] | null;
   notes: string | null;
+  venue_type: CateringVenue | null;
+  function_room_id: string | null;
+  function_rooms: { name: string } | null;
+  delivery_address: string | null;
   package_id: string | null;
   package_name: string | null;
   pax: number | null;
@@ -328,7 +342,7 @@ export async function fetchFunctionBookings(): Promise<FunctionBooking[]> {
 export async function fetchCateringBookings(): Promise<CateringBooking[]> {
   const { data, error } = await supabase
     .from("catering_bookings")
-    .select("id, kind, customer, phone, email, date, time, status, placed_at, updated_at, timeline, notes, package_id, package_name, pax, price_per_pax, items_list, guest_count, subtotal, total")
+    .select("id, kind, customer, phone, email, date, time, status, placed_at, updated_at, timeline, notes, venue_type, function_room_id, function_rooms(name), delivery_address, package_id, package_name, pax, price_per_pax, items_list, guest_count, subtotal, total")
     .order("placed_at", { ascending: false });
   if (error) throw error;
 
@@ -348,6 +362,10 @@ export async function fetchCateringBookings(): Promise<CateringBooking[]> {
       updatedAt: row.updated_at,
       timeline: row.timeline?.length ? row.timeline : [{ status, at: placedAt }],
       notes: row.notes ?? "",
+      venueType: row.venue_type ?? "delivery",
+      functionRoomId: row.function_room_id ?? undefined,
+      functionRoomName: row.function_rooms?.name ?? undefined,
+      deliveryAddress: row.delivery_address ?? undefined,
       packageId: row.package_id ?? undefined,
       packageName: row.package_name ?? undefined,
       packagePrice: row.total,
@@ -362,7 +380,11 @@ export async function fetchCateringBookings(): Promise<CateringBooking[]> {
 }
 
 function throwBookingError(error: { code: string; message: string }, indexName: string): never {
-  if (error.code === "23505" && error.message.includes(indexName)) {
+  if (
+    error.code === "23505" &&
+    (error.message.includes(indexName) ||
+      error.message.includes("booking_availability_pkey"))
+  ) {
     throw new SlotTakenError();
   }
   throw error;
@@ -389,7 +411,7 @@ export async function updateFunctionBooking(updated: FunctionBooking): Promise<F
     .eq("updated_at", updated.updatedAt)
     .select("updated_at")
     .maybeSingle();
-  if (error) throwBookingError(error, "function_bookings_active_slot_unique");
+  if (error) throwBookingError(error, "function_bookings_active_date_unique");
   if (!data) throw new BookingChangedError();
   return { ...updated, updatedAt: data.updated_at };
 }
@@ -407,6 +429,9 @@ export async function updateCateringBooking(updated: CateringBooking): Promise<C
       status: updated.status,
       timeline: updated.timeline,
       notes: updated.notes,
+      venue_type: updated.venueType,
+      function_room_id: updated.functionRoomId ?? null,
+      delivery_address: updated.deliveryAddress ?? null,
       package_id: updated.packageId ?? null,
       package_name: updated.packageName ?? null,
       pax: updated.pax ?? null,
@@ -421,9 +446,52 @@ export async function updateCateringBooking(updated: CateringBooking): Promise<C
     .eq("updated_at", updated.updatedAt)
     .select("updated_at")
     .maybeSingle();
-  if (error) throwBookingError(error, "catering_bookings_active_slot_unique");
+  if (error) throwBookingError(error, "catering_bookings_active");
   if (!data) throw new BookingChangedError();
   return { ...updated, updatedAt: data.updated_at };
+}
+
+export type CancellationTarget =
+  | { bookingType: "function_room"; booking: FunctionBooking }
+  | { bookingType: "catering"; booking: CateringBooking };
+
+/** Customer request to cancel or move a booking. Stored as an inquiry so
+ * staff triage it in Operations; the booking itself is untouched until
+ * staff confirm the cancellation or the date move. */
+export async function requestBookingChange(input: {
+  userId: string;
+  customer: string;
+  email: string;
+  target: CancellationTarget;
+  action: "cancel" | "move";
+  reason: string;
+  newDate?: string;
+}): Promise<string> {
+  const { target, action, reason, newDate } = input;
+  const booking = target.booking;
+  const ref = booking.id;
+  const when =
+    target.bookingType === "function_room"
+      ? `${booking.date} · ${(booking as FunctionBooking).time}`
+      : `${booking.date} · ${(booking as CateringBooking).time}`;
+  const message =
+    action === "cancel"
+      ? `Customer requests cancellation of ${target.bookingType} booking ${ref} (${when}). Reason: ${reason}`
+      : `Customer requests moving ${target.bookingType} booking ${ref} from ${when} to ${newDate}. Reason: ${reason}`;
+  const { data, error } = await supabase
+    .from("inquiries")
+    .insert({
+      user_id: input.userId,
+      name: input.customer,
+      email: input.email,
+      type: "Cancellation Request",
+      message,
+      status: "New",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return (data as { id: string }).id;
 }
 
 export function subscribeReservationChanges(onChange: () => void) {
