@@ -45,7 +45,27 @@ app.use((req, res, next) => {
   const isLocalDevelopmentOrigin = process.env.NODE_ENV !== 'production'
     && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || '');
 
-  if (origin && !configuredOrigins.includes(origin.replace(/\/$/, '')) && !isLocalDevelopmentOrigin) {
+  // Same-origin requests (Vite module scripts and same-site fetches always send
+  // Origin, even when the target is this very site) are never cross-site, so the
+  // configured-origin allowlist only needs to cover genuinely cross-origin callers.
+  let originHostname = null;
+  if (origin) {
+    try {
+      originHostname = new URL(origin).hostname.toLowerCase();
+    } catch {
+      originHostname = null;
+    }
+  }
+  const requestHostname = (() => {
+    try {
+      return new URL(`http://${req.get('host')}`).hostname.toLowerCase();
+    } catch {
+      return '';
+    }
+  })();
+  const isSameOrigin = Boolean(originHostname) && originHostname === requestHostname;
+
+  if (origin && !configuredOrigins.includes(origin.replace(/\/$/, '')) && !isSameOrigin && !isLocalDevelopmentOrigin) {
     return res.status(403).send('This website origin is not allowed.');
   }
 
