@@ -13,7 +13,7 @@ import {
 } from "../data/reservations";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
-import { getStoredContact } from "../lib/contact";
+import { getStoredContact, fetchStoredProfile } from "../lib/contact";
 import { FUNCTION_ROOM_EVENT_TYPES as EVENT_TYPES } from "../constants";
 
 const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'-]{3,60}$/;
@@ -49,15 +49,24 @@ export function FunctionRoomReservation() {
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
   const { user } = useAuth();
 
-  // Autofill name + contact + email once the session is known.
+  // Autofill name + contact + email once the session is known. Server copy
+  // wins so details saved on another device show up too.
   useEffect(() => {
     if (!user) return;
+    const localContact = getStoredContact(user.id);
     setForm((current) => ({
       ...current,
       name: current.name || user.displayName,
-      contact: current.contact || getStoredContact(user.id),
+      contact: current.contact || localContact,
       email: current.email || user.email,
     }));
+    void fetchStoredProfile(user.id).then((profile) => {
+      if (!profile.phone) return;
+      setForm((current) => ({
+        ...current,
+        contact: current.contact || profile.phone,
+      }));
+    });
   }, [user]);
 
   const update = (key: keyof FormData, value: string) => {

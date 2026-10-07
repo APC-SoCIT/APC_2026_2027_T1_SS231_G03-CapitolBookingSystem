@@ -11,7 +11,7 @@ import {
 import { createSupabaseDeliveryOrder } from "../data/deliveryOrders";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
-import { getStoredContact } from "../lib/contact";
+import { fetchStoredProfile, getStoredContact } from "../lib/contact";
 
 type Cart = Record<string, number>;
 
@@ -73,7 +73,8 @@ export function DeliveryOrder() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [awaitingSignIn, setAwaitingSignIn] = useState(false);
 
-  // Autofill name + previously used contact number once the session is known.
+  // Autofill name + contact once the session is known. Server copy wins so
+  // details saved on another device (profile page) prefill here too.
   useEffect(() => {
     if (!user) return;
     setDetails((prev) => ({
@@ -81,6 +82,14 @@ export function DeliveryOrder() {
       name: prev.name || user.displayName,
       phone: prev.phone || getStoredContact(user.id),
     }));
+    void fetchStoredProfile(user.id).then((profile) => {
+      if (!profile.phone) return;
+      setDetails((prev) => ({
+        ...prev,
+        name: prev.name || user.displayName,
+        phone: prev.phone || profile.phone,
+      }));
+    });
   }, [user]);
 
   // Guest placed an order, signed in, and closed the sign-in dialog:

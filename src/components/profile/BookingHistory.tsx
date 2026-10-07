@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   fetchCateringBookings,
   fetchFunctionBookings,
+  fetchOpenCancellationRefs,
   requestBookingChange,
   subscribeReservationChanges,
   type CancellationTarget,
@@ -24,18 +25,21 @@ export function BookingHistory({ userId }: Props) {
   const [error, setError] = useState("");
   const [cancelTarget, setCancelTarget] = useState<CancellationTarget | null>(null);
   const [requestedIds, setRequestedIds] = useState<string[]>([]);
+  const [serverRequestedIds, setServerRequestedIds] = useState<string[]>([]);
   const fetchVersion = useRef(0);
 
   const loadBookings = useCallback(async () => {
     const version = ++fetchVersion.current;
     try {
-      const [functions, catering] = await Promise.all([
+      const [functions, catering, cancellationRefs] = await Promise.all([
         fetchFunctionBookings(),
         fetchCateringBookings(),
+        fetchOpenCancellationRefs().catch(() => [] as string[]),
       ]);
       if (version !== fetchVersion.current) return;
       setFunctionBookings(functions);
       setCateringBookings(catering);
+      setServerRequestedIds(cancellationRefs);
       setError("");
     } catch {
       if (version === fetchVersion.current) {
@@ -84,7 +88,10 @@ export function BookingHistory({ userId }: Props) {
             <FunctionCard
               booking={booking}
               key={booking.id}
-              cancellationRequested={requestedIds.includes(booking.id)}
+              cancellationRequested={
+                requestedIds.includes(booking.id) ||
+                serverRequestedIds.includes(booking.id)
+              }
               onRequestChange={() =>
                 setCancelTarget({ bookingType: "function_room", booking })
               }
@@ -98,7 +105,10 @@ export function BookingHistory({ userId }: Props) {
             <CateringCard
               booking={booking}
               key={booking.id}
-              cancellationRequested={requestedIds.includes(booking.id)}
+              cancellationRequested={
+                requestedIds.includes(booking.id) ||
+                serverRequestedIds.includes(booking.id)
+              }
               onRequestChange={() =>
                 setCancelTarget({ bookingType: "catering", booking })
               }

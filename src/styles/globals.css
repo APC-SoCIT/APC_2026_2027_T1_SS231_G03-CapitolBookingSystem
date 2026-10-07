@@ -877,6 +877,8 @@ button, input, textarea, select { font: inherit; }
 .ops-status-select--ready-for-pickup { color: #a06000; }
 .ops-status-select--pending { color: #b70100; }
 .ops-status-select--cancelled { color: #6a4a4a; }
+.ops-status-save { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border: 1.5px solid #b70100; border-radius: 8px; background: #b70100; color: #ffefc1; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.ops-status-save:hover { background: #8d0100; }
 .ops-order-row__pill { display: none; }
 .ops-order-row__action { display: flex; flex-direction: column; align-items: end; gap: 0.35rem; }
 .ops-row-action { display: inline-flex; align-items: center; gap: 0.25rem; color: #8a5a5a; font-size: 0.8rem; font-weight: 700; }

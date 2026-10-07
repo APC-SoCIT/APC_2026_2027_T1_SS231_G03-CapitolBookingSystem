@@ -3,7 +3,6 @@ import {
   CalendarDays,
   ClipboardList,
   Eye,
-  Inbox,
   Pencil,
   RefreshCw,
   Search,
@@ -18,12 +17,14 @@ import {
   type DeliveryStatus,
 } from "../data/delivery";
 import {
-  getInquiries,
-  INQUIRY_STATUSES,
-  saveInquiries,
   type Inquiry,
   type InquiryStatus,
 } from "../data/inquiries";
+import {
+  fetchAllDeliveryOrders,
+  subscribeDeliveryOrders,
+  toLocalDeliveryOrder,
+} from "../data/deliveryOrders";
 import {
   BookingChangedError,
   fetchCateringBookings,
@@ -50,8 +51,8 @@ export function Operations() {
   const [functionBookings, setFunctionBookings] = useState<FunctionBooking[]>([]);
   const [cateringBookings, setCateringBookings] = useState<CateringBooking[]>([]);
   const [bookingLoadError, setBookingLoadError] = useState("");
-  const [inquiries, setInquiries] = useState<Inquiry[]>(getInquiries);
-  // Orders are read-only here — status/assignment work lives in the Delivery tab.
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  // Delivery stats come from Supabase; status/assignment work lives in the Delivery tab.
   const [orders, setOrders] = useState<DeliveryOrder[]>(getDeliveryOrders);
   const [functionSearch, setFunctionSearch] = useState("");
   const [cateringSearch, setCateringSearch] = useState("");
@@ -99,7 +100,7 @@ export function Operations() {
     const loadInquiries = async () => {
       const { data, error } = await supabase
         .from("inquiries")
-        .select("id, name, email, type, message, status, submitted_at, created_at")
+        .select("id, type, message, status")
         .order("created_at", { ascending: false });
 
       if (!active) return;
@@ -110,12 +111,12 @@ export function Operations() {
 
       setInquiries((data ?? []).map((row) => ({
         id: String(row.id),
-        name: row.name,
-        email: row.email,
+        name: "",
+        email: "",
         type: row.type,
         message: row.message,
         status: row.status as InquiryStatus,
-        submittedAt: new Date(row.submitted_at || row.created_at).toLocaleString(),
+        submittedAt: "",
       })));
     };
 
@@ -127,28 +128,28 @@ export function Operations() {
     };
   }, []);
 
+  useEffect(() => {
+    const loadRemoteOrders = async () => {
+      try {
+        const remote = await fetchAllDeliveryOrders();
+        setOrders((current) => {
+          const refs = new Set(remote.map((order) => order.reference));
+          const localOnly = current.filter((order) => !refs.has(order.reference));
+          return [...remote.map(toLocalDeliveryOrder), ...localOnly];
+        });
+      } catch {
+        // Supabase unavailable — keep the local demo dataset for stats.
+      }
+    };
+    void loadRemoteOrders();
+    const channel = subscribeDeliveryOrders(() => void loadRemoteOrders());
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, []);
+
   const refreshDashboard = () => {
-    setOrders(getDeliveryOrders());
     refreshBookings();
-    void supabase
-      .from("inquiries")
-      .select("id, name, email, type, message, status, submitted_at, created_at")
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Unable to refresh staff inquiries:", error.message);
-          return;
-        }
-        setInquiries((data ?? []).map((row) => ({
-          id: String(row.id),
-          name: row.name,
-          email: row.email,
-          type: row.type,
-          message: row.message,
-          status: row.status as InquiryStatus,
-          submittedAt: new Date(row.submitted_at || row.created_at).toLocaleString(),
-        })));
-      });
   };
 
   const showBookingSaveError = (error: unknown) => {
@@ -204,21 +205,6 @@ export function Operations() {
     }
   };
 
-  const updateInquiryStatus = (id: string, status: InquiryStatus) => {
-    const updatedInquiries = inquiries.map((inquiry) =>
-      inquiry.id === id ? { ...inquiry, status } : inquiry,
-    );
-    setInquiries(updatedInquiries);
-    saveInquiries(updatedInquiries);
-    void supabase
-      .from("inquiries")
-      .update({ status })
-      .eq("id", id)
-      .then(({ error }) => {
-        if (error) console.error("Unable to update inquiry status:", error.message);
-      });
-  };
-
   const filteredFunction = useMemo(() => {
     let list = functionBookings;
     if (functionFilter !== "All") list = list.filter((b) => b.status === functionFilter);
@@ -248,13 +234,18 @@ export function Operations() {
     [cateringBookings, selectedCateringId],
   );
 
-  const newInquiryCount = inquiries.filter((inquiry) => inquiry.status === "New").length;
-  const manualResponseInquiries = inquiries.filter(
-    (inquiry) =>
-      inquiry.status === "New" &&
-      (inquiry.type === "Manual Order Request" ||
-        inquiry.type === "Cancellation Request"),
-  );
+  const newInquiryCount = inquiries.filter(
+    (inquiry) => inquiry.status === "New" && inquiry.type !== "Cancellation Request",
+  ).length;
+  const cancellationRequestIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const inquiry of inquiries) {
+      if (inquiry.type !== "Cancellation Request" || inquiry.status !== "New") continue;
+      const match = /booking \S*?(CAP-[A-Z0-9]{4,32})/i.exec(inquiry.message ?? "");
+      if (match?.[1]) ids.add(match[1].toUpperCase());
+    }
+    return ids;
+  }, [inquiries]);
   const activeDeliveryCount = orders.filter((order) => order.status !== "Delivered").length;
   const revenueToday = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
   const functionPending = functionBookings.filter((b) => b.status === "Pending").length;
@@ -280,7 +271,7 @@ export function Operations() {
           <StatCard icon={<Truck size={20} />} label="Active deliveries" value={activeDeliveryCount} hint="Not delivered" />
           <StatCard icon={<Building2 size={20} />} label="Function pending" value={functionPending} hint={`${functionBookings.length} total bookings`} accent={functionPending>0} />
           <StatCard icon={<UtensilsCrossed size={20} />} label="Catering pending" value={cateringPending} hint={`${cateringBookings.length} total`} accent={cateringPending>0} />
-          <StatCard icon={<Inbox size={20} />} label="New inquiries" value={newInquiryCount} hint="Need reply" accent={newInquiryCount > 0} />
+          <StatCard icon={<ClipboardList size={20} />} label="Open inquiries" value={newInquiryCount} hint="Need reply" accent={newInquiryCount > 0} />
           <StatCard icon={<ClipboardList size={20} />} label="Total orders" value={orders.length} hint={revenueToday ? `₱${revenueToday.toLocaleString()} total` : undefined} />
         </div>
 
@@ -288,7 +279,7 @@ export function Operations() {
         <div className="dashboard-panel">
           <div className="dashboard-panel__header">
             <div>
-              <p className="eyebrow">Reservations · Private Dining Room</p>
+              <p className="eyebrow">Reservations · Function Rooms</p>
               <h2>Function room bookings</h2>
             </div>
             <label className="dashboard-search">
@@ -308,7 +299,7 @@ export function Operations() {
           </div>
           <div className="dashboard-orders">
             {filteredFunction.length ? filteredFunction.map((b)=> (
-              <FunctionRow key={b.id} booking={b} onOpen={()=>setSelectedFunctionId(b.id)} onStatusChange={updateFunctionStatus} />
+              <FunctionRow key={b.id} booking={b} onOpen={()=>setSelectedFunctionId(b.id)} onStatusChange={updateFunctionStatus} cancellationRequested={cancellationRequestIds.has(b.id)} />
             )) : <EmptyDashboardState message="No function bookings match your filters." />}
           </div>
         </div>
@@ -341,32 +332,8 @@ export function Operations() {
           </div>
           <div className="dashboard-orders">
             {filteredCatering.length ? filteredCatering.map((b)=> (
-              <CateringRow key={b.id} booking={b} onOpen={()=>setSelectedCateringId(b.id)} onStatusChange={updateCateringStatus} />
+              <CateringRow key={b.id} booking={b} onOpen={()=>setSelectedCateringId(b.id)} onStatusChange={updateCateringStatus} cancellationRequested={cancellationRequestIds.has(b.id)} />
             )) : <EmptyDashboardState message="No catering bookings match your filters." />}
-          </div>
-        </div>
-
-        {/* Inquiries */}
-        <div className="dashboard-panel">
-          <div className="dashboard-panel__header">
-            <div>
-              <p className="eyebrow">Customer communication</p>
-              <h2>Inquiries</h2>
-            </div>
-            <span className="dashboard-count">{inquiries.length} total</span>
-          </div>
-          <div className="dashboard-inquiries">
-            {manualResponseInquiries.length > 0 && (
-              <aside className="inquiry-alert" role="status" aria-live="polite">
-                <strong>
-                  {manualResponseInquiries.length} order {manualResponseInquiries.length === 1 ? "request needs" : "requests need"} a manual reply
-                </strong>
-                <span>Review the highlighted new inquiries and contact customers using their listed email address.</span>
-              </aside>
-            )}
-            {inquiries.length > 0 ? inquiries.map((inquiry) => (
-              <InquiryRow inquiry={inquiry} key={inquiry.id} onStatusChange={updateInquiryStatus} />
-            )) : <EmptyDashboardState message="No inquiries have been submitted yet." />}
           </div>
         </div>
       </section>
@@ -386,10 +353,10 @@ function StatCard({ icon, label, value, hint, accent }: { icon: React.ReactNode;
   );
 }
 
-function FunctionRow({ booking, onOpen, onStatusChange }: { booking: FunctionBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void }) {
+function FunctionRow({ booking, onOpen, onStatusChange, cancellationRequested }: { booking: FunctionBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void; cancellationRequested: boolean }) {
   return (
     <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter" && onOpen()}>
-      <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small></div>
+      <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small>{cancellationRequested && <small className="inquiry-manual-badge">Cancellation requested</small>}</div>
       <div className="ops-order-row__items"><span>{booking.eventType} · {booking.guests} guests</span><small><Building2 size={10}/> {booking.room}</small><small style={{color:"#b70100"}}><Users size={10}/> {booking.email}</small></div>
       <div className="ops-order-row__when"><span><CalendarDays size={12}/> {booking.date} {booking.time}</span><small>Placed {booking.placedAt}</small></div>
       <div className="ops-order-row__status" onClick={(e)=>e.stopPropagation()}>
@@ -403,12 +370,12 @@ function FunctionRow({ booking, onOpen, onStatusChange }: { booking: FunctionBoo
   );
 }
 
-function CateringRow({ booking, onOpen, onStatusChange }: { booking: CateringBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void }) {
+function CateringRow({ booking, onOpen, onStatusChange, cancellationRequested }: { booking: CateringBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void; cancellationRequested: boolean }) {
   const kindLabel = booking.kind === "catering_buffet" ? `Buffet · ${booking.packageName} · ${booking.pax} pax` : `Packed · ${booking.itemsList?.length ?? 0} items · ${booking.guestCount ?? 0} guests`;
   const price = booking.total ? `₱${booking.total.toLocaleString()}` : "—";
   return (
     <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter"&&onOpen()}>
-      <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small></div>
+      <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small>{cancellationRequested && <small className="inquiry-manual-badge">Cancellation requested</small>}</div>
       <div className="ops-order-row__items"><span>{kindLabel}</span><small><UtensilsCrossed size={10}/> {booking.kind === "catering_buffet" ? `₱${booking.pricePerPax}/pax` : `${booking.itemsList?.map(i=>i.name).join(", ") || "Inquiry"}`}</small><small className="ops-order-row__price">{price}</small></div>
       <div className="ops-order-row__when"><span><CalendarDays size={12}/> {booking.date} {booking.time}</span><small>Placed {booking.placedAt}</small></div>
       <div className="ops-order-row__status" onClick={(e)=>e.stopPropagation()}>
@@ -418,21 +385,6 @@ function CateringRow({ booking, onOpen, onStatusChange }: { booking: CateringBoo
         <span className="ops-order-row__pill"><StatusPill status={booking.status as unknown as DeliveryStatus} /></span>
       </div>
       <div className="ops-order-row__action"><span className="ops-row-action"><Eye size={14}/> View</span><span className="ops-row-action ops-row-action--edit"><Pencil size={12}/> Edit</span></div>
-    </article>
-  );
-}
-
-function InquiryRow({ inquiry, onStatusChange }: { inquiry: Inquiry; onStatusChange: (id: string, status: InquiryStatus) => void }) {
-  const needsManualReply = inquiry.status === "New" && inquiry.type === "Manual Order Request";
-  const isCancellationRequest = inquiry.type === "Cancellation Request";
-  const highlighted = needsManualReply || (isCancellationRequest && inquiry.status === "New");
-  return (
-    <article className={`dashboard-inquiry-row${highlighted ? " dashboard-inquiry-row--manual" : ""}`}>
-      <div className="dashboard-row__identity"><strong>{inquiry.name}</strong><span>{inquiry.email}</span>{needsManualReply && <small className="inquiry-manual-badge">Manual reply needed</small>}{isCancellationRequest && <small className="inquiry-manual-badge">Cancellation request</small>}</div>
-      <div className="dashboard-row__details"><span>{inquiry.type}</span><small>{inquiry.message}</small></div>
-      <select className={`dashboard-status dashboard-status--${inquiry.status.toLowerCase().replaceAll(" ", "-")}`} value={inquiry.status} onChange={(event) => onStatusChange(inquiry.id, event.target.value as InquiryStatus)}>
-        {INQUIRY_STATUSES.map((status) => <option key={status}>{status}</option>)}
-      </select>
     </article>
   );
 }

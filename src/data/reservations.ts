@@ -510,6 +510,23 @@ export function subscribeReservationChanges(onChange: () => void) {
     .subscribe();
 }
 
+/** Booking refs with an open (New) cancellation request. The request message
+ * embeds the booking ref, so matching is done client-side on the ref token. */
+export async function fetchOpenCancellationRefs(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("inquiries")
+    .select("message")
+    .eq("type", "Cancellation Request")
+    .eq("status", "New");
+  if (error) throw error;
+  const refs: string[] = [];
+  for (const row of data ?? []) {
+    const match = /booking \S*?(CAP-[A-Z0-9]{4,32})/i.exec(row.message ?? "");
+    if (match?.[1]) refs.push(match[1].toUpperCase());
+  }
+  return refs;
+}
+
 export function pushTimeline(
   timeline: ReservationTimeline[] | undefined,
   nextStatus: ReservationStatus,
