@@ -68,7 +68,7 @@ The examples assume the run date is **Wed 2026-10-07**. If you run on another da
 | S-05 | ⏱ | In that modal click the **Log In** tab, enter CUST email and password, and submit. | The modal closes and you are signed in as *Juan dela Cruz*. The cart is kept and the **delivery details** modal opens automatically with the name prefilled. If it doesn't, click **Place order** again and log it as a P2 defect. |
 | S-06 | ⏱ | Enter phone `09171234567` and the valid address. Payment: *Cash on delivery*. Click **Place order**. | The confirmation screen shows the tracking reference `CAP-1xxx`. Note it as **REF-D**. |
 | S-07 | ⏱ | Go to `/catering/buffet`. Select **Package A**, click **Proceed →**, pick **BUF** at **12:00 PM** (Guests 10), and confirm. | The success panel shows **Booking Reference** `CAP-` followed by 16 characters. Note it as **REF-B**. |
-| S-08 | | Go to `/catering/packed`. Add **Adobong Manok** (defaults to 10 packs), click **Proceed**, pick **BUF** at **1:00 PM**, and confirm. | Success with a `CAP-…` reference. The summary shows 10 packs and the subtotal plus the ₱60 fee. |
+| S-08 | | Go to `/catering/packed`. Add **Adobong Manok** (defaults to 10 packs), click **Proceed**, pick **BUF** at **1:00 PM**, and confirm. | Success with a `CAP-…` reference. The summary shows 10 packs, subtotal ₱1,200, **Delivery fee ₱0**, total ₱1,200. (Packed meals carry no fee in the app; delivery orders carry ₱60.) |
 | S-09 | ⏱ | Go to `/function-rooms/reserve`. Fill Name, `09171234567`, email, Guests `20`, **Birthday Celebration**. Click **Check Availability →**, pick **FR** at **6:00 PM**, and confirm. | Success with reference **REF-F**. Slots before D+2 are disabled. |
 | S-10 | ⏱ | Open `/profile`. | **My bookings** lists REF-B, the packed booking and REF-F, all **Pending**. The delivery tracker with REF-D shows **Preparing**. |
 | S-11 | ⏱ | Go to `/inquiries`. Name `Juan dela Cruz`, email, Type **Catering**, Message `Do you cater on Sundays?`. Click Submit. | Success message *"Thank you for your inquiry."* plus an AI reply (or the fallback text). |
@@ -115,7 +115,7 @@ Legend: **⏱** marks the 30-minute subset. "BrA" and "BrB" mean Browser A and B
 | CT-05 | Catering | CUST | — | Buffet modal: Guests `9`, then `13` → confirm | Validation error (*min. 10, max. 12*). Not submitted | P1 | — (package rule, catalog `minPax/maxPax`) |
 | CT-06 | Catering | CUST | — | Buffet modal: Contact `0917123456` → confirm | Phone error. Not submitted | P1 | — |
 | CT-07 ⏱ | Catering | CUST | — | `/catering/packed` → add **Lechon Kawali** → click **−** once (9 packs) | Error *"Each meal type requires at least 10 packs."*; **Proceed** disabled. Pressing **+** back to 10 re-enables it | P1 | — (packed-meal guideline) |
-| CT-08 | Catering | CUST | — | Packed: add 2 kinds at 10 each | Subtotal = Σ(price × qty), Delivery fee ₱60, Total = subtotal + 60 | P1 | — (packed-meal pricing) |
+| CT-08 | Catering | CUST | — | Packed: add **Adobong Manok** and **Lechon Kawali** at 10 each | Subtotal ₱2,650 (10 × ₱120 + 10 × ₱145), Delivery fee ₱0, Total ₱2,650. The fee is hard-coded to 0 for packed meals (`CateringPacked.tsx:59`); the catalog fee of ₱60 applies only to delivery orders. Confirm with the PO that this is intended | P1 | — (packed-meal pricing) |
 | CT-09 | Catering | CUST + CUST-B | Both on Buffet modal, BrA and BrB, same date **COL** | Both pick **10:00 AM**. CUST confirms first, then CUST-B confirms | CUST succeeds. CUST-B gets *"That time was just booked. Choose another available time."* and the 10:00 AM option becomes disabled | P1 | REQ-RES-002 (same mechanism), §4.2.2 step 5 |
 | CT-10 | Catering | CUST | A buffet booking exists at BUF 12:00 PM | Packed booking at BUF **12:00 PM** | **Succeeds**: buffet and packed have separate slot inventories (`kind` is part of the unique key) | P2 | — (confirm the intended behavior with the PO) |
 | CT-11 | Catering | CUST | — | Buffet modal → Name `<script>alert(1)</script>`. Then, on `/function-rooms/reserve`, put the same string in **Special Requests** and book. Open the booking as FOH | The name is rejected. Special Requests is saved and rendered as plain text in Operations (no alert) | P1 | §5.2 Input sanitization |
@@ -260,7 +260,7 @@ Legend: **⏱** marks the 30-minute subset. "BrA" and "BrB" mean Browser A and B
 ## 3. ROLE-ACCESS MATRIX
 
 Source: `src/lib/roles.ts` → `canAccessRoute`, asserted by `scripts/test-roles.ts` (99 checks, passing at `010694c`).
-**✅** = page renders. **↪ X** = `RoleGuard` redirects to the role home **X**. Unknown paths (`*`) redirect to `/`, after which the guard applies.
+**✅** = page renders. **↪ X** = `RoleGuard` redirects to the role home **X**. Unknown paths are denied by the guard first, so they redirect to the role home (`/` for guests and customers).
 
 "Customer pages" = `/`, `/about-us`, `/catering`, `/catering/buffet`, `/catering/packed`, `/function-rooms`, `/function-rooms/reserve`, `/inquiries`, `/delivery`, `/delivery/order`.
 
@@ -274,7 +274,7 @@ Source: `src/lib/roles.ts` → `canAccessRoute`, asserted by `scripts/test-roles
 | `/inquiry-bot` | ↪ `/` | ↪ `/` | ✅ | ✅ | ✅ | ↪ `/delivery/rider` | unavailable |
 | `/dashboard` | ↪ `/` | ↪ `/` | ↪ `/operations` | ✅ | ✅ | ↪ `/delivery/rider` | unavailable |
 | `/delivery/rider` | ↪ `/` | ↪ `/` | ↪ `/operations` | ↪ `/operations` | ✅ | ✅ | unavailable |
-| Login lands on | — | `/` | `/operations` | `/operations` | `/dashboard` | `/delivery/rider` | — |
+| Login lands on | — | stays on the current page | `/operations` | `/operations` | `/dashboard` | `/delivery/rider` | — |
 
 Manual spot checks (about 10 min; the automated test covers the logic, these confirm the wiring in the deployed build):
 
@@ -340,7 +340,7 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 | **F-04** | P1 | No payment gateway or deposit: bookings are created as *Pending* with no payment, and the GCash/Card options are labels only. PayMaya (REQ-DEL-003) is not offered | `reservations.ts:155`, `DeliveryOrder.tsx:893` | REQ-RES-003, REQ-DEL-003 | FR-10, DO-10 |
 | **F-05** | P1 | No 10-minute slot hold or expiry. The slot is occupied as soon as the booking is *Pending* and stays occupied until staff cancel it | No hold logic in the migrations or `src/` | REQ-RES-005 | FR-10 |
 | **F-06** | P1 | No confirmation email or self-cancel link | No SMTP/Resend code | BR Cancellation, §3.3 | FR-12 |
-| **F-07** | P1 | The web inquiry form does not require sign-in (`user_id = null`), and non-order inquiries are saved as *Resolved* instead of *New* | `Inquiries.tsx`, `webhook.js:820-828` | REQ-INQ-001, §4.1.2-2 | IQ-01, IQ-07 |
+| **F-07** | P1 | The web inquiry form does not require sign-in, the server always saves `user_id = null` (even for a signed-in customer, so the inquiry is never linked to the account), and non-order inquiries are saved as *Resolved* instead of *New* | `Inquiries.tsx`, `webhook.js:820-828` | REQ-INQ-001, §4.1.2-2 | IQ-01, IQ-07 |
 | **F-08** | P1 | Front-of-house can edit the menu (`/delivery/items`), and catalog RLS gives FOH write access to packages, items, rooms and blackout dates | `roles.ts` OPERATIONS_PATHS; migration `20260917082142` `operational_predicate` | BR Menu & Pricing Authority | DS-08 |
 | **F-09** | P1 | Menu manager edits (items, categories, visibility) are stored in `localStorage` only, so they are not persisted to the DB or shown to other customers | `src/data/deliveryMenu.ts` | REQ-ADM-003, §4.4.2-4 | DS-06 |
 | **F-10** | P1 | The Inquiry Bot page shows no AI-drafted reply for staff to edit | `InquiryBot.tsx` (no draft field) | REQ-INQ-003 | IB-08 |
