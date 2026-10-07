@@ -35,7 +35,14 @@ const CUSTOMER_PATHS = [
   "/profile",
 ];
 
-const OPERATIONS_PATHS = ["/operations", "/delivery/staff", "/delivery/items", "/inquiry-bot"];
+const OPERATIONS_PATHS = [
+  "/operations",
+  "/operations/function-bookings",
+  "/operations/catering-bookings",
+  "/delivery/staff",
+  "/delivery/items",
+  "/inquiry-bot",
+];
 
 type RoleAccount = { role: unknown } | null;
 

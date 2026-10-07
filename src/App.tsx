@@ -56,6 +56,8 @@ export default function App() {
           <Route path="/delivery/items" element={<DeliveryMenuManager />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/operations" element={<Operations />} />
+          <Route path="/operations/function-bookings" element={<Operations section="function-bookings" />} />
+          <Route path="/operations/catering-bookings" element={<Operations section="catering-bookings" />} />
           <Route path="/inquiry-bot" element={<InquiryBot />} />
           <Route path="/delivery/rider" element={<DeliveryRider />} />
           <Route path="*" element={<Navigate to="/" replace />} />

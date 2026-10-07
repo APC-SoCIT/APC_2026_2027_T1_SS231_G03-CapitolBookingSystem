@@ -11,6 +11,7 @@ import {
   type FunctionBooking,
 } from "../../data/reservations";
 import { useAuth } from "../../context/AuthContext";
+import { BookingCalendarGrid } from "../common/BookingCalendarGrid";
 import { StatusPill } from "../operations/StatusPill";
 
 type Props = {
@@ -327,6 +328,25 @@ function CancelRequestModal({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const bookingId = target.booking.id;
+  /** Availability pool for the moved booking: the room for function bookings
+   * and in-room catering, the catering kind itself for delivered catering. */
+  const gridKind =
+    target.bookingType === "function_room" ||
+    (target.bookingType === "catering" &&
+      target.booking.venueType === "function_room")
+      ? "function_room"
+      : target.bookingType === "catering"
+        ? target.booking.kind
+        : "function_room";
+  const gridResource =
+    target.bookingType === "function_room"
+      ? target.booking.roomId
+      : target.bookingType === "catering"
+        ? target.booking.venueType === "function_room"
+          ? (target.booking.functionRoomId ?? "room_a")
+          : target.booking.kind
+        : "room_a";
+  const gridShow = action === "move";
 
   const detailsValid =
     reason.trim().length >= 3 && (action === "cancel" || newDate !== "");
@@ -392,17 +412,21 @@ function CancelRequestModal({
                 </label>
               </div>
               {action === "move" && (
-                <label className="form-field">
-                  <span>New date</span>
-                  <input
-                    className="input"
+                <div className="cancel-move-calendar">
+                  <BookingCalendarGrid
+                    inventoryKind={gridKind}
+                    resourceId={gridResource}
+                    selectedDate={newDate}
+                    onSelectDate={setNewDate}
                     disabled={saving}
-                    type="date"
-                    value={newDate}
-                    min={target.booking.date}
-                    onChange={(event) => setNewDate(event.target.value)}
                   />
-                </label>
+                  {newDate && (
+                    <p className="form-field">
+                      <span>New date selected</span>
+                      <strong>{newDate}</strong>
+                    </p>
+                  )}
+                </div>
               )}
               <label className="form-field">
                 <span>Why do you want to {action === "cancel" ? "cancel" : "move it"}?</span>

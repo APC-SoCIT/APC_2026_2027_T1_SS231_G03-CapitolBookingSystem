@@ -6,13 +6,22 @@ import { useAuth } from "../../context/AuthContext";
 import { SignInModal } from "./SignInModal";
 import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
 
+/** Top-nav tabs shown to system admins: the three manage-entry screens they
+ * own. Weekly-overview routes (Operations, Dashboard) stay reachable by URL. */
+export const ADMIN_MANAGE_NAVIGATION_ITEMS = [
+  { label: "Manage Function Room Bookings", path: "/operations/function-bookings" },
+  { label: "Manage Catering Bookings", path: "/operations/catering-bookings" },
+  { label: "Manage Delivery Orders", path: "/delivery/staff" },
+];
+
 const EMPLOYEE_NAVIGATION_ITEMS = [
   { label: "Operations", path: "/operations" },
   { label: "Delivery", path: "/delivery/staff" },
   { label: "Inquiry Bot", path: "/inquiry-bot" },
   { label: "Menu Items", path: "/delivery/items" },
   { label: "Dashboard", path: "/dashboard" },
-  { label: "My Deliveries", path: "/delivery/rider" },
+  { label: "Function Room Bookings", path: "/operations/function-bookings" },
+  { label: "Catering Bookings", path: "/operations/catering-bookings" },
 ];
 
 export function Header() {
@@ -25,7 +34,11 @@ export function Header() {
   const { user, loading, logout } = useAuth();
   const { pathname } = useLocation();
   const role = user?.role ?? null;
-  const staffLinks = EMPLOYEE_NAVIGATION_ITEMS.filter((item) =>
+  const navItems =
+    role === "system_admin"
+      ? ADMIN_MANAGE_NAVIGATION_ITEMS
+      : EMPLOYEE_NAVIGATION_ITEMS;
+  const staffLinks = navItems.filter((item) =>
     canAccessRoute({ role }, item.path),
   );
   const navigate = useNavigate();

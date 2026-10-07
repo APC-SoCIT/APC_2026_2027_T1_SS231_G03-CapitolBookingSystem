@@ -11,7 +11,11 @@ import {
 import { createSupabaseDeliveryOrder } from "../data/deliveryOrders";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
-import { fetchStoredProfile, getStoredContact } from "../lib/contact";
+import {
+  fetchStoredProfile,
+  getStoredContact,
+  type StoredAddress,
+} from "../lib/contact";
 
 type Cart = Record<string, number>;
 
@@ -71,10 +75,12 @@ export function DeliveryOrder() {
     null,
   );
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<StoredAddress[]>([]);
   const [awaitingSignIn, setAwaitingSignIn] = useState(false);
 
-  // Autofill name + contact once the session is known. Server copy wins so
-  // details saved on another device (profile page) prefill here too.
+  // Autofill name + contact + saved addresses once the session is known.
+  // Server copy wins so details saved on another device (profile page)
+  // prefill here too, and saved delivery addresses become one-tap options.
   useEffect(() => {
     if (!user) return;
     setDetails((prev) => ({
@@ -83,11 +89,13 @@ export function DeliveryOrder() {
       phone: prev.phone || getStoredContact(user.id),
     }));
     void fetchStoredProfile(user.id).then((profile) => {
-      if (!profile.phone) return;
+      const savedAddresses = profile.addresses.filter((entry) => entry.address);
+      setSavedAddresses(savedAddresses);
       setDetails((prev) => ({
         ...prev,
         name: prev.name || user.displayName,
         phone: prev.phone || profile.phone,
+        address: prev.address || savedAddresses[0]?.address || "",
       }));
     });
   }, [user]);
@@ -453,6 +461,7 @@ export function DeliveryOrder() {
           fieldMessages={fieldMessages}
           total={total}
           submitting={submitting}
+          savedAddresses={savedAddresses}
           onClose={() => setShowDetailsModal(false)}
           onChange={updateDetail}
           onConfirm={handleConfirmDetails}
@@ -794,6 +803,7 @@ function DeliveryDetailsModal({
   fieldMessages,
   total,
   submitting,
+  savedAddresses,
   onClose,
   onChange,
   onConfirm,
@@ -803,6 +813,7 @@ function DeliveryDetailsModal({
   fieldMessages: FieldMessages;
   total: number;
   submitting: boolean;
+  savedAddresses: StoredAddress[];
   onClose: () => void;
   onChange: (key: keyof CustomerDetails, value: string) => void;
   onConfirm: () => void;
@@ -874,6 +885,36 @@ function DeliveryDetailsModal({
 
           <div className="form-section">
             <div className="form-section-title">Delivery</div>
+            {savedAddresses.length > 0 && (
+              <label className="form-field">
+                <span>Saved addresses</span>
+                <select
+                  aria-label="Use a saved address"
+                  className="input"
+                  value={
+                    savedAddresses.find(
+                      (entry) => entry.address === details.address,
+                    )?.label ?? ""
+                  }
+                  onChange={(event) => {
+                    const match = savedAddresses.find(
+                      (entry) => entry.label === event.target.value,
+                    );
+                    if (match) {
+                      onChange("address", match.address);
+                      onChange("notes", details.notes || match.note);
+                    }
+                  }}
+                >
+                  <option value="">No pick — type below</option>
+                  {savedAddresses.map((entry) => (
+                    <option key={entry.label || entry.address} value={entry.label}>
+                      {entry.label || "Address"} — {entry.address}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label
               className={`form-field ${errors.includes("address") ? "form-field--error" : ""}`}
             >

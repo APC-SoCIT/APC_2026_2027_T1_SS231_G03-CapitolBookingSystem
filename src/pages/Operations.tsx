@@ -47,7 +47,7 @@ import { supabase } from "../lib/supabase";
 
 type ResFilter = ReservationStatus | "All";
 
-export function Operations() {
+export function Operations({ section }: { section?: "function-bookings" | "catering-bookings" }) {
   const [functionBookings, setFunctionBookings] = useState<FunctionBooking[]>([]);
   const [cateringBookings, setCateringBookings] = useState<CateringBooking[]>([]);
   const [bookingLoadError, setBookingLoadError] = useState("");
@@ -61,6 +61,8 @@ export function Operations() {
   const [cateringKindFilter, setCateringKindFilter] = useState<"All" | "Buffet" | "Packed">("All");
   const [selectedFunctionId, setSelectedFunctionId] = useState<string | null>(null);
   const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
+  const [pendingFunctionStatus, setPendingFunctionStatus] = useState<Record<string, ReservationStatus>>({});
+  const [pendingCateringStatus, setPendingCateringStatus] = useState<Record<string, ReservationStatus>>({});
   const bookingFetchVersion = useRef(0);
 
   const loadBookings = useCallback(async () => {
@@ -170,9 +172,19 @@ export function Operations() {
     try {
       const saved = await updateFunctionBooking(updated);
       setFunctionBookings((current) => current.map((item) => item.id === id ? saved : item));
+      setPendingFunctionStatus((current) => {
+        const { [id]: _cleared, ...rest } = current;
+        return rest;
+      });
     } catch (error) {
       showBookingSaveError(error);
+      refreshBookings();
     }
+  };
+
+  const confirmFunctionStatus = (id: string) => {
+    const draft = pendingFunctionStatus[id];
+    if (draft) void updateFunctionStatus(id, draft);
   };
 
   const updateCateringStatus = async (id: string, status: ReservationStatus) => {
@@ -182,9 +194,19 @@ export function Operations() {
     try {
       const saved = await updateCateringBooking(updated);
       setCateringBookings((current) => current.map((item) => item.id === id ? saved : item));
+      setPendingCateringStatus((current) => {
+        const { [id]: _cleared, ...rest } = current;
+        return rest;
+      });
     } catch (error) {
       showBookingSaveError(error);
+      refreshBookings();
     }
+  };
+
+  const confirmCateringStatus = (id: string) => {
+    const draft = pendingCateringStatus[id];
+    if (draft) void updateCateringStatus(id, draft);
   };
   const handleFunctionSave = async (updated: FunctionBooking) => {
     try {
@@ -251,13 +273,22 @@ export function Operations() {
   const functionPending = functionBookings.filter((b) => b.status === "Pending").length;
   const cateringPending = cateringBookings.filter((b) => b.status === "Pending").length;
 
+  const showFunctionPanel = section !== "catering-bookings";
+  const showCateringPanel = section !== "function-bookings";
+  const panelTitle =
+    section === "function-bookings"
+      ? "Function room bookings"
+      : section === "catering-bookings"
+        ? "Catering bookings"
+        : "Today's overview";
+
   return (
     <div>
       <section className="section dashboard-section">
         <div className="dashboard-toolbar">
           <div>
             <p className="eyebrow">Capitol Restaurant</p>
-            <h2>Today&apos;s overview</h2>
+            <h2>{panelTitle}</h2>
             <small className="ops-toolbar-hint">Tip: click a row to change package or booking info · Print via modal · 1 sheet A4 portrait</small>
           </div>
           <button className="reset-button" onClick={refreshDashboard} type="button">
@@ -267,15 +298,18 @@ export function Operations() {
         </div>
         {bookingLoadError && <p className="field-error" role="alert">{bookingLoadError}</p>}
 
-        <div className="dashboard-stats dashboard-stats--5">
-          <StatCard icon={<Truck size={20} />} label="Active deliveries" value={activeDeliveryCount} hint="Not delivered" />
-          <StatCard icon={<Building2 size={20} />} label="Function pending" value={functionPending} hint={`${functionBookings.length} total bookings`} accent={functionPending>0} />
-          <StatCard icon={<UtensilsCrossed size={20} />} label="Catering pending" value={cateringPending} hint={`${cateringBookings.length} total`} accent={cateringPending>0} />
-          <StatCard icon={<ClipboardList size={20} />} label="Open inquiries" value={newInquiryCount} hint="Need reply" accent={newInquiryCount > 0} />
-          <StatCard icon={<ClipboardList size={20} />} label="Total orders" value={orders.length} hint={revenueToday ? `₱${revenueToday.toLocaleString()} total` : undefined} />
-        </div>
+        {!section && (
+          <div className="dashboard-stats dashboard-stats--5">
+            <StatCard icon={<Truck size={20} />} label="Active deliveries" value={activeDeliveryCount} hint="Not delivered" />
+            <StatCard icon={<Building2 size={20} />} label="Function pending" value={functionPending} hint={`${functionBookings.length} total bookings`} accent={functionPending>0} />
+            <StatCard icon={<UtensilsCrossed size={20} />} label="Catering pending" value={cateringPending} hint={`${cateringBookings.length} total`} accent={cateringPending>0} />
+            <StatCard icon={<ClipboardList size={20} />} label="Open inquiries" value={newInquiryCount} hint="Need reply" accent={newInquiryCount > 0} />
+            <StatCard icon={<ClipboardList size={20} />} label="Total orders" value={orders.length} hint={revenueToday ? `₱${revenueToday.toLocaleString()} total` : undefined} />
+          </div>
+        )}
 
         {/* Function room reservations — stacked */}
+        {showFunctionPanel && (
         <div className="dashboard-panel">
           <div className="dashboard-panel__header">
             <div>
@@ -299,12 +333,14 @@ export function Operations() {
           </div>
           <div className="dashboard-orders">
             {filteredFunction.length ? filteredFunction.map((b)=> (
-              <FunctionRow key={b.id} booking={b} onOpen={()=>setSelectedFunctionId(b.id)} onStatusChange={updateFunctionStatus} cancellationRequested={cancellationRequestIds.has(b.id)} />
+              <FunctionRow key={b.id} booking={b} onOpen={()=>setSelectedFunctionId(b.id)} onStatusChange={updateFunctionStatus} statusDraft={pendingFunctionStatus[b.id] ?? b.status} dirty={(pendingFunctionStatus[b.id] ?? b.status) !== b.status} onDraftStatus={(s) => setPendingFunctionStatus((c) => ({ ...c, [b.id]: s }))} onConfirmStatus={() => confirmFunctionStatus(b.id)} cancellationRequested={cancellationRequestIds.has(b.id)} />
             )) : <EmptyDashboardState message="No function bookings match your filters." />}
           </div>
         </div>
+        )}
 
         {/* Catering reservations — stacked */}
+        {showCateringPanel && (
         <div className="dashboard-panel">
           <div className="dashboard-panel__header">
             <div>
@@ -332,10 +368,11 @@ export function Operations() {
           </div>
           <div className="dashboard-orders">
             {filteredCatering.length ? filteredCatering.map((b)=> (
-              <CateringRow key={b.id} booking={b} onOpen={()=>setSelectedCateringId(b.id)} onStatusChange={updateCateringStatus} cancellationRequested={cancellationRequestIds.has(b.id)} />
+              <CateringRow key={b.id} booking={b} onOpen={()=>setSelectedCateringId(b.id)} onStatusChange={updateCateringStatus} statusDraft={pendingCateringStatus[b.id] ?? b.status} dirty={(pendingCateringStatus[b.id] ?? b.status) !== b.status} onDraftStatus={(s) => setPendingCateringStatus((c) => ({ ...c, [b.id]: s }))} onConfirmStatus={() => confirmCateringStatus(b.id)} cancellationRequested={cancellationRequestIds.has(b.id)} />
             )) : <EmptyDashboardState message="No catering bookings match your filters." />}
           </div>
         </div>
+        )}
       </section>
 
       {selectedFunction && <FunctionDetailModal booking={selectedFunction} onClose={()=>setSelectedFunctionId(null)} onSave={handleFunctionSave} />}
@@ -353,36 +390,49 @@ function StatCard({ icon, label, value, hint, accent }: { icon: React.ReactNode;
   );
 }
 
-function FunctionRow({ booking, onOpen, onStatusChange, cancellationRequested }: { booking: FunctionBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void; cancellationRequested: boolean }) {
+function FunctionRow({ booking, onOpen, onStatusChange, statusDraft, dirty, onDraftStatus, onConfirmStatus, cancellationRequested }: { booking: FunctionBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void; statusDraft: ReservationStatus; dirty: boolean; onDraftStatus: (s: ReservationStatus) => void; onConfirmStatus: () => void; cancellationRequested: boolean }) {
   return (
     <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter" && onOpen()}>
       <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small>{cancellationRequested && <small className="inquiry-manual-badge">Cancellation requested</small>}</div>
       <div className="ops-order-row__items"><span>{booking.eventType} · {booking.guests} guests</span><small><Building2 size={10}/> {booking.room}</small><small style={{color:"#b70100"}}><Users size={10}/> {booking.email}</small></div>
       <div className="ops-order-row__when"><span><CalendarDays size={12}/> {booking.date} {booking.time}</span><small>Placed {booking.placedAt}</small></div>
       <div className="ops-order-row__status" onClick={(e)=>e.stopPropagation()}>
-        <select className={`ops-status-select ops-status-select--${booking.status.toLowerCase()}`} value={booking.status} onChange={(e)=>onStatusChange(booking.id, e.target.value as ReservationStatus)}>
+        <select className={`ops-status-select ops-status-select--${statusDraft.toLowerCase()}`} value={statusDraft} onChange={(e)=>onDraftStatus(e.target.value as ReservationStatus)}>
           {RESERVATION_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
         </select>
-        <span className="ops-order-row__pill"><StatusPill status={booking.status as unknown as DeliveryStatus} /></span>
+        {dirty ? (
+          <button className="ops-status-save" onClick={onConfirmStatus} type="button">
+            <RefreshCw size={12} /> Save
+          </button>
+        ) : (
+          <span className="ops-order-row__pill"><StatusPill status={booking.status as unknown as DeliveryStatus} /></span>
+        )}
       </div>
       <div className="ops-order-row__action"><span className="ops-row-action"><Eye size={14}/> View</span><span className="ops-row-action ops-row-action--edit"><Pencil size={12}/> Edit</span></div>
     </article>
   );
 }
 
-function CateringRow({ booking, onOpen, onStatusChange, cancellationRequested }: { booking: CateringBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void; cancellationRequested: boolean }) {
+function CateringRow({ booking, onOpen, onStatusChange, statusDraft, dirty, onDraftStatus, onConfirmStatus, cancellationRequested }: { booking: CateringBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void; statusDraft: ReservationStatus; dirty: boolean; onDraftStatus: (s: ReservationStatus) => void; onConfirmStatus: () => void; cancellationRequested: boolean }) {
   const kindLabel = booking.kind === "catering_buffet" ? `Buffet · ${booking.packageName} · ${booking.pax} pax` : `Packed · ${booking.itemsList?.length ?? 0} items · ${booking.guestCount ?? 0} guests`;
   const price = booking.total ? `₱${booking.total.toLocaleString()}` : "—";
+  const venueLabel = booking.venueType === "function_room" ? `Room · ${booking.functionRoomName ?? booking.functionRoomId ?? ""}` : booking.deliveryAddress ? `Deliver · ${booking.deliveryAddress}` : "Delivered";
   return (
     <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter"&&onOpen()}>
       <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small>{cancellationRequested && <small className="inquiry-manual-badge">Cancellation requested</small>}</div>
-      <div className="ops-order-row__items"><span>{kindLabel}</span><small><UtensilsCrossed size={10}/> {booking.kind === "catering_buffet" ? `₱${booking.pricePerPax}/pax` : `${booking.itemsList?.map(i=>i.name).join(", ") || "Inquiry"}`}</small><small className="ops-order-row__price">{price}</small></div>
+      <div className="ops-order-row__items"><span>{kindLabel}</span><small><UtensilsCrossed size={10}/> {booking.kind === "catering_buffet" ? `₱${booking.pricePerPax}/pax` : `${booking.itemsList?.map(i=>i.name).join(", ") || "Inquiry"}`}</small><small>{venueLabel}</small><small className="ops-order-row__price">{price}</small></div>
       <div className="ops-order-row__when"><span><CalendarDays size={12}/> {booking.date} {booking.time}</span><small>Placed {booking.placedAt}</small></div>
       <div className="ops-order-row__status" onClick={(e)=>e.stopPropagation()}>
-        <select className={`ops-status-select ops-status-select--${booking.status.toLowerCase()}`} value={booking.status} onChange={(e)=>onStatusChange(booking.id, e.target.value as ReservationStatus)}>
+        <select className={`ops-status-select ops-status-select--${statusDraft.toLowerCase()}`} value={statusDraft} onChange={(e)=>onDraftStatus(e.target.value as ReservationStatus)}>
           {RESERVATION_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
         </select>
-        <span className="ops-order-row__pill"><StatusPill status={booking.status as unknown as DeliveryStatus} /></span>
+        {dirty ? (
+          <button className="ops-status-save" onClick={onConfirmStatus} type="button">
+            <RefreshCw size={12} /> Save
+          </button>
+        ) : (
+          <span className="ops-order-row__pill"><StatusPill status={booking.status as unknown as DeliveryStatus} /></span>
+        )}
       </div>
       <div className="ops-order-row__action"><span className="ops-row-action"><Eye size={14}/> View</span><span className="ops-row-action ops-row-action--edit"><Pencil size={12}/> Edit</span></div>
     </article>

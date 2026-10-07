@@ -1,32 +1,28 @@
+/** Booking calendar modal: pick a date (live availability), a preferred time,
+ * and validation-checked contact fields before the reservation is submitted.
+ */
 import {
-  AlertCircle,
   CalendarDays,
   Check,
-  ChevronLeft,
-  ChevronRight,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import type { CateringVenue } from "../../data/reservations";
 import {
   BOOKING_TIME_OPTIONS,
   FUNCTION_ROOM_A_ID,
   FUNCTION_ROOM_CHOICES,
   SlotTakenError,
-  fetchMonthAvailability,
-  subscribeAvailability,
-  type BookingAvailability,
-  type BookingInventoryKind,
-  type CateringVenue,
-  type MonthAvailability,
 } from "../../data/reservations";
 import {
   fetchStoredProfile,
   getStoredContact,
   saveStoredContact,
 } from "../../lib/contact";
+import { BookingCalendarGrid } from "./BookingCalendarGrid";
 
 export type BookingDetails = {
   date: string;
@@ -46,7 +42,7 @@ type CalendarModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (details: BookingDetails) => Promise<string>;
-  bookingKind: BookingInventoryKind;
+  bookingKind: "function_room" | "catering_buffet" | "catering_packed";
   roomId?: string;
   title?: string;
   initialName?: string;
@@ -61,30 +57,10 @@ type CalendarModalProps = {
   showVenueSelector?: boolean;
 };
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
 /** Full-name: letters, spaces, dots, hyphens, apostrophes; 3–60 chars. */
 const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'-]{3,60}$/;
 /** PH mobile: 09XXXXXXXXX or +639XXXXXXXXX (spaces/hyphens stripped). */
 const CONTACT_REGEX = /^(09|\+639)\d{9}$/;
-
-function toDateKey(year: number, month: number, day: number) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
 
 function formatSelectedDate(dateKey: string) {
   return new Intl.DateTimeFormat("en-PH", {
@@ -109,15 +85,12 @@ export function CalendarModal({
   showCount = true,
   showVenueSelector = false,
 }: CalendarModalProps) {
-  const today = useMemo(() => new Date(), []);
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const effectiveName = initialName || user?.displayName || "";
   const effectiveContact = initialContact || getStoredContact(user?.id);
 
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState("");
   const [time, setTime] = useState<string>(BOOKING_TIME_OPTIONS[0]);
   const [name, setName] = useState(effectiveName);
@@ -129,30 +102,8 @@ export function CalendarModal({
   const [submitted, setSubmitted] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
-  const [availability, setAvailability] = useState<MonthAvailability | null>(null);
-  const [availabilityLoading, setAvailabilityLoading] = useState(false);
-  const [availabilityError, setAvailabilityError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [saving, setSaving] = useState(false);
-  const availabilityRequest = useRef(0);
-
-  const refreshAvailability = useCallback(async () => {
-    const request = ++availabilityRequest.current;
-    setAvailabilityLoading(true);
-    setAvailabilityError("");
-    try {
-      const next = await fetchMonthAvailability(viewYear, viewMonth);
-      if (availabilityRequest.current === request) setAvailability(next);
-    } catch {
-      if (availabilityRequest.current === request) {
-        setAvailabilityError("Availability could not be loaded. Please try again.");
-      }
-    } finally {
-      if (availabilityRequest.current === request) setAvailabilityLoading(false);
-    }
-  }, [availabilityRequest, viewMonth, viewYear]);
-  const refreshAvailabilityRef = useRef(refreshAvailability);
-  refreshAvailabilityRef.current = refreshAvailability;
 
   const resetAndClose = useCallback(() => {
     setSelectedDate("");
@@ -167,9 +118,6 @@ export function CalendarModal({
     setShowErrors(false);
     setBookingRef("");
     setSubmitError("");
-    setAvailability(null);
-    setAvailabilityLoading(false);
-    setAvailabilityError("");
     onClose();
   }, [effectiveContact, effectiveName, initialPax, minPax, onClose]);
 
@@ -198,76 +146,20 @@ export function CalendarModal({
     };
   }, [effectiveContact, effectiveName, initialPax, minPax, isOpen, resetAndClose, saving]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      availabilityRequest.current += 1;
-      return;
-    }
-    const channel = subscribeAvailability(() => {
-      void refreshAvailabilityRef.current();
-    });
-    return () => {
-      availabilityRequest.current += 1;
-      void channel.unsubscribe();
-    };
-  }, [availabilityRequest, isOpen]);
-
-  useEffect(() => {
-    if (isOpen) void refreshAvailability();
-  }, [isOpen, refreshAvailability]);
-
   if (!isOpen) return null;
 
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstWeekday = new Date(viewYear, viewMonth, 1).getDay();
-  const currentMonthKey = today.getFullYear() * 12 + today.getMonth();
-  const viewedMonthKey = viewYear * 12 + viewMonth;
-  const availabilityReady = availability !== null && !availabilityLoading && !availabilityError;
-
-  /** Block today + tomorrow — reservation must be ≥ 2 days ahead. */
-  const isBlockedDate = (day: number) => {
-    const candidate = new Date(viewYear, viewMonth, day);
-    const minDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() + 2,
-    );
-    return candidate < minDate;
-  };
-
-  /** Room this date-check applies to: explicit room for function bookings,
+  /** Inventory pool the calendar blocks: explicit room for function bookings,
    * venue room for in-room catering, otherwise the catering kind itself. */
-  const dateCheckResource =
+  const gridKind = bookingKind === "function_room" ||
+    (showVenueSelector && venueType === "function_room")
+    ? "function_room"
+    : bookingKind;
+  const gridResource =
     bookingKind === "function_room"
       ? (roomId ?? FUNCTION_ROOM_A_ID)
       : showVenueSelector && venueType === "function_room"
         ? venueRoomId
         : bookingKind;
-  const dateCheckKind: BookingInventoryKind =
-    bookingKind === "function_room" ||
-    (showVenueSelector && venueType === "function_room")
-      ? "function_room"
-      : bookingKind;
-  /** Whole-date rule: any active booking on the date blocks it. */
-  const isDateUnavailable = (dateKey: string) =>
-    (availability?.bookedSlots ?? []).some(
-      (booked: BookingAvailability) =>
-        booked.kind === dateCheckKind &&
-        booked.resourceId === dateCheckResource &&
-        booked.date === dateKey,
-    );
-  const isReserved = (dateKey: string) =>
-    (availability?.reservedDates ?? []).includes(dateKey) ||
-    isDateUnavailable(dateKey);
-
-  const moveMonth = (direction: -1 | 1) => {
-    const next = new Date(viewYear, viewMonth + direction, 1);
-    setSelectedDate("");
-    setSubmitError("");
-    setAvailability(null);
-    setViewYear(next.getFullYear());
-    setViewMonth(next.getMonth());
-  };
 
   const nameValid = NAME_REGEX.test(name.trim());
   const contactValid = CONTACT_REGEX.test(contact.trim().replace(/[\s-]/g, ""));
@@ -277,16 +169,12 @@ export function CalendarModal({
     paxNum >= minPax &&
     (maxPax === undefined || paxNum <= maxPax);
 
+  const updateSelectedDate = (dateKey: string) => {
+    setSelectedDate(dateKey);
+    setSubmitError("");
+  };
+
   const submitBooking = async () => {
-    if (
-      !availabilityLoading &&
-      !availabilityError &&
-      selectedDate &&
-      isDateUnavailable(selectedDate)
-    ) {
-      setSubmitError("That date was just booked. Choose another available date.");
-      return;
-    }
     const venueAddressValid =
       !showVenueSelector ||
       venueType === "function_room" ||
@@ -295,7 +183,6 @@ export function CalendarModal({
       setShowErrors(true);
       return;
     }
-    if (availabilityLoading || availabilityError) return;
 
     if (user?.id) {
       saveStoredContact(user.id, contact.trim());
@@ -324,7 +211,6 @@ export function CalendarModal({
           ? "That date was just booked. Choose another available date."
           : "Reservation could not be submitted. Please try again.",
       );
-      void refreshAvailability();
     } finally {
       setSaving(false);
     }
@@ -438,97 +324,13 @@ export function CalendarModal({
             </div>
 
             <div className="calendar-modal__body">
-              <div className="booking-calendar-col">
-                <div className="booking-calendar">
-                <div className="booking-calendar__toolbar">
-                  <button
-                    aria-label="Previous month"
-                    disabled={saving || viewedMonthKey <= currentMonthKey}
-                    onClick={() => moveMonth(-1)}
-                    type="button"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <strong>
-                    {MONTHS[viewMonth]} {viewYear}
-                  </strong>
-                  <button
-                    aria-label="Next month"
-                    disabled={saving}
-                    onClick={() => moveMonth(1)}
-                    type="button"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-
-                <div className="booking-calendar__weekdays">
-                  {WEEKDAYS.map((weekday) => (
-                    <span key={weekday}>{weekday}</span>
-                  ))}
-                </div>
-
-                <div className="booking-calendar__days">
-                  {Array.from({ length: firstWeekday }).map((_, index) => (
-                    <span aria-hidden="true" key={`blank-${index}`} />
-                  ))}
-                  {Array.from({ length: daysInMonth }, (_, index) => {
-                    const day = index + 1;
-                    const dateKey = toDateKey(viewYear, viewMonth, day);
-                    const blocked = isBlockedDate(day);
-                    const reserved = isReserved(dateKey);
-                    const selected = selectedDate === dateKey;
-
-                    return (
-                      <button
-                        aria-label={`${MONTHS[viewMonth]} ${day}, ${viewYear}${reserved ? " – unavailable" : ""}`}
-                        className={
-                          selected
-                            ? "booking-day booking-day--selected"
-                            : reserved
-                              ? "booking-day booking-day--reserved"
-                            : "booking-day"
-                        }
-                        disabled={saving || blocked || reserved || !availabilityReady}
-                        key={dateKey}
-                        onClick={() => {
-                          setSelectedDate(dateKey);
-                          setSubmitError("");
-                        }}
-                        type="button"
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                </div>
-
-                <div className="calendar-legend">
-                  <span className="calendar-legend__item">
-                    <span className="calendar-legend__swatch calendar-legend__swatch--reserved" />
-                    Reserved
-                  </span>
-                  <span className="calendar-legend__item">
-                    <span className="calendar-legend__swatch calendar-legend__swatch--selected" />
-                    Your Selection
-                  </span>
-                </div>
-
-                <p className="calendar-policy-note">
-                  <AlertCircle size={13} />
-                  Reservations must be made at least 2 days in advance.
-                </p>
-                {availabilityLoading && (
-                  <p className="calendar-policy-note">Checking live availability…</p>
-                )}
-                {availabilityError && (
-                  <p className="field-error" role="alert">
-                    {availabilityError}
-                  </p>
-                )}
-              </div>
+              <BookingCalendarGrid
+                inventoryKind={gridKind}
+                resourceId={gridResource}
+                selectedDate={selectedDate}
+                onSelectDate={updateSelectedDate}
+                disabled={saving}
+              />
 
               <div className="booking-fields">
                 {submitError && <p className="field-error" role="alert">{submitError}</p>}
@@ -551,7 +353,7 @@ export function CalendarModal({
                   <span>Preferred Time</span>
                   <select
                     className="input"
-                    disabled={saving || !selectedDate || !availabilityReady}
+                    disabled={saving || !selectedDate}
                     value={time}
                     onChange={(event) => {
                       setTime(event.target.value);
@@ -578,6 +380,7 @@ export function CalendarModal({
                           disabled={saving}
                           onChange={() => {
                             setVenueType("function_room");
+                            setSelectedDate("");
                             setSubmitError("");
                           }}
                         />
@@ -591,6 +394,7 @@ export function CalendarModal({
                           disabled={saving}
                           onChange={() => {
                             setVenueType("delivery");
+                            setSelectedDate("");
                             setSubmitError("");
                           }}
                         />
@@ -607,6 +411,7 @@ export function CalendarModal({
                           value={venueRoomId}
                           onChange={(event) => {
                             setVenueRoomId(event.target.value);
+                            setSelectedDate("");
                             setSubmitError("");
                           }}
                         >
@@ -706,7 +511,7 @@ export function CalendarModal({
 
                 <button
                   className="button button--red calendar-modal__submit"
-                  disabled={saving || !availabilityReady}
+                  disabled={saving}
                   onClick={submitBooking}
                   type="button"
                 >
