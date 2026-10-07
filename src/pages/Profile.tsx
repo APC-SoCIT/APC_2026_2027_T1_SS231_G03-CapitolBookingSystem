@@ -7,10 +7,12 @@ import { SignInModal } from "../components/common";
 import {
   fetchStoredProfile,
   getStoredProfile,
-  saveStoredProfile,
+  saveProfileRemote,
   type StoredAddress,
 } from "../lib/contact";
 
+// Full-name: letters, spaces, dots, hyphens, apostrophes; 3–60 chars.
+const NAME_PATTERN = /^[a-zA-ZÀ-ÿ\s.'-]{3,60}$/;
 // Philippine mobile number: 11 digits, starting with 09 (spaces/dashes ignored).
 const PH_MOBILE_PATTERN = /^09\d{9}$/;
 
@@ -21,7 +23,8 @@ function defaultAddresses(stored: StoredAddress[]): StoredAddress[] {
 }
 
 export function Profile() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshProfile } = useAuth();
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [addresses, setAddresses] = useState<StoredAddress[]>([
     { ...EMPTY_ADDRESS },
@@ -29,11 +32,13 @@ export function Profile() {
   ]);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const cached = getStoredProfile(user.id);
+    setName(user.displayName);
     setPhone(cached.phone);
     setAddresses(defaultAddresses(cached.addresses));
     setError("");
@@ -78,14 +83,23 @@ export function Profile() {
     setSaved(false);
   };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
+    if (!NAME_PATTERN.test(name.trim())) {
+      setError("Enter your full name (letters only, min. 3 characters)");
+      setSaved(false);
+      return;
+    }
     const digits = phone.replace(/\D/g, "");
     if (digits && !PH_MOBILE_PATTERN.test(digits)) {
       setError("Enter an 11-digit number starting with 09");
       setSaved(false);
       return;
     }
-    saveStoredProfile(user.id, {
+    // Server confirms before reporting success, so the saved details are
+    // the ones every order form will prefill.
+    setSaving(true);
+    const saveError = await saveProfileRemote(user.id, {
+      displayName: name.trim(),
       phone: phone.trim(),
       addresses: addresses
         .map((entry) => ({
@@ -95,8 +109,15 @@ export function Profile() {
         }))
         .filter((entry) => entry.label || entry.address || entry.note),
     });
+    setSaving(false);
+    if (saveError) {
+      setError(saveError);
+      setSaved(false);
+      return;
+    }
     setError("");
     setSaved(true);
+    void refreshProfile().catch(() => undefined);
   };
 
   return (
@@ -137,6 +158,22 @@ export function Profile() {
 
         <div className="inquiry-form">
           <h2>Contact details</h2>
+
+          <label className="form-field">
+            <span>Full Name</span>
+            <input
+              className="input"
+              placeholder="Juan dela Cruz"
+              type="text"
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                setError("");
+                setSaved(false);
+              }}
+              autoComplete="name"
+            />
+          </label>
 
           <label className="form-field">
             <span>Phone Number</span>
@@ -206,10 +243,11 @@ export function Profile() {
 
           <button
             className="button button--red"
-            onClick={saveProfile}
+            onClick={() => void saveProfile()}
+            disabled={saving}
             type="button"
           >
-            Save Profile
+            {saving ? "Saving…" : "Save Profile"}
           </button>
 
           {saved && (

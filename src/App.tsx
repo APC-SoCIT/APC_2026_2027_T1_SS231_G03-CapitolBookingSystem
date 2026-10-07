@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Layout } from "./components/common";
+import { Layout, ProfileSetupModal } from "./components/common";
 import { AboutUs } from "./pages/AboutUs";
 import { Catering } from "./pages/Catering";
 import { CateringBuffet } from "./pages/CateringBuffet";
@@ -25,7 +25,16 @@ function RoleGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
   if (loading) return <div className="auth-loading">Loading account...</div>;
-  if (canAccessRoute(user, pathname)) return <>{children}</>;
+  if (canAccessRoute(user, pathname)) {
+    // New customers complete their profile once before using the site.
+    // The modal has no dismiss path: it closes only after the server save.
+    return (
+      <>
+        {children}
+        {user?.needsOnboarding && <ProfileSetupModal />}
+      </>
+    );
+  }
   const home = user ? getRoleHome(user.role) : "/";
   if (home) return <Navigate to={home} replace />;
   return (

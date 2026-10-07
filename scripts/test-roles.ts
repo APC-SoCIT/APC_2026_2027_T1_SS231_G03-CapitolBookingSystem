@@ -34,7 +34,7 @@ for (const [label, account, allowed, denied] of ROLE_CASES) {
 for (const role of Object.keys(ROLE_LABELS)) {
   assert.ok(getRoleHome(role));
 }
-assert.equal(getRoleHome("system_admin"), "/dashboard");
+assert.equal(getRoleHome("system_admin"), "/delivery/staff");
 assert.equal(getRoleHome("delivery_rider"), "/delivery/rider");
 assert.equal(getRoleHome("front_of_house"), "/operations");
 assert.equal(getRoleHome("restaurant_manager"), "/operations");

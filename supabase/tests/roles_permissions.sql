@@ -162,8 +162,19 @@ begin
       assert not has_table_privilege(client_role, format('public.%I', t), 'TRUNCATE'), 'Client TRUNCATE bypasses RLS';
       if t = 'profiles' then
         assert not has_any_column_privilege(client_role, 'public.profiles', 'INSERT'), 'Client profile inserts';
-        assert not has_any_column_privilege(client_role, 'public.profiles', 'UPDATE'), 'Client role updates';
         assert not has_table_privilege(client_role, 'public.profiles', 'DELETE'), 'Client profile deletes';
+        if client_role = 'authenticated' then
+          -- Customers may edit their own contact details only; role/id/created_at stay locked.
+          assert has_column_privilege(client_role, 'public.profiles', 'display_name', 'UPDATE'), 'Client display_name updates';
+          assert has_column_privilege(client_role, 'public.profiles', 'phone', 'UPDATE'), 'Client phone updates';
+          assert has_column_privilege(client_role, 'public.profiles', 'addresses', 'UPDATE'), 'Client addresses updates';
+          assert has_column_privilege(client_role, 'public.profiles', 'onboarding_completed', 'UPDATE'), 'Client onboarding updates';
+          assert not has_column_privilege(client_role, 'public.profiles', 'role', 'UPDATE'), 'Client role updates';
+          assert not has_column_privilege(client_role, 'public.profiles', 'id', 'UPDATE'), 'Client id updates';
+          assert not has_column_privilege(client_role, 'public.profiles', 'created_at', 'UPDATE'), 'Client created_at updates';
+        else
+          assert not has_any_column_privilege(client_role, 'public.profiles', 'UPDATE'), 'Anon profile updates';
+        end if;
       elsif t = 'booking_availability' then
         assert not has_table_privilege(client_role, 'public.booking_availability', 'INSERT'), 'Client availability inserts';
         assert not has_table_privilege(client_role, 'public.booking_availability', 'UPDATE'), 'Client availability updates';

@@ -118,6 +118,45 @@ export function saveStoredProfile(userId: string, profile: StoredProfile) {
   persistRemote(userId, profile);
 }
 
+export interface ProfileSaveInput {
+  displayName: string;
+  phone: string;
+  addresses: StoredAddress[];
+  onboardingCompleted?: boolean;
+}
+
+/** Server-confirmed profile save. Returns an error message, or null on success. */
+export async function saveProfileRemote(
+  userId: string,
+  input: ProfileSaveInput,
+): Promise<string | null> {
+  const payload: Record<string, unknown> = {
+    display_name: input.displayName,
+    phone: input.phone,
+    addresses: input.addresses,
+  };
+  if (input.onboardingCompleted !== undefined) {
+    payload.onboarding_completed = input.onboardingCompleted;
+  }
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update(payload)
+      .eq("id", userId);
+    if (error) return error.message;
+  } catch {
+    return "Unable to save profile. Please try again.";
+  }
+  try {
+    localStorage.setItem(
+      profileStorageKey(userId),
+      JSON.stringify({ phone: input.phone, addresses: input.addresses }),
+    );
+    localStorage.setItem(contactStorageKey(userId), input.phone);
+  } catch {}
+  return null;
+}
+
 export function getStoredContact(userId: string | undefined) {
   if (!userId) return "";
   return getStoredProfile(userId).phone;

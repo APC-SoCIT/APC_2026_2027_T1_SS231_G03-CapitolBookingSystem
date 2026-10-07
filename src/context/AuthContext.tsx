@@ -9,6 +9,8 @@ export interface User {
   email: string;
   role: UserRole | null;
   displayName: string;
+  /** True for customers whose profile setup has not been completed yet. */
+  needsOnboarding: boolean;
 }
 
 export interface AuthActionResult {
@@ -24,6 +26,8 @@ interface AuthContextType {
   signInWithPassword: (email: string, password: string) => Promise<AuthActionResult>;
   signInWithGoogle: () => Promise<AuthActionResult>;
   logout: () => Promise<AuthActionResult>;
+  /** Re-read the profile row (display name, role, onboarding flag). */
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -31,6 +35,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 type Profile = {
   display_name: string | null;
   role: unknown;
+  onboarding_completed: boolean | null;
 };
 
 function getMetadataName(authUser: SupabaseUser) {
@@ -49,7 +54,7 @@ async function toAppUser(authUser: SupabaseUser): Promise<User> {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("display_name, role")
+      .select("display_name, role, onboarding_completed")
       .eq("id", authUser.id)
       .maybeSingle<Profile>();
     if (error) throw error;
@@ -58,11 +63,13 @@ async function toAppUser(authUser: SupabaseUser): Promise<User> {
     console.warn("Unable to load user profile");
   }
 
+  const role = isUserRole(profile?.role) ? profile.role : null;
   return {
     id: authUser.id,
     email: authUser.email ?? "",
-    role: isUserRole(profile?.role) ? profile.role : null,
+    role,
     displayName: profile?.display_name || getMetadataName(authUser),
+    needsOnboarding: role === "customer" && profile?.onboarding_completed === false,
   };
 }
 
@@ -184,6 +191,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshProfile = async (): Promise<void> => {
+    const { data } = await supabase.auth.getUser();
+    const authUser = data.user;
+    if (!authUser) return;
+    const nextUser = await toAppUser(authUser);
+    setUser(nextUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -193,6 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithPassword,
         signInWithGoogle,
         logout,
+        refreshProfile,
       }}
     >
       {children}

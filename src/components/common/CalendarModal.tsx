@@ -128,9 +128,12 @@ export function CalendarModal({
     setContact(effectiveContact);
     setPax(String(initialPax ?? minPax));
     // Server copy wins over the offline cache once it arrives.
+    // Saved delivery address prefills too, so repeat customers don't retype it.
     if (user?.id) {
       void fetchStoredProfile(user.id).then((server) => {
         if (server.phone) setContact(server.phone);
+        const first = server.addresses.find((entry) => entry.address);
+        if (first) setDeliveryAddress((current) => current || first.address);
       });
     }
     document.body.classList.add("modal-open");
