@@ -6,30 +6,114 @@ import {
   Search,
   Truck,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   getDeliveryOrders,
-  type DeliveryOrder,
-  DELIVERY_STATUSES,
+  type DeliveryOrder as LocalDeliveryOrder,
 } from "../../data/delivery";
+import {
+  fetchMyDeliveryOrders,
+  subscribeDeliveryOrders,
+  type SupabaseDeliveryOrder,
+} from "../../data/deliveryOrders";
+import { useAuth } from "../../context/AuthContext";
 import { DeliveryMap } from "./DeliveryMap";
+
+type AnyOrder = {
+  reference: string;
+  eta: string;
+  status: string;
+  placedAt: string;
+  address: string;
+  items: string;
+  timeline: { status: string; at: string }[];
+};
+
+const TRACK_STEPS = [
+  "Pending Confirmation",
+  "Preparing",
+  "Ready for pickup",
+  "Out for delivery",
+  "Delivered",
+];
+
+function toAnyOrder(order: SupabaseDeliveryOrder): AnyOrder {
+  return {
+    reference: order.reference,
+    eta: order.eta,
+    status: order.status,
+    placedAt: order.placedAt,
+    address: order.address,
+    items: order.itemsDisplay,
+    timeline: order.timeline,
+  };
+}
+
+function toAnyLocal(order: LocalDeliveryOrder): AnyOrder {
+  return {
+    reference: order.reference,
+    eta: order.eta,
+    status: order.status,
+    placedAt: order.placedAt,
+    address: order.address,
+    items: order.items,
+    timeline: order.timeline ?? [{ status: order.status, at: order.placedAt }],
+  };
+}
 
 export function DeliveryTracker() {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const initialReference = searchParams.get("reference") ?? "";
   const [reference, setReference] = useState(initialReference);
   const [searchedReference, setSearchedReference] = useState(initialReference);
-  const orders = getDeliveryOrders();
-  const order = useMemo(
-    () =>
-      orders.find(
-        (item) =>
-          item.reference.toLowerCase() ===
-          searchedReference.trim().toLowerCase(),
-      ),
-    [orders, searchedReference],
-  );
+  const [remoteOrders, setRemoteOrders] = useState<SupabaseDeliveryOrder[]>([]);
+  const [loading, setLoading] = useState(Boolean(user));
+
+  useEffect(() => {
+    if (!user) {
+      setRemoteOrders([]);
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    setLoading(true);
+    void fetchMyDeliveryOrders()
+      .then((orders) => {
+        if (active) setRemoteOrders(orders);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    const channel = subscribeDeliveryOrders(() => {
+      void fetchMyDeliveryOrders()
+        .then((orders) => {
+          if (active) setRemoteOrders(orders);
+        })
+        .catch(() => {});
+    });
+    return () => {
+      active = false;
+      void channel.unsubscribe();
+    };
+  }, [user?.id]);
+
+  const localOrders = useMemo(() => getDeliveryOrders(), []);
+
+  const order: AnyOrder | undefined = useMemo(() => {
+    const key = searchedReference.trim().toLowerCase();
+    if (!key) return undefined;
+    const remote = remoteOrders.find(
+      (item) => item.reference.toLowerCase() === key,
+    );
+    if (remote) return toAnyOrder(remote);
+    const local = localOrders.find(
+      (item) => item.reference.toLowerCase() === key,
+    );
+    return local ? toAnyLocal(local) : undefined;
+  }, [remoteOrders, localOrders, searchedReference]);
 
   return (
     <div className="inquiry-form profile-track">
@@ -44,7 +128,7 @@ export function DeliveryTracker() {
           <input
             aria-label="Booking reference"
             className="input"
-            placeholder="e.g. CAP-1042"
+            placeholder="e.g. CAP-1050"
             value={reference}
             onChange={(event) => setReference(event.target.value)}
             onKeyDown={(event) =>
@@ -61,7 +145,33 @@ export function DeliveryTracker() {
         </button>
       </div>
 
-      {!searchedReference && (
+      {user && (
+        <div className="profile-track__mine">
+          {loading ? (
+            <span>Loading your orders…</span>
+          ) : remoteOrders.length > 0 ? (
+            <>
+              <span>Your orders:</span>
+              {remoteOrders.map((item) => (
+                <button
+                  key={item.reference}
+                  onClick={() => {
+                    setReference(item.reference);
+                    setSearchedReference(item.reference);
+                  }}
+                  type="button"
+                >
+                  {item.reference} · {item.status}
+                </button>
+              ))}
+            </>
+          ) : (
+            <span>No delivery orders yet — orders you place show up here automatically.</span>
+          )}
+        </div>
+      )}
+
+      {!searchedReference && !user && (
         <ReferenceHint
           onSelect={(value) => {
             setReference(value);
@@ -73,10 +183,7 @@ export function DeliveryTracker() {
         <div className="empty-state">
           <Package size={28} />
           <strong>We could not find that reference.</strong>
-          <span>
-            Try one of the available references: CAP-1042, CAP-1043, or
-            CAP-1044.
-          </span>
+          <span>Check the code from your order confirmation and try again.</span>
         </div>
       )}
       {order && <TrackingResult order={order} />}
@@ -97,8 +204,9 @@ function ReferenceHint({ onSelect }: { onSelect: (value: string) => void }) {
   );
 }
 
-function TrackingResult({ order }: { order: DeliveryOrder }) {
-  const activeIndex = DELIVERY_STATUSES.indexOf(order.status);
+function TrackingResult({ order }: { order: AnyOrder }) {
+  const cancelled = order.status === "Cancelled";
+  const activeIndex = TRACK_STEPS.indexOf(order.status);
   const delivered = order.status === "Delivered";
   return (
     <div className="tracking-result">
@@ -117,40 +225,48 @@ function TrackingResult({ order }: { order: DeliveryOrder }) {
           {order.status}
         </span>
       </div>
-      <div className="tracking-layout">
-        <div className="tracking-timeline">
-          <h2>Delivery progress</h2>
-          {DELIVERY_STATUSES.map((status, index) => (
-            <div
-              className={`timeline-step ${index <= activeIndex ? "timeline-step--active" : ""} ${index === activeIndex ? "timeline-step--current" : ""}`}
-              key={status}
-            >
-              <span className="timeline-step__icon">
-                {index === 0 ? (
-                  <Package size={16} />
-                ) : index === 1 ? (
-                  <Clock3 size={16} />
-                ) : index === 2 ? (
-                  <Truck size={16} />
-                ) : (
-                  <Check size={16} />
-                )}
-              </span>
-              <div>
-                <strong>{status}</strong>
-                <small>
-                  {status === order.status
-                    ? `Updated ${order.placedAt}`
-                    : index < activeIndex
-                      ? "Completed"
-                      : "Waiting for previous step"}
-                </small>
+      {cancelled ? (
+        <p className="profile-booking__notes">
+          This order was cancelled. Contact us if you need anything else.
+        </p>
+      ) : (
+        <div className="tracking-layout">
+          <div className="tracking-timeline">
+            <h2>Delivery progress</h2>
+            {TRACK_STEPS.map((status, index) => (
+              <div
+                className={`timeline-step ${index <= activeIndex ? "timeline-step--active" : ""} ${index === activeIndex ? "timeline-step--current" : ""}`}
+                key={status}
+              >
+                <span className="timeline-step__icon">
+                  {index === 0 ? (
+                    <Package size={16} />
+                  ) : index === 1 ? (
+                    <Clock3 size={16} />
+                  ) : index === 2 ? (
+                    <Truck size={16} />
+                  ) : index === 3 ? (
+                    <Truck size={16} />
+                  ) : (
+                    <Check size={16} />
+                  )}
+                </span>
+                <div>
+                  <strong>{status}</strong>
+                  <small>
+                    {status === order.status
+                      ? `Updated ${order.placedAt}`
+                      : index < activeIndex
+                        ? "Completed"
+                        : "Waiting for previous step"}
+                  </small>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <DeliveryMap address={order.address} delivered={delivered} />
         </div>
-        <DeliveryMap address={order.address} delivered={delivered} />
-      </div>
+      )}
       <div className="delivery-details">
         <span>
           <MapPin size={16} /> Delivering to <strong>{order.address}</strong>

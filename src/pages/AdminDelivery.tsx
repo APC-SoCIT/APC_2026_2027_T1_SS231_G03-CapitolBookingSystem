@@ -12,7 +12,7 @@ import {
   Settings,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   DELIVERY_STATUSES,
@@ -25,6 +25,12 @@ import {
   type DeliveryRider,
   type DeliveryStatus,
 } from "../data/delivery";
+import {
+  fetchAllDeliveryOrders,
+  subscribeDeliveryOrders,
+  toLocalDeliveryOrder,
+  updateSupabaseDeliveryOrder,
+} from "../data/deliveryOrders";
 import { OrderDetailModal } from "../components/operations/OrderDetailModal";
 import { StatusPill } from "../components/operations/StatusPill";
 
@@ -33,24 +39,48 @@ type RiderFilter = string; // "all" | "unassigned" | rider id
 
 export function AdminDelivery() {
   const [orders, setOrders] = useState<DeliveryOrder[]>(getDeliveryOrders);
+  const [remoteRefs, setRemoteRefs] = useState<string[]>([]);
   const [riders, setRiders] = useState<DeliveryRider[]>(getDeliveryRiders);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderFilter>("All");
   const [riderFilter, setRiderFilter] = useState<RiderFilter>("all");
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<Record<string, DeliveryStatus>>({});
   const [newRiderName, setNewRiderName] = useState("");
   const [newRiderPhone, setNewRiderPhone] = useState("");
   const [riderError, setRiderError] = useState("");
 
+  const loadRemote = async () => {
+    try {
+      const remote = await fetchAllDeliveryOrders();
+      const refs = new Set(remote.map((order) => order.reference));
+      setRemoteRefs([...refs]);
+      const localBase = getDeliveryOrders().filter(
+        (order) => !refs.has(order.reference),
+      );
+      setOrders([...remote.map(toLocalDeliveryOrder), ...localBase]);
+    } catch {
+      // Staff without select access keep the local demo dataset.
+    }
+  };
+
+  useEffect(() => {
+    void loadRemote();
+    const channel = subscribeDeliveryOrders(() => void loadRemote());
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, []);
+
   const refresh = () => {
-    setOrders(getDeliveryOrders());
     setRiders(getDeliveryRiders());
+    void loadRemote();
   };
 
   const resetOrders = () => {
     resetDeliveryOrders();
-    setOrders(getDeliveryOrders());
     setSelectedRef(null);
+    void loadRemote();
   };
 
   const updateOrderStatus = (reference: string, status: DeliveryStatus) => {
@@ -58,7 +88,18 @@ export function AdminDelivery() {
       order.reference === reference ? { ...order, status } : order,
     );
     setOrders(next);
-    saveDeliveryOrders(next);
+    setPendingStatus((current) => {
+      const { [reference]: _cleared, ...rest } = current;
+      return rest;
+    });
+    if (remoteRefs.includes(reference)) {
+      void updateSupabaseDeliveryOrder({ reference, status }).then(
+        () => loadRemote(),
+        () => loadRemote(),
+      );
+    } else {
+      saveDeliveryOrders(next);
+    }
   };
 
   const assignRider = (reference: string, riderId: string | null) => {
@@ -68,14 +109,43 @@ export function AdminDelivery() {
         : order,
     );
     setOrders(next);
-    saveDeliveryOrders(next);
+    if (remoteRefs.includes(reference)) {
+      void updateSupabaseDeliveryOrder({ reference, riderId }).then(
+        () => loadRemote(),
+        () => loadRemote(),
+      );
+    } else {
+      saveDeliveryOrders(next);
+    }
   };
 
   const handleOrderSave = (updated: DeliveryOrder) => {
     const next = orders.map((o) => (o.reference === updated.reference ? updated : o));
     setOrders(next);
-    saveDeliveryOrders(next);
     setSelectedRef(null);
+    if (remoteRefs.includes(updated.reference)) {
+      void updateSupabaseDeliveryOrder({
+        reference: updated.reference,
+        status: updated.status,
+        riderId: updated.riderId ?? null,
+        eta: updated.eta,
+        customer: updated.customer,
+        phone: updated.phone,
+        address: updated.address,
+        itemsList: updated.itemsList,
+        itemsDisplay: updated.items,
+        subtotal: updated.subtotal,
+        deliveryFee: updated.deliveryFee,
+        total: updated.total,
+        paymentMethod: updated.paymentMethod,
+        notes: updated.notes,
+      }).then(
+        () => loadRemote(),
+        () => loadRemote(),
+      );
+    } else {
+      saveDeliveryOrders(next);
+    }
   };
 
   const removeRider = (id: string) => {
@@ -320,16 +390,29 @@ export function AdminDelivery() {
           </div>
 
           <div className="dashboard-orders">
-            {filteredOrders.length > 0 ? filteredOrders.map((order) => (
-              <DeliveryRow
-                key={order.reference}
-                order={order}
-                riders={riders}
-                onOpen={() => setSelectedRef(order.reference)}
-                onStatusChange={updateOrderStatus}
-                onAssignRider={assignRider}
-              />
-            )) : <EmptyState message="No delivery orders match your filters." />}
+            {filteredOrders.length > 0 ? filteredOrders.map((order) => {
+              const draft = pendingStatus[order.reference] ?? order.status;
+              return (
+                <DeliveryRow
+                  key={order.reference}
+                  order={order}
+                  riders={riders}
+                  statusDraft={draft}
+                  dirty={draft !== order.status}
+                  onOpen={() => setSelectedRef(order.reference)}
+                  onDraftStatus={(status) =>
+                    setPendingStatus((current) => ({
+                      ...current,
+                      [order.reference]: status,
+                    }))
+                  }
+                  onConfirmStatus={() =>
+                    updateOrderStatus(order.reference, draft)
+                  }
+                  onAssignRider={assignRider}
+                />
+              );
+            }) : <EmptyState message="No delivery orders match your filters." />}
           </div>
           <div className="ops-panel-footer"><span><AlertCircle size={12} /> Click any row to edit packages, quantities, and totals. Changes save instantly with history.</span></div>
         </div>
@@ -343,14 +426,20 @@ export function AdminDelivery() {
 function DeliveryRow({
   order,
   riders,
+  statusDraft,
+  dirty,
   onOpen,
-  onStatusChange,
+  onDraftStatus,
+  onConfirmStatus,
   onAssignRider,
 }: {
   order: DeliveryOrder;
   riders: DeliveryRider[];
+  statusDraft: DeliveryStatus;
+  dirty: boolean;
   onOpen: () => void;
-  onStatusChange: (reference: string, status: DeliveryStatus) => void;
+  onDraftStatus: (status: DeliveryStatus) => void;
+  onConfirmStatus: () => void;
   onAssignRider: (reference: string, riderId: string | null) => void;
 }) {
   return (
@@ -372,10 +461,20 @@ function DeliveryRow({
         </select>
       </div>
       <div className="ops-order-row__status" onClick={(e) => e.stopPropagation()}>
-        <select className={`ops-status-select ops-status-select--${order.status.toLowerCase().replaceAll(" ", "-")}`} value={order.status} onChange={(event) => onStatusChange(order.reference, event.target.value as DeliveryStatus)} aria-label={`Change status for ${order.reference}`}>
+        <select className={`ops-status-select ops-status-select--${statusDraft.toLowerCase().replaceAll(" ", "-")}`} value={statusDraft} onChange={(event) => onDraftStatus(event.target.value as DeliveryStatus)} aria-label={`Change status for ${order.reference}`}>
           {DELIVERY_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
         </select>
-        <span className="ops-order-row__pill"><StatusPill status={order.status} /></span>
+        {dirty ? (
+          <button
+            className="ops-status-save"
+            onClick={onConfirmStatus}
+            type="button"
+          >
+            <RefreshCw size={12} /> Save
+          </button>
+        ) : (
+          <span className="ops-order-row__pill"><StatusPill status={order.status} /></span>
+        )}
       </div>
       <div className="ops-order-row__action"><span className="ops-row-action"><Eye size={14} /> View</span><span className="ops-row-action ops-row-action--edit"><Pencil size={12} /> Edit</span></div>
     </article>

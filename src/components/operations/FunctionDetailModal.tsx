@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Printer, X } from "lucide-react";
 import type { FunctionBooking, ReservationStatus } from "../../data/reservations";
-import { RESERVATION_STATUSES } from "../../data/reservations";
+import { FUNCTION_ROOM_CHOICES, RESERVATION_STATUSES } from "../../data/reservations";
 import { StatusPill } from "./StatusPill";
 import { BookingTimeSelect } from "./BookingTimeSelect";
 import { buildFunctionSlipHtml, openPrintWindow } from "../../utils/print";
@@ -108,7 +108,17 @@ export function FunctionDetailModal({ booking, onClose, onSave }: Props) {
                   <option>Other</option>
                 </select>
               </label>
-              <label className="ops-field"><span>Room</span><input className="ops-input" value={draft.room} readOnly /></label>
+              <label className="ops-field"><span>Room</span>
+                <select className="ops-input" value={draft.roomId} onChange={(e) => {
+                  const roomId = e.target.value;
+                  const roomName = FUNCTION_ROOM_CHOICES.find((room) => room.id === roomId)?.name ?? roomId;
+                  setDraft(d => ({ ...d, roomId, room: roomName }));
+                }}>
+                  {FUNCTION_ROOM_CHOICES.map((room) => (
+                    <option key={room.id} value={room.id}>{room.name}</option>
+                  ))}
+                </select>
+              </label>
               <label className="ops-field"><span>Date (YYYY-MM-DD)</span><input className="ops-input" value={draft.date} onChange={(e) => setDraft(d => ({ ...d, date: e.target.value }))} /></label>
               <label className="ops-field"><span>Time</span><BookingTimeSelect value={draft.time} onChange={(time) => setDraft(d => ({ ...d, time }))} /></label>
               <label className="ops-field"><span>Status</span>

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Printer, X } from "lucide-react";
 import { CATERING_PACKAGES } from "../../constants";
-import type { CateringBooking, ReservationStatus } from "../../data/reservations";
-import { RESERVATION_STATUSES } from "../../data/reservations";
+import type { CateringBooking, CateringVenue, ReservationStatus } from "../../data/reservations";
+import { FUNCTION_ROOM_CHOICES, RESERVATION_STATUSES } from "../../data/reservations";
 import type { OrderItem } from "../../data/delivery";
 import { StatusPill } from "./StatusPill";
 import { OrderItemsEditor } from "./OrderItemsEditor";
@@ -86,6 +86,8 @@ export function CateringDetailModal({ booking, onClose, onSave }: Props) {
       total: totals.total,
       guestCount: isBuffet ? draft.pax ?? 50 : items.reduce((s, i) => s + i.quantity, 0) || draft.guestCount,
       itemsList: isPacked ? items : undefined,
+      functionRoomId: draft.venueType === "function_room" ? draft.functionRoomId : undefined,
+      deliveryAddress: draft.venueType === "delivery" ? draft.deliveryAddress : undefined,
     };
     onSave(patch);
   };
@@ -146,6 +148,23 @@ export function CateringDetailModal({ booking, onClose, onSave }: Props) {
                   <option value="catering_packed">Packed meals</option>
                 </select>
               </label>
+              <label className="ops-field"><span>Venue</span>
+                <select className="ops-input" value={draft.venueType ?? "delivery"} onChange={(e)=>setDraft(d=>({...d,venueType:e.target.value as CateringVenue}))}>
+                  <option value="delivery">Delivered</option>
+                  <option value="function_room">In our function room</option>
+                </select>
+              </label>
+              {(draft.venueType ?? "delivery") === "function_room" ? (
+                <label className="ops-field"><span>Function room</span>
+                  <select className="ops-input" value={draft.functionRoomId ?? "room_a"} onChange={(e)=>setDraft(d=>({...d,functionRoomId:e.target.value}))}>
+                    {FUNCTION_ROOM_CHOICES.map((room) => (
+                      <option key={room.id} value={room.id}>{room.name}</option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label className="ops-field"><span>Delivery address</span><input className="ops-input" value={draft.deliveryAddress ?? ""} onChange={(e)=>setDraft(d=>({...d,deliveryAddress:e.target.value}))} /></label>
+              )}
               <label className="ops-field ops-field--full"><span>Notes</span><textarea className="ops-input ops-input--area" rows={2} value={draft.notes} onChange={(e)=>setDraft(d=>({...d,notes:e.target.value}))} /></label>
               {isBuffet && (
                 <>

@@ -306,6 +306,7 @@ button, input, textarea, select { font: inherit; }
 .status-pill--delivered { background: rgba(8, 116, 67, 0.1); color: #087443; }
 .status-pill--out-for-delivery { background: rgba(15, 92, 167, 0.1); color: #0f5ca7; }
 .status-pill--ready-for-pickup { background: rgba(178, 104, 0, 0.12); color: #a06000; }
+.status-pill--cancelled { background: rgba(100, 0, 0, 0.08); color: #6a4a4a; }
 .tracking-layout { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 2rem; padding: 1.5rem; }
 .tracking-timeline h2 { margin: 0 0 1rem; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.25rem; }
 .timeline-step { position: relative; display: flex; gap: 0.8rem; min-height: 56px; color: #9b7b7b; }
@@ -475,6 +476,12 @@ button, input, textarea, select { font: inherit; }
 .profile-timeline__row small { color: #a08080; font-size: 0.75rem; }
 .profile-timeline__row--current strong, .profile-timeline__row--current small { color: #b70100; }
 .profile-timeline__row--current::before { content: "●"; }
+.profile-booking__cancel { align-self: flex-start; }
+.profile-booking__requested { margin: 0; color: #0f5ca7; font-size: 0.85rem; font-weight: 600; }
+.profile-track__mine { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.75rem 0 0; color: #8a5a5a; font-size: 0.85rem; }
+.profile-track__mine button { padding: 0.25rem 0.6rem; border: 1px solid rgba(183, 1, 0, 0.3); border-radius: 999px; background: #fff; color: #b70100; font-size: 0.8rem; cursor: pointer; }
+.venue-option { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; color: #3a2a2a; font-size: 0.95rem; cursor: pointer; }
+.venue-option input { accent-color: #b70100; }
 @media (max-width: 640px) {
   .profile-booking { padding: 1rem; }
   .profile-booking__head { align-items: flex-start; flex-direction: column; }
@@ -785,6 +792,9 @@ button, input, textarea, select { font: inherit; }
 .logout-confirm__cancel, .logout-confirm__yes { min-width: 110px; padding: 0.65rem 1.25rem; font-size: 0.85rem; }
 .button--outline-dark { border: 1.5px solid rgba(100, 0, 0, 0.25); background: transparent; color: #640000; cursor: pointer; }
 .button--outline-dark:hover { background: rgba(100, 0, 0, 0.06); }
+.button--ghost { border: 1.5px solid rgba(100, 0, 0, 0.25); background: transparent; color: #640000; cursor: pointer; }
+.button--ghost:hover { background: rgba(100, 0, 0, 0.06); }
+.button--ghost:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ——— Operations: admin-friendly polish ——— */
 .ops-toolbar-hint { display: block; margin-top: 0.35rem; color: #8a5a5a; font-size: 0.72rem; }
@@ -867,6 +877,8 @@ button, input, textarea, select { font: inherit; }
 .ops-status-select--ready-for-pickup { color: #a06000; }
 .ops-status-select--pending { color: #b70100; }
 .ops-status-select--cancelled { color: #6a4a4a; }
+.ops-status-save { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border: 1.5px solid #b70100; border-radius: 8px; background: #b70100; color: #ffefc1; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.ops-status-save:hover { background: #8d0100; }
 .ops-order-row__pill { display: none; }
 .ops-order-row__action { display: flex; flex-direction: column; align-items: end; gap: 0.35rem; }
 .ops-row-action { display: inline-flex; align-items: center; gap: 0.25rem; color: #8a5a5a; font-size: 0.8rem; font-weight: 700; }
@@ -877,7 +889,7 @@ button, input, textarea, select { font: inherit; }
 
 .ops-pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.28rem 0.6rem; border-radius: 20px; background: rgba(100,0,0,0.08); color: #5a3a3a; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap; }
 .ops-pill__dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.9; }
-.ops-pill--preparing, .ops-pill--pending { background: rgba(183, 1, 0,0.1); color: #b70100; }
+.ops-pill--preparing, .ops-pill--pending, .ops-pill--pending-confirmation { background: rgba(183, 1, 0,0.1); color: #b70100; }
 .ops-pill--ready-for-pickup { background: rgba(160,96,0,0.12); color: #a06000; }
 .ops-pill--out-for-delivery, .ops-pill--in-progress, .ops-pill--confirmed { background: rgba(15,92,167,0.1); color: #0f5ca7; }
 .ops-pill--delivered, .ops-pill--resolved, .ops-pill--completed { background: rgba(8,116,67,0.11); color: #087443; }
@@ -1117,8 +1129,9 @@ button, input, textarea, select { font: inherit; }
   .proceed-bar-v2__btn { width: 100%; }
   .packed-guidelines ul { grid-template-columns: 1fr; }
   .calendar-modal-backdrop { align-items: end; padding: 0; }
-  .calendar-modal { width: 100%; height: 94vh; border-radius: 14px 14px 0 0; }
-  .calendar-modal__body { grid-template-columns: 1fr; padding: 1rem; }
+  .calendar-modal { width: 100%; height: 94vh; max-height: 94dvh; border-radius: 14px 14px 0 0; }
+  .calendar-modal__body { grid-template-columns: 1fr; padding: 1rem 1rem max(1.25rem, env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .cancel-move-calendar { display: grid; gap: 0.5rem; }
   .calendar-modal__header { padding: 1.2rem 1rem; }
   .calendar-modal__header h2 { font-size: 1.2rem; }
 
@@ -1128,10 +1141,10 @@ button, input, textarea, select { font: inherit; }
   .auth-user-badge { padding: 0.25rem; gap: 0.35rem; }
   .auth-logout-btn { width: 24px; height: 24px; }
   .signin-backdrop { align-items: end; padding: 0; }
-  .signin-modal { width: 100%; border-radius: 14px 14px 0 0; }
+  .signin-modal { width: 100%; border-radius: 14px 14px 0 0; height: 94vh; max-height: 94dvh; }
   .variant-modal { width: 100%; border-radius: 14px 14px 0 0; }
-  .delivery-details-modal { width: 100%; max-height: 94vh; border-radius: 14px 14px 0 0; }
-  .delivery-details-modal__body { padding: 1.25rem 1rem 1.5rem; }
+  .delivery-details-modal { width: 100%; max-height: 94vh; height: 94dvh; border-radius: 14px 14px 0 0; }
+  .delivery-details-modal__body { padding: 1.25rem 1rem max(1.25rem, env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .calendar-modal__success { padding: 2rem 1rem 1.25rem; }
   .success-actions { width: 100%; flex-direction: column; }
   .success-actions .button { width: 100%; }

@@ -1,27 +1,28 @@
+/** Booking calendar modal: pick a date (live availability), a preferred time,
+ * and validation-checked contact fields before the reservation is submitted.
+ */
 import {
-  AlertCircle,
   CalendarDays,
   Check,
-  ChevronLeft,
-  ChevronRight,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import type { CateringVenue } from "../../data/reservations";
 import {
   BOOKING_TIME_OPTIONS,
-  FUNCTION_ROOM_ID,
+  FUNCTION_ROOM_A_ID,
+  FUNCTION_ROOM_CHOICES,
   SlotTakenError,
-  bookingTimeToSql,
-  fetchMonthAvailability,
-  subscribeAvailability,
-  type BookingAvailability,
-  type BookingInventoryKind,
-  type MonthAvailability,
 } from "../../data/reservations";
-import { getStoredContact, saveStoredContact } from "../../lib/contact";
+import {
+  fetchStoredProfile,
+  getStoredContact,
+  saveStoredContact,
+} from "../../lib/contact";
+import { BookingCalendarGrid } from "./BookingCalendarGrid";
 
 export type BookingDetails = {
   date: string;
@@ -29,13 +30,19 @@ export type BookingDetails = {
   name: string;
   contact: string;
   pax: number;
+  /** Catering only: where the food is served. */
+  venueType?: CateringVenue;
+  /** Catering in-room only: chosen function room. */
+  functionRoomId?: string;
+  /** Catering delivered only: delivery address. */
+  deliveryAddress?: string;
 };
 
 type CalendarModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (details: BookingDetails) => Promise<string>;
-  bookingKind: BookingInventoryKind;
+  bookingKind: "function_room" | "catering_buffet" | "catering_packed";
   roomId?: string;
   title?: string;
   initialName?: string;
@@ -46,32 +53,14 @@ type CalendarModalProps = {
   countLabel?: string;
   countUnit?: string;
   showCount?: boolean;
+  /** Catering only: let the customer pick in-room vs delivered. */
+  showVenueSelector?: boolean;
 };
-
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
 /** Full-name: letters, spaces, dots, hyphens, apostrophes; 3–60 chars. */
 const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s.'-]{3,60}$/;
 /** PH mobile: 09XXXXXXXXX or +639XXXXXXXXX (spaces/hyphens stripped). */
 const CONTACT_REGEX = /^(09|\+639)\d{9}$/;
-
-function toDateKey(year: number, month: number, day: number) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
 
 function formatSelectedDate(dateKey: string) {
   return new Intl.DateTimeFormat("en-PH", {
@@ -94,48 +83,27 @@ export function CalendarModal({
   countLabel = "Number of Guests",
   countUnit = "guest",
   showCount = true,
+  showVenueSelector = false,
 }: CalendarModalProps) {
-  const today = useMemo(() => new Date(), []);
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const effectiveName = initialName || user?.displayName || "";
   const effectiveContact = initialContact || getStoredContact(user?.id);
 
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState("");
   const [time, setTime] = useState<string>(BOOKING_TIME_OPTIONS[0]);
   const [name, setName] = useState(effectiveName);
   const [contact, setContact] = useState(effectiveContact);
   const [pax, setPax] = useState(String(initialPax ?? minPax));
+  const [venueType, setVenueType] = useState<CateringVenue>("delivery");
+  const [venueRoomId, setVenueRoomId] = useState<string>(FUNCTION_ROOM_A_ID);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
-  const [availability, setAvailability] = useState<MonthAvailability | null>(null);
-  const [availabilityLoading, setAvailabilityLoading] = useState(false);
-  const [availabilityError, setAvailabilityError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [saving, setSaving] = useState(false);
-  const availabilityRequest = useRef(0);
-
-  const refreshAvailability = useCallback(async () => {
-    const request = ++availabilityRequest.current;
-    setAvailabilityLoading(true);
-    setAvailabilityError("");
-    try {
-      const next = await fetchMonthAvailability(viewYear, viewMonth);
-      if (availabilityRequest.current === request) setAvailability(next);
-    } catch {
-      if (availabilityRequest.current === request) {
-        setAvailabilityError("Availability could not be loaded. Please try again.");
-      }
-    } finally {
-      if (availabilityRequest.current === request) setAvailabilityLoading(false);
-    }
-  }, [availabilityRequest, viewMonth, viewYear]);
-  const refreshAvailabilityRef = useRef(refreshAvailability);
-  refreshAvailabilityRef.current = refreshAvailability;
 
   const resetAndClose = useCallback(() => {
     setSelectedDate("");
@@ -143,13 +111,13 @@ export function CalendarModal({
     setName(effectiveName);
     setContact(effectiveContact);
     setPax(String(initialPax ?? minPax));
+    setVenueType("delivery");
+    setVenueRoomId(FUNCTION_ROOM_A_ID);
+    setDeliveryAddress("");
     setSubmitted(false);
     setShowErrors(false);
     setBookingRef("");
     setSubmitError("");
-    setAvailability(null);
-    setAvailabilityLoading(false);
-    setAvailabilityError("");
     onClose();
   }, [effectiveContact, effectiveName, initialPax, minPax, onClose]);
 
@@ -159,6 +127,12 @@ export function CalendarModal({
     setName(effectiveName);
     setContact(effectiveContact);
     setPax(String(initialPax ?? minPax));
+    // Server copy wins over the offline cache once it arrives.
+    if (user?.id) {
+      void fetchStoredProfile(user.id).then((server) => {
+        if (server.phone) setContact(server.phone);
+      });
+    }
     document.body.classList.add("modal-open");
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -172,68 +146,20 @@ export function CalendarModal({
     };
   }, [effectiveContact, effectiveName, initialPax, minPax, isOpen, resetAndClose, saving]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      availabilityRequest.current += 1;
-      return;
-    }
-    const channel = subscribeAvailability(() => {
-      void refreshAvailabilityRef.current();
-    });
-    return () => {
-      availabilityRequest.current += 1;
-      void channel.unsubscribe();
-    };
-  }, [availabilityRequest, isOpen]);
-
-  useEffect(() => {
-    if (isOpen) void refreshAvailability();
-  }, [isOpen, refreshAvailability]);
-
   if (!isOpen) return null;
 
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstWeekday = new Date(viewYear, viewMonth, 1).getDay();
-  const currentMonthKey = today.getFullYear() * 12 + today.getMonth();
-  const viewedMonthKey = viewYear * 12 + viewMonth;
-  const availabilityReady = availability !== null && !availabilityLoading && !availabilityError;
-
-  /** Block today + tomorrow — reservation must be ≥ 2 days ahead. */
-  const isBlockedDate = (day: number) => {
-    const candidate = new Date(viewYear, viewMonth, day);
-    const minDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() + 2,
-    );
-    return candidate < minDate;
-  };
-
-  const inventoryKind = bookingKind;
-  const inventoryResource =
-    bookingKind === "function_room" ? roomId ?? FUNCTION_ROOM_ID : bookingKind;
-  const isTimeUnavailable = (dateKey: string, timeLabel: string) => {
-    const slot = bookingTimeToSql(timeLabel).slice(0, 5);
-    return (availability?.bookedSlots ?? []).some(
-      (booked: BookingAvailability) =>
-        booked.kind === inventoryKind &&
-        booked.resourceId === inventoryResource &&
-        booked.date === dateKey &&
-        booked.time.slice(0, 5) === slot,
-    );
-  };
-  const isReserved = (dateKey: string) =>
-    (availability?.reservedDates ?? []).includes(dateKey) ||
-    BOOKING_TIME_OPTIONS.every((option) => isTimeUnavailable(dateKey, option));
-
-  const moveMonth = (direction: -1 | 1) => {
-    const next = new Date(viewYear, viewMonth + direction, 1);
-    setSelectedDate("");
-    setSubmitError("");
-    setAvailability(null);
-    setViewYear(next.getFullYear());
-    setViewMonth(next.getMonth());
-  };
+  /** Inventory pool the calendar blocks: explicit room for function bookings,
+   * venue room for in-room catering, otherwise the catering kind itself. */
+  const gridKind = bookingKind === "function_room" ||
+    (showVenueSelector && venueType === "function_room")
+    ? "function_room"
+    : bookingKind;
+  const gridResource =
+    bookingKind === "function_room"
+      ? (roomId ?? FUNCTION_ROOM_A_ID)
+      : showVenueSelector && venueType === "function_room"
+        ? venueRoomId
+        : bookingKind;
 
   const nameValid = NAME_REGEX.test(name.trim());
   const contactValid = CONTACT_REGEX.test(contact.trim().replace(/[\s-]/g, ""));
@@ -243,21 +169,20 @@ export function CalendarModal({
     paxNum >= minPax &&
     (maxPax === undefined || paxNum <= maxPax);
 
+  const updateSelectedDate = (dateKey: string) => {
+    setSelectedDate(dateKey);
+    setSubmitError("");
+  };
+
   const submitBooking = async () => {
-    if (
-      !availabilityLoading &&
-      !availabilityError &&
-      selectedDate &&
-      isTimeUnavailable(selectedDate, time)
-    ) {
-      setSubmitError("That time was just booked. Choose another available time.");
-      return;
-    }
-    if (!selectedDate || !nameValid || !contactValid || !paxValid) {
+    const venueAddressValid =
+      !showVenueSelector ||
+      venueType === "function_room" ||
+      deliveryAddress.trim().length > 0;
+    if (!selectedDate || !nameValid || !contactValid || !paxValid || !venueAddressValid) {
       setShowErrors(true);
       return;
     }
-    if (availabilityLoading || availabilityError) return;
 
     if (user?.id) {
       saveStoredContact(user.id, contact.trim());
@@ -272,16 +197,20 @@ export function CalendarModal({
         name: name.trim(),
         contact: contact.trim(),
         pax: paxNum,
+        ...(showVenueSelector
+          ? venueType === "function_room"
+            ? { venueType, functionRoomId: venueRoomId }
+            : { venueType, deliveryAddress: deliveryAddress.trim() }
+          : {}),
       });
       setBookingRef(id);
       setSubmitted(true);
     } catch (error) {
       setSubmitError(
         error instanceof SlotTakenError
-          ? "That time was just booked. Choose another available time."
+          ? "That date was just booked. Choose another available date."
           : "Reservation could not be submitted. Please try again.",
       );
-      void refreshAvailability();
     } finally {
       setSaving(false);
     }
@@ -333,6 +262,20 @@ export function CalendarModal({
                 <span>Time</span>
                 <strong>{time}</strong>
               </div>
+              {showVenueSelector && venueType === "function_room" && (
+                <div className="booking-summary__row">
+                  <span>Venue</span>
+                  <strong>
+                    {FUNCTION_ROOM_CHOICES.find((room) => room.id === venueRoomId)?.name ?? venueRoomId}
+                  </strong>
+                </div>
+              )}
+              {showVenueSelector && venueType === "delivery" && (
+                <div className="booking-summary__row">
+                  <span>Deliver to</span>
+                  <strong>{deliveryAddress}</strong>
+                </div>
+              )}
               {showCount && (
                 <div className="booking-summary__row">
                   <span>{countLabel}</span>
@@ -381,101 +324,13 @@ export function CalendarModal({
             </div>
 
             <div className="calendar-modal__body">
-              <div className="booking-calendar-col">
-                <div className="booking-calendar">
-                <div className="booking-calendar__toolbar">
-                  <button
-                    aria-label="Previous month"
-                    disabled={saving || viewedMonthKey <= currentMonthKey}
-                    onClick={() => moveMonth(-1)}
-                    type="button"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <strong>
-                    {MONTHS[viewMonth]} {viewYear}
-                  </strong>
-                  <button
-                    aria-label="Next month"
-                    disabled={saving}
-                    onClick={() => moveMonth(1)}
-                    type="button"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-
-                <div className="booking-calendar__weekdays">
-                  {WEEKDAYS.map((weekday) => (
-                    <span key={weekday}>{weekday}</span>
-                  ))}
-                </div>
-
-                <div className="booking-calendar__days">
-                  {Array.from({ length: firstWeekday }).map((_, index) => (
-                    <span aria-hidden="true" key={`blank-${index}`} />
-                  ))}
-                  {Array.from({ length: daysInMonth }, (_, index) => {
-                    const day = index + 1;
-                    const dateKey = toDateKey(viewYear, viewMonth, day);
-                    const blocked = isBlockedDate(day);
-                    const reserved = isReserved(dateKey);
-                    const selected = selectedDate === dateKey;
-
-                    return (
-                      <button
-                        aria-label={`${MONTHS[viewMonth]} ${day}, ${viewYear}${reserved ? " – unavailable" : ""}`}
-                        className={
-                          selected
-                            ? "booking-day booking-day--selected"
-                            : reserved
-                              ? "booking-day booking-day--reserved"
-                            : "booking-day"
-                        }
-                        disabled={saving || blocked || reserved || !availabilityReady}
-                        key={dateKey}
-                        onClick={() => {
-                          setSelectedDate(dateKey);
-                          setSubmitError("");
-                          const firstAvailable = BOOKING_TIME_OPTIONS.find(
-                            (option) => !isTimeUnavailable(dateKey, option),
-                          );
-                          if (firstAvailable) setTime(firstAvailable);
-                        }}
-                        type="button"
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                </div>
-
-                <div className="calendar-legend">
-                  <span className="calendar-legend__item">
-                    <span className="calendar-legend__swatch calendar-legend__swatch--reserved" />
-                    Reserved
-                  </span>
-                  <span className="calendar-legend__item">
-                    <span className="calendar-legend__swatch calendar-legend__swatch--selected" />
-                    Your Selection
-                  </span>
-                </div>
-
-                <p className="calendar-policy-note">
-                  <AlertCircle size={13} />
-                  Reservations must be made at least 2 days in advance.
-                </p>
-                {availabilityLoading && (
-                  <p className="calendar-policy-note">Checking live availability…</p>
-                )}
-                {availabilityError && (
-                  <p className="field-error" role="alert">
-                    {availabilityError}
-                  </p>
-                )}
-              </div>
+              <BookingCalendarGrid
+                inventoryKind={gridKind}
+                resourceId={gridResource}
+                selectedDate={selectedDate}
+                onSelectDate={updateSelectedDate}
+                disabled={saving}
+              />
 
               <div className="booking-fields">
                 {submitError && <p className="field-error" role="alert">{submitError}</p>}
@@ -498,31 +353,99 @@ export function CalendarModal({
                   <span>Preferred Time</span>
                   <select
                     className="input"
-                    disabled={saving || !selectedDate || !availabilityReady}
+                    disabled={saving || !selectedDate}
                     value={time}
                     onChange={(event) => {
                       setTime(event.target.value);
                       setSubmitError("");
                     }}
                   >
-                    {BOOKING_TIME_OPTIONS.map((option) => {
-                      const unavailable =
-                        Boolean(selectedDate) && isTimeUnavailable(selectedDate, option);
-                      return (
-                        <option disabled={unavailable} key={option} value={option}>
-                          {option}{unavailable ? " — Reserved" : ""}
-                        </option>
-                      );
-                    })}
+                    {BOOKING_TIME_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
                   </select>
-                  {selectedDate &&
-                    availabilityReady &&
-                    isTimeUnavailable(selectedDate, time) && (
-                      <span className="field-error" role="alert">
-                        This time was just booked. Choose another.
-                      </span>
-                    )}
                 </label>
+
+                {showVenueSelector && (
+                  <>
+                    <div className="form-field">
+                      <span>Where will this be served?</span>
+                      <label className="venue-option">
+                        <input
+                          type="radio"
+                          name="catering-venue"
+                          checked={venueType === "function_room"}
+                          disabled={saving}
+                          onChange={() => {
+                            setVenueType("function_room");
+                            setSelectedDate("");
+                            setSubmitError("");
+                          }}
+                        />
+                        In our function room
+                      </label>
+                      <label className="venue-option">
+                        <input
+                          type="radio"
+                          name="catering-venue"
+                          checked={venueType === "delivery"}
+                          disabled={saving}
+                          onChange={() => {
+                            setVenueType("delivery");
+                            setSelectedDate("");
+                            setSubmitError("");
+                          }}
+                        />
+                        Deliver to my venue
+                      </label>
+                    </div>
+
+                    {venueType === "function_room" ? (
+                      <label className="form-field">
+                        <span>Function Room</span>
+                        <select
+                          className="input"
+                          disabled={saving}
+                          value={venueRoomId}
+                          onChange={(event) => {
+                            setVenueRoomId(event.target.value);
+                            setSelectedDate("");
+                            setSubmitError("");
+                          }}
+                        >
+                          {FUNCTION_ROOM_CHOICES.map((room) => (
+                            <option key={room.id} value={room.id}>
+                              {room.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : (
+                      <label className="form-field">
+                        <span>Delivery Address</span>
+                        <textarea
+                          className={
+                            showErrors && !deliveryAddress.trim()
+                              ? "input input--error"
+                              : "input"
+                          }
+                          disabled={saving}
+                          placeholder="Office, wedding venue, street, barangay, city"
+                          rows={2}
+                          value={deliveryAddress}
+                          onChange={(event) => setDeliveryAddress(event.target.value)}
+                        />
+                        {showErrors && !deliveryAddress.trim() && (
+                          <span className="field-error">
+                            Delivery address is required
+                          </span>
+                        )}
+                      </label>
+                    )}
+                  </>
+                )}
 
                 <label className="form-field">
                   <span>Full Name</span>
@@ -588,7 +511,7 @@ export function CalendarModal({
 
                 <button
                   className="button button--red calendar-modal__submit"
-                  disabled={saving || !availabilityReady}
+                  disabled={saving}
                   onClick={submitBooking}
                   type="button"
                 >

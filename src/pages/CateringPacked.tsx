@@ -289,10 +289,13 @@ export function CateringPacked() {
             kind: "catering_packed",
             customer: details.name,
             phone: details.contact,
-            email: "",
+            email: user.email,
             date: details.date,
             time: details.time,
             notes: `Packed meals: ${selectedMeals.map((meal) => `${meal.name} (${mealQuantities[meal.id]} packs)`).join(", ")}`,
+            venueType: details.venueType,
+            functionRoomId: details.functionRoomId,
+            deliveryAddress: details.deliveryAddress,
             itemsList: selectedMeals.map((meal) => ({ id: meal.id, type: "packed_meal" as const, name: meal.name, quantity: mealQuantities[meal.id], price: meal.price, category: meal.category })),
             guestCount: totalPacks,
             subtotal,
@@ -303,6 +306,7 @@ export function CateringPacked() {
         }}
         initialPax={totalPacks || MIN_PACKED_MEAL_QUANTITY}
         showCount={false}
+        showVenueSelector
         title="Reserve Packed Meals Catering"
       />
       {showSignIn && <SignInModal onClose={closeSignIn} />}

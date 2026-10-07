@@ -8,14 +8,14 @@ import {
   useDeliveryCategoryDefs,
   useDeliveryMenuItems,
 } from "../data/deliveryMenu";
-import {
-  getDeliveryOrders,
-  saveDeliveryOrders,
-  type DeliveryOrder as DeliveryOrderData,
-} from "../data/delivery";
+import { createSupabaseDeliveryOrder } from "../data/deliveryOrders";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
-import { getStoredContact } from "../lib/contact";
+import {
+  fetchStoredProfile,
+  getStoredContact,
+  type StoredAddress,
+} from "../lib/contact";
 
 type Cart = Record<string, number>;
 
@@ -68,15 +68,19 @@ export function DeliveryOrder() {
   const [submittedReference, setSubmittedReference] = useState<string | null>(
     null,
   );
+  const [submitting, setSubmitting] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [variantProduct, setVariantProduct] = useState<ProductGroup | null>(
     null,
   );
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<StoredAddress[]>([]);
   const [awaitingSignIn, setAwaitingSignIn] = useState(false);
 
-  // Autofill name + previously used contact number once the session is known.
+  // Autofill name + contact + saved addresses once the session is known.
+  // Server copy wins so details saved on another device (profile page)
+  // prefill here too, and saved delivery addresses become one-tap options.
   useEffect(() => {
     if (!user) return;
     setDetails((prev) => ({
@@ -84,6 +88,16 @@ export function DeliveryOrder() {
       name: prev.name || user.displayName,
       phone: prev.phone || getStoredContact(user.id),
     }));
+    void fetchStoredProfile(user.id).then((profile) => {
+      const savedAddresses = profile.addresses.filter((entry) => entry.address);
+      setSavedAddresses(savedAddresses);
+      setDetails((prev) => ({
+        ...prev,
+        name: prev.name || user.displayName,
+        phone: prev.phone || profile.phone,
+        address: prev.address || savedAddresses[0]?.address || "",
+      }));
+    });
   }, [user]);
 
   // Guest placed an order, signed in, and closed the sign-in dialog:
@@ -221,7 +235,7 @@ export function DeliveryOrder() {
     setShowDetailsModal(true);
   };
 
-  const handleConfirmDetails = () => {
+  const handleConfirmDetails = async () => {
     const nextErrors: OrderErrors = [];
     const nextMessages: FieldMessages = {};
 
@@ -247,10 +261,8 @@ export function DeliveryOrder() {
     setErrors(nextErrors);
     setFieldMessages(nextMessages);
 
-    if (nextErrors.length > 0) return;
+    if (nextErrors.length > 0 || !user) return;
 
-    const existingOrders = getDeliveryOrders();
-    const reference = `CAP-${1050 + existingOrders.length}`;
     const itemsList = selectedItems.map((it) => ({
       id: it.id,
       type: "packed_meal" as const,
@@ -260,28 +272,32 @@ export function DeliveryOrder() {
       category: it.category,
     }));
     const itemsDisplay = `${totalQuantity} item${totalQuantity === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
-    const order: DeliveryOrderData = {
-      reference,
-      customer: details.name,
-      phone: details.phone,
-      address: details.address,
-      items: itemsDisplay,
-      itemsList,
-      subtotal,
-      deliveryFee,
-      total,
-      paymentMethod: details.payment,
-      notes: details.notes,
-      eta: "Today, 6:30 PM",
-      status: "Preparing",
-      placedAt: "Just now",
-      timeline: [{ status: "Preparing", at: "Just now" }],
-    };
 
-    saveDeliveryOrders([...existingOrders, order]);
-    setSubmittedReference(reference);
-    setShowDetailsModal(false);
-    setCart({});
+    setSubmitting(true);
+    try {
+      const reference = await createSupabaseDeliveryOrder({
+        userId: user.id,
+        customer: details.name.trim(),
+        phone: details.phone.trim(),
+        address: details.address.trim(),
+        itemsList,
+        itemsDisplay,
+        subtotal,
+        deliveryFee,
+        total,
+        paymentMethod: details.payment,
+        notes: details.notes.trim(),
+      });
+      setSubmittedReference(reference);
+      setShowDetailsModal(false);
+      setCart({});
+    } catch {
+      setFieldMessages({
+        items: "Order could not be placed. Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submittedReference) {
@@ -444,6 +460,8 @@ export function DeliveryOrder() {
           errors={errors}
           fieldMessages={fieldMessages}
           total={total}
+          submitting={submitting}
+          savedAddresses={savedAddresses}
           onClose={() => setShowDetailsModal(false)}
           onChange={updateDetail}
           onConfirm={handleConfirmDetails}
@@ -784,6 +802,8 @@ function DeliveryDetailsModal({
   errors,
   fieldMessages,
   total,
+  submitting,
+  savedAddresses,
   onClose,
   onChange,
   onConfirm,
@@ -792,6 +812,8 @@ function DeliveryDetailsModal({
   errors: OrderErrors;
   fieldMessages: FieldMessages;
   total: number;
+  submitting: boolean;
+  savedAddresses: StoredAddress[];
   onClose: () => void;
   onChange: (key: keyof CustomerDetails, value: string) => void;
   onConfirm: () => void;
@@ -863,6 +885,36 @@ function DeliveryDetailsModal({
 
           <div className="form-section">
             <div className="form-section-title">Delivery</div>
+            {savedAddresses.length > 0 && (
+              <label className="form-field">
+                <span>Saved addresses</span>
+                <select
+                  aria-label="Use a saved address"
+                  className="input"
+                  value={
+                    savedAddresses.find(
+                      (entry) => entry.address === details.address,
+                    )?.label ?? ""
+                  }
+                  onChange={(event) => {
+                    const match = savedAddresses.find(
+                      (entry) => entry.label === event.target.value,
+                    );
+                    if (match) {
+                      onChange("address", match.address);
+                      onChange("notes", details.notes || match.note);
+                    }
+                  }}
+                >
+                  <option value="">No pick — type below</option>
+                  {savedAddresses.map((entry) => (
+                    <option key={entry.label || entry.address} value={entry.label}>
+                      {entry.label || "Address"} — {entry.address}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label
               className={`form-field ${errors.includes("address") ? "form-field--error" : ""}`}
             >
@@ -912,9 +964,10 @@ function DeliveryDetailsModal({
           <button
             className="button button--red order-submit"
             onClick={onConfirm}
+            disabled={submitting}
             type="button"
           >
-            Place order · ₱{total.toLocaleString()}
+            {submitting ? "Placing order…" : `Place order · ₱${total.toLocaleString()}`}
           </button>
         </div>
       </div>

@@ -8,7 +8,7 @@ import {
   RefreshCw,
   Truck,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "../components/operations/StatusPill";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -20,6 +20,12 @@ import {
   type DeliveryOrder,
   type DeliveryStatus,
 } from "../data/delivery";
+import {
+  fetchAllDeliveryOrders,
+  subscribeDeliveryOrders,
+  toLocalDeliveryOrder,
+  updateSupabaseDeliveryOrder,
+} from "../data/deliveryOrders";
 
 type StatusFilter = DeliveryStatus | "All";
 
@@ -47,7 +53,28 @@ export function DeliveryRider() {
   const { user } = useAuth();
   const [riderId] = useState(() => resolveRiderId(user?.displayName));
   const [orders, setOrders] = useState<DeliveryOrder[]>(getDeliveryOrders);
+  const [remoteRefs, setRemoteRefs] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+
+  const loadRemote = async () => {
+    try {
+      const remote = await fetchAllDeliveryOrders();
+      const refs = new Set(remote.map((order) => order.reference));
+      setRemoteRefs([...refs]);
+      const localBase = getDeliveryOrders().filter(
+        (order) => !refs.has(order.reference),
+      );
+      setOrders([...remote.map(toLocalDeliveryOrder), ...localBase]);
+    } catch {}
+  };
+
+  useEffect(() => {
+    void loadRemote();
+    const channel = subscribeDeliveryOrders(() => void loadRemote());
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, []);
 
   const rider = getDeliveryRiders().find((entry) => entry.id === riderId) ?? null;
   const myOrders = useMemo(
@@ -63,7 +90,10 @@ export function DeliveryRider() {
   const outCount = myOrders.filter((order) => order.status === "Out for delivery").length;
   const doneCount = myOrders.filter((order) => order.status === "Delivered").length;
 
-  const refresh = () => setOrders(getDeliveryOrders());
+  const refresh = () => {
+    setOrders(getDeliveryOrders());
+    void loadRemote();
+  };
 
   const advance = (order: DeliveryOrder) => {
     const next = NEXT_STATUS[order.status];
@@ -71,7 +101,17 @@ export function DeliveryRider() {
     const updated = updateOrderWithHistory(order, {}, next);
     const list = orders.map((entry) => (entry.reference === order.reference ? updated : entry));
     setOrders(list);
-    saveDeliveryOrders(list);
+    if (remoteRefs.includes(order.reference)) {
+      void updateSupabaseDeliveryOrder({
+        reference: order.reference,
+        status: next,
+      }).then(
+        () => loadRemote(),
+        () => loadRemote(),
+      );
+    } else {
+      saveDeliveryOrders(list);
+    }
   };
 
   return (
