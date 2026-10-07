@@ -6,12 +6,15 @@ import { useAuth } from "../../context/AuthContext";
 import { SignInModal } from "./SignInModal";
 import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
 
-/** Top-nav tabs shown to system admins: the three manage-entry screens they
- * own. Weekly-overview routes (Operations, Dashboard) stay reachable by URL. */
+/** Top-nav tabs for system admins, matching the use-case diagram: the three
+ * booking-management screens plus Operations, Dashboard, and Inquiries. */
 export const ADMIN_MANAGE_NAVIGATION_ITEMS = [
-  { label: "Manage Function Room Bookings", path: "/operations/function-bookings" },
-  { label: "Manage Catering Bookings", path: "/operations/catering-bookings" },
-  { label: "Manage Delivery Orders", path: "/delivery/staff" },
+  { label: "Function Room Bookings", path: "/operations/function-bookings" },
+  { label: "Catering Bookings", path: "/operations/catering-bookings" },
+  { label: "Delivery Orders", path: "/delivery/staff" },
+  { label: "Operations", path: "/operations" },
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Inquiries", path: "/inquiry-bot" },
 ];
 
 const EMPLOYEE_NAVIGATION_ITEMS = [

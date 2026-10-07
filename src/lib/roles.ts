@@ -17,7 +17,7 @@ const ROLE_HOMES: Record<UserRole, string> = {
   customer: "/",
   front_of_house: "/operations",
   restaurant_manager: "/operations",
-  system_admin: "/dashboard",
+  system_admin: "/delivery/staff",
   delivery_rider: "/delivery/rider",
 };
 
