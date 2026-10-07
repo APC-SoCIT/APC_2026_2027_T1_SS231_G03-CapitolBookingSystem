@@ -9,8 +9,6 @@ import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
 /** Top-nav tabs for system admins, matching the use-case diagram: the three
  * booking-management screens plus Operations, Dashboard, and Inquiries. */
 export const ADMIN_MANAGE_NAVIGATION_ITEMS = [
-  { label: "Function Room Bookings", path: "/operations/function-bookings" },
-  { label: "Catering Bookings", path: "/operations/catering-bookings" },
   { label: "Delivery Orders", path: "/delivery/staff" },
   { label: "Operations", path: "/operations" },
   { label: "Dashboard", path: "/dashboard" },
@@ -23,8 +21,7 @@ const EMPLOYEE_NAVIGATION_ITEMS = [
   { label: "Inquiry Bot", path: "/inquiry-bot" },
   { label: "Menu Items", path: "/delivery/items" },
   { label: "Dashboard", path: "/dashboard" },
-  { label: "Function Room Bookings", path: "/operations/function-bookings" },
-  { label: "Catering Bookings", path: "/operations/catering-bookings" },
+  { label: "My Deliveries", path: "/delivery/rider" },
 ];
 
 export function Header() {

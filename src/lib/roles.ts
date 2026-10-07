@@ -37,8 +37,6 @@ const CUSTOMER_PATHS = [
 
 const OPERATIONS_PATHS = [
   "/operations",
-  "/operations/function-bookings",
-  "/operations/catering-bookings",
   "/delivery/staff",
   "/delivery/items",
   "/inquiry-bot",

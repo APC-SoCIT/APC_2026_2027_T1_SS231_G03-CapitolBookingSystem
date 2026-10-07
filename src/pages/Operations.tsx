@@ -47,7 +47,7 @@ import { supabase } from "../lib/supabase";
 
 type ResFilter = ReservationStatus | "All";
 
-export function Operations({ section }: { section?: "function-bookings" | "catering-bookings" }) {
+export function Operations() {
   const [functionBookings, setFunctionBookings] = useState<FunctionBooking[]>([]);
   const [cateringBookings, setCateringBookings] = useState<CateringBooking[]>([]);
   const [bookingLoadError, setBookingLoadError] = useState("");
@@ -273,45 +273,31 @@ export function Operations({ section }: { section?: "function-bookings" | "cater
   const functionPending = functionBookings.filter((b) => b.status === "Pending").length;
   const cateringPending = cateringBookings.filter((b) => b.status === "Pending").length;
 
-  const showFunctionPanel = section !== "catering-bookings";
-  const showCateringPanel = section !== "function-bookings";
-  const panelTitle =
-    section === "function-bookings"
-      ? "Function room bookings"
-      : section === "catering-bookings"
-        ? "Catering bookings"
-        : "Today's overview";
-
   return (
     <div>
       <section className="section dashboard-section">
-        {!section && (
-          <div className="dashboard-toolbar">
-            <div>
-              <p className="eyebrow">Capitol Restaurant</p>
-              <h2>{panelTitle}</h2>
-              <small className="ops-toolbar-hint">Tip: click a row to change package or booking info · Print via modal · 1 sheet A4 portrait</small>
-            </div>
-            <button className="reset-button" onClick={refreshDashboard} type="button">
-              <RefreshCw size={15} />
-              Refresh data
-            </button>
+        <div className="dashboard-toolbar">
+          <div>
+            <p className="eyebrow">Capitol Restaurant</p>
+            <h2>Today&apos;s overview</h2>
+            <small className="ops-toolbar-hint">Tip: click a row to change package or booking info · Print via modal · 1 sheet A4 portrait</small>
           </div>
-        )}
+          <button className="reset-button" onClick={refreshDashboard} type="button">
+            <RefreshCw size={15} />
+            Refresh data
+          </button>
+        </div>
         {bookingLoadError && <p className="field-error" role="alert">{bookingLoadError}</p>}
 
-        {!section && (
-          <div className="dashboard-stats dashboard-stats--5">
+        <div className="dashboard-stats dashboard-stats--5">
             <StatCard icon={<Truck size={20} />} label="Active deliveries" value={activeDeliveryCount} hint="Not delivered" />
             <StatCard icon={<Building2 size={20} />} label="Function pending" value={functionPending} hint={`${functionBookings.length} total bookings`} accent={functionPending>0} />
             <StatCard icon={<UtensilsCrossed size={20} />} label="Catering pending" value={cateringPending} hint={`${cateringBookings.length} total`} accent={cateringPending>0} />
             <StatCard icon={<ClipboardList size={20} />} label="Open inquiries" value={newInquiryCount} hint="Need reply" accent={newInquiryCount > 0} />
             <StatCard icon={<ClipboardList size={20} />} label="Total orders" value={orders.length} hint={revenueToday ? `₱${revenueToday.toLocaleString()} total` : undefined} />
           </div>
-        )}
 
         {/* Function room reservations — stacked */}
-        {showFunctionPanel && (
         <div className="dashboard-panel">
           <div className="dashboard-panel__header">
             <div>
@@ -339,10 +325,8 @@ export function Operations({ section }: { section?: "function-bookings" | "cater
             )) : <EmptyDashboardState message="No function bookings match your filters." />}
           </div>
         </div>
-        )}
 
         {/* Catering reservations — stacked */}
-        {showCateringPanel && (
         <div className="dashboard-panel">
           <div className="dashboard-panel__header">
             <div>
@@ -374,7 +358,6 @@ export function Operations({ section }: { section?: "function-bookings" | "cater
             )) : <EmptyDashboardState message="No catering bookings match your filters." />}
           </div>
         </div>
-        )}
       </section>
 
       {selectedFunction && <FunctionDetailModal booking={selectedFunction} onClose={()=>setSelectedFunctionId(null)} onSave={handleFunctionSave} />}
