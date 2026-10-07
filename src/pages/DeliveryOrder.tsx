@@ -77,6 +77,11 @@ export function DeliveryOrder() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<StoredAddress[]>([]);
   const [awaitingSignIn, setAwaitingSignIn] = useState(false);
+  // Guest tapped Add before signing in: hold that add until the dialog closes.
+  const [pendingAdd, setPendingAdd] = useState<{
+    item: MenuItem;
+    quantity: number;
+  } | null>(null);
 
   // Autofill name + contact + saved addresses once the session is known.
   // Server copy wins so details saved on another device (profile page)
@@ -100,17 +105,37 @@ export function DeliveryOrder() {
     });
   }, [user]);
 
-  // Guest placed an order, signed in, and closed the sign-in dialog:
-  // continue straight into the details modal instead of a second click.
-  const handleCloseSignIn = useCallback(() => {
-    if (awaitingSignIn) {
-      setAwaitingSignIn(false);
-      closeSignIn();
-      if (user) setShowDetailsModal(true);
+  const updateQuantity = (item: MenuItem, quantity: number) => {
+    setCart((currentCart) => ({
+      ...currentCart,
+      [item.id]: Math.max(0, Math.min(MAX_QUANTITY_PER_ITEM, quantity)),
+    }));
+  };
+
+  // Adding food is the sign-in gate: guests get the dialog instead of the cart.
+  const handleQuantityChange = (item: MenuItem, quantity: number) => {
+    if (quantity > 0 && !requireAuth()) {
+      setPendingAdd({ item, quantity });
       return;
     }
+    updateQuantity(item, quantity);
+  };
+
+  // Guest placed an order or added a dish, signed in, and closed the dialog:
+  // continue straight into what they were doing instead of a second click.
+  const handleCloseSignIn = useCallback(() => {
+    const queuedAdd = pendingAdd;
+    const continueToDetails = awaitingSignIn && !queuedAdd;
+    setPendingAdd(null);
+    setAwaitingSignIn(false);
     closeSignIn();
-  }, [awaitingSignIn, closeSignIn, user]);
+    if (!user) return;
+    if (queuedAdd) {
+      updateQuantity(queuedAdd.item, queuedAdd.quantity);
+      return;
+    }
+    if (continueToDetails) setShowDetailsModal(true);
+  }, [awaitingSignIn, closeSignIn, pendingAdd, user]);
 
   const selectedItems = useMemo(
     () => menuItems.filter((item) => cart[item.id]),
@@ -199,13 +224,6 @@ export function DeliveryOrder() {
   );
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
   const total = subtotal + deliveryFee;
-
-  const updateQuantity = (item: MenuItem, quantity: number) => {
-    setCart((currentCart) => ({
-      ...currentCart,
-      [item.id]: Math.max(0, Math.min(MAX_QUANTITY_PER_ITEM, quantity)),
-    }));
-  };
 
   const updateDetail = (field: keyof CustomerDetails, value: string) => {
     setDetails((prev) => ({ ...prev, [field]: value }));
@@ -388,14 +406,16 @@ export function DeliveryOrder() {
                         item={product.item}
                         key={product.key}
                         quantity={cart[product.item.id] ?? 0}
-                        onChange={(quantity) => updateQuantity(product.item, quantity)}
+                        onChange={(quantity) => handleQuantityChange(product.item, quantity)}
                       />
                     ) : (
                       <VariantGroupCard
                         product={product}
                         key={product.key}
                         categoryDefs={categoryDefs}
-                        onOpen={() => setVariantProduct(product)}
+                        onOpen={() => {
+                          if (requireAuth()) setVariantProduct(product);
+                        }}
                       />
                     ),
                   )}
@@ -438,6 +458,7 @@ export function DeliveryOrder() {
               subtotal={subtotal}
               deliveryFee={deliveryFee}
               total={total}
+              onQuantityChange={handleQuantityChange}
             />
             <button
               className="button button--red order-submit"
@@ -472,7 +493,7 @@ export function DeliveryOrder() {
           product={variantProduct}
           cart={cart}
           onClose={() => setVariantProduct(null)}
-          onChange={updateQuantity}
+          onChange={handleQuantityChange}
         />
       )}
       {showSignIn && <SignInModal onClose={handleCloseSignIn} />}
@@ -730,12 +751,14 @@ function OrderSummaryCard({
   subtotal,
   deliveryFee,
   total,
+  onQuantityChange,
 }: {
   selectedItems: MenuItem[];
   cart: Cart;
   subtotal: number;
   deliveryFee: number;
   total: number;
+  onQuantityChange: (item: MenuItem, quantity: number) => void;
 }) {
   return (
     <div className="order-summary-card">
@@ -754,6 +777,24 @@ function OrderSummaryCard({
                   </small>
                 </span>
                 <strong>₱{(item.price * quantity).toLocaleString()}</strong>
+                <div className="quantity-control" aria-label={`${item.name} quantity`}>
+                  <button
+                    aria-label={`Remove one ${item.name}`}
+                    onClick={() => onQuantityChange(item, quantity - 1)}
+                    type="button"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span>{quantity}</span>
+                  <button
+                    aria-label={`Add one more ${item.name}`}
+                    disabled={quantity >= MAX_QUANTITY_PER_ITEM}
+                    onClick={() => onQuantityChange(item, quantity + 1)}
+                    type="button"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
               </div>
             );
           })}

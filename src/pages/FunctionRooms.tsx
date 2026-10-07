@@ -6,8 +6,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { SignInModal } from "../components/common";
 import { FUNCTION_ROOM_AMENITIES as amenities, FUNCTION_ROOMS as rooms } from "../constants";
+import { useAuth } from "../context/AuthContext";
+import { useAuthGate } from "../hooks/useAuthGate";
 
 const GALLERY_SLIDES = [
   "Private Dining Room",
@@ -17,6 +20,27 @@ const GALLERY_SLIDES = [
 
 export function FunctionRooms() {
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
+  const [awaitingReserve, setAwaitingReserve] = useState(false);
+
+  const handleReserve = () => {
+    if (requireAuth()) {
+      navigate("/function-rooms/reserve");
+      return;
+    }
+    setAwaitingReserve(true);
+  };
+
+  // Guest hit "Reserve a room", signed in, closed the dialog: continue into
+  // the reservation page instead of making them click again.
+  const handleCloseSignIn = () => {
+    const goToReserve = awaitingReserve && !!user;
+    setAwaitingReserve(false);
+    closeSignIn();
+    if (goToReserve) navigate("/function-rooms/reserve");
+  };
 
   return (
     <div className="function-rooms-page">
@@ -29,12 +53,13 @@ export function FunctionRooms() {
             main branch.
           </p>
           <div className="fr-landing-hero__actions">
-            <Link
+            <button
               className="button button--red fr-primary-cta"
-              to="/function-rooms/reserve"
+              onClick={handleReserve}
+              type="button"
             >
               <CalendarDays size={17} /> Reserve a room <ArrowRight size={16} />
-            </Link>
+            </button>
           </div>
         </div>
         <div
@@ -139,6 +164,7 @@ export function FunctionRooms() {
           </ul>
         </div>
       </section>
+      {showSignIn && <SignInModal onClose={handleCloseSignIn} />}
     </div>
   );
 }

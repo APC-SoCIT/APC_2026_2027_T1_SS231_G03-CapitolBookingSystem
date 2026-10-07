@@ -400,9 +400,9 @@ button, input, textarea, select { font: inherit; }
 .cart-line span { display: flex; flex-direction: column; }
 .cart-line small { margin-top: 0.15rem; color: #8a5a5a; font-size: 0.72rem; }
 .cart-line strong { color: #b70100; white-space: nowrap; }
-.packed-order-summary .cart-line { flex-wrap: wrap; align-items: center; }
-.packed-order-summary .cart-line > span { flex: 1; min-width: 0; }
-.packed-order-summary .cart-line > .quantity-control { flex-basis: 100%; }
+.packed-order-summary .cart-line, .order-sidebar .cart-line { flex-wrap: wrap; align-items: center; }
+.packed-order-summary .cart-line > span, .order-sidebar .cart-line > span { flex: 1; min-width: 0; }
+.packed-order-summary .cart-line > .quantity-control, .order-sidebar .cart-line > .quantity-control { flex-basis: 100%; }
 .summary-total { display: flex; justify-content: space-between; padding-top: 0.65rem; border-top: 1px solid rgba(100, 0, 0, 0.08); color: #6a4a4a; font-size: 0.85rem; }
 .summary-total + .summary-total { margin-top: 0.6rem; }
 .summary-total--grand { margin-top: 0.8rem !important; padding-top: 0.8rem; color: #640000; font-size: 1rem; font-weight: 700; }
