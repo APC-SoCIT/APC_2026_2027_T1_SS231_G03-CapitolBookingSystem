@@ -4,7 +4,7 @@
 |---|---|
 | **System under test** | https://capitolrestaurant.up.railway.app (Railway, `main`) |
 | **Source of truth** | SRS v1.1 (10-6-2026). Cited as `REQ-*`, `§x.y`, and *BR Name* for the named business rules in §5.5 (the SRS does not number them). `—` means the case comes from the test brief or the app, not the SRS |
-| **Code baseline** | `main` @ `010694c` |
+| **Code baseline** | `main` @ `8990106` (`010694c` plus the origin-guard fix for F-33). Findings were first verified at `010694c`; only `webhook.js` changed since |
 | **Total run time** | about 2 h (Smoke 20 min · Feature cases 75 min · Role matrix 10 min · DB/Security 15 min) |
 | **30-minute time box** | Run only the rows marked **⏱**, in this order: smoke ⏱ rows (about 17 min) → feature ⏱ rows CT-07, FR-02, FR-03, DO-05, IQ-04, IQ-05 (about 6 min) → RM-01 to RM-03 (about 3 min) → DB-01, DB-02 (about 2 min). One tester, the three core accounts, no day-before setup. Cases that need two users or a prepared Messenger thread are left to the full run |
 
@@ -259,7 +259,7 @@ Legend: **⏱** marks the 30-minute subset. "BrA" and "BrB" mean Browser A and B
 
 ## 3. ROLE-ACCESS MATRIX
 
-Source: `src/lib/roles.ts` → `canAccessRoute`, asserted by `scripts/test-roles.ts` (99 checks, passing at `010694c`).
+Source: `src/lib/roles.ts` → `canAccessRoute`, asserted by `scripts/test-roles.ts` (99 checks, passing at `8990106`).
 **✅** = page renders. **↪ X** = `RoleGuard` redirects to the role home **X**. Unknown paths are denied by the guard first, so they redirect to the role home (`/` for guests and customers).
 
 "Customer pages" = `/`, `/about-us`, `/catering`, `/catering/buffet`, `/catering/packed`, `/function-rooms`, `/function-rooms/reserve`, `/inquiries`, `/delivery`, `/delivery/order`.
@@ -330,7 +330,7 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 
 ---
 
-## 5. FINDINGS: SRS vs. app (verified in code at `010694c`; confirm on the live site with the referenced test)
+## 5. FINDINGS: SRS vs. app (verified in code at `8990106`; confirm on the live site with the referenced test)
 
 | ID | Severity | Finding | Evidence | SRS ref | Test |
 |---|---|---|---|---|---|
@@ -340,18 +340,18 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 | **F-04** | P1 | No payment gateway or deposit: bookings are created as *Pending* with no payment, and the GCash/Card options are labels only. PayMaya (REQ-DEL-003) is not offered | `reservations.ts:155`, `DeliveryOrder.tsx:893` | REQ-RES-003, REQ-DEL-003 | FR-10, DO-10 |
 | **F-05** | P1 | No 10-minute slot hold or expiry. The slot is occupied as soon as the booking is *Pending* and stays occupied until staff cancel it | No hold logic in the migrations or `src/` | REQ-RES-005 | FR-10 |
 | **F-06** | P1 | No confirmation email or self-cancel link | No SMTP/Resend code | BR Cancellation, §3.3 | FR-12 |
-| **F-07** | P1 | The web inquiry form does not require sign-in, the server always saves `user_id = null` (even for a signed-in customer, so the inquiry is never linked to the account), and non-order inquiries are saved as *Resolved* instead of *New* | `Inquiries.tsx`, `webhook.js:820-828` | REQ-INQ-001, §4.1.2-2 | IQ-01, IQ-07 |
+| **F-07** | P1 | The web inquiry form does not require sign-in, the server always saves `user_id = null` (even for a signed-in customer, so the inquiry is never linked to the account), and non-order inquiries are saved as *Resolved* instead of *New* | `Inquiries.tsx`, `webhook.js:840-848` | REQ-INQ-001, §4.1.2-2 | IQ-01, IQ-07 |
 | **F-08** | P1 | Front-of-house can edit the menu (`/delivery/items`), and catalog RLS gives FOH write access to packages, items, rooms and blackout dates | `roles.ts` OPERATIONS_PATHS; migration `20260917082142` `operational_predicate` | BR Menu & Pricing Authority | DS-08 |
 | **F-09** | P1 | Menu manager edits (items, categories, visibility) are stored in `localStorage` only, so they are not persisted to the DB or shown to other customers | `src/data/deliveryMenu.ts` | REQ-ADM-003, §4.4.2-4 | DS-06 |
 | **F-10** | P1 | The Inquiry Bot page shows no AI-drafted reply for staff to edit | `InquiryBot.tsx` (no draft field) | REQ-INQ-003 | IB-08 |
-| **F-11** | P1 (brief) | The Messenger agent never creates orders (`place_order` → "we can't take orders here"), so no `source = messenger` rows are written, although the schema supports them | `webhook.js:525`, `:950-953` | — (the test brief expects it; the SRS does not require it) | MA-07 |
+| **F-11** | P1 (brief) | The Messenger agent never creates orders (`place_order` → "we can't take orders here"), so no `source = messenger` rows are written, although the schema supports them | `webhook.js:545`, `:959-961` | — (the test brief expects it; the SRS does not require it) | MA-07 |
 | **F-12** | P1 | Customer RLS allows updating any column of their own booking or order, including `status` (e.g., self-*Confirmed*) | Migration `20260917082142` update policy | REQ-RES-003, §5.3 | DB-06 |
 | **F-13** | P1 | A rider account whose display name doesn't match a rider record sees the **first** rider's orders | `DeliveryRider.tsx:26-34` | §2.3 Rider ("assigned orders") | DS-11 |
 | **F-14** | P2 | There is no UI for managers to block out dates; `reserved_dates` can only be edited in the DB | No write to `reserved_dates` in `src/` | REQ-RES-004 | FR-13 |
 | **F-15** | P2 | The booking form has no data-privacy consent checkbox | No "consent" in `src/` | §5.3 Data Privacy | FR-14 |
 | **F-16** | P1 | The 2-day lead time is enforced only in the client. The DB accepts same-day bookings | `CalendarModal.tsx:201-209`; no DB check | BR Lead Time | DB-10 |
 | **F-17** | P2 | system_admin can open Operations but RLS denies writes, so status changes fail or silently revert | Migration `20260917082142` (`operational_predicate` excludes system_admin) | §2.3 (Administrator: full access), REQ-ADM-001 | DB-14 |
-| **F-18** | P1 | `POST /inquiry-bot` has no Meta signature check, and `VERIFY_TOKEN` falls back to `test-agent` when the env var is unset | `webhook.js:75`, `:975`. **Confirmed live 2026-10-07:** unsigned POST returns 200, and the verify token `test-agent` is accepted, so `VERIFY_TOKEN` is not set on Railway | §5.3, §2.5 Vendor | DB-15, MA-01 |
+| **F-18** | P1 | `POST /inquiry-bot` has no Meta signature check, and `VERIFY_TOKEN` falls back to `test-agent` when the env var is unset | `webhook.js:95`, `:995`. **Confirmed live 2026-10-07:** unsigned POST returns 200, and the verify token `test-agent` is accepted, so `VERIFY_TOKEN` is not set on Railway | §5.3, §2.5 Vendor | DB-15, MA-01 |
 | **F-19** | P2 | Phone rules differ between forms: function room and catering accept `+639…`, delivery and profile accept only `09…` | `FunctionRoomReservation.tsx:16` vs `DeliveryOrder.tsx:46` | — (internal consistency) | FR-06, DO-05 |
 | **F-20** | P2 | The delivery status flow differs: the SRS has *Received → Preparing → Out for Delivery → Delivered*; the app has *Preparing → Ready for pickup → Out for delivery → Delivered* | `delivery.ts:49` | §4.3.2-5 | DS-02 |
 | **F-21** | P2 | Packed-meal bookings are saved with `email = ""`, so staff cannot email the customer | `CateringPacked.tsx:292` | §3.3 SMTP | CT-12 (check the DB row) |
@@ -366,7 +366,8 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 | **F-30** | P2 | Operations stat cards differ from the SRS widgets: no *Room Occupancy*, and revenue appears only as a hint | `Operations.tsx:277-281` | §4.4.2-3 | OP-08 |
 | **F-31** | P2 (docs) | The SRS architecture doesn't match the build: Python FastAPI backend vs. Express `webhook.js`; `SELECT FOR UPDATE` vs. a partial unique index for slot locking. Behaviour is equivalent; update the SRS (§2.1, §2.4, REQ-RES-002) or record a design decision | `webhook.js`; migration unique index `function_bookings_active_slot_unique` | §2.1, §2.4, REQ-RES-002 | DB-08 |
 | **F-32** | P2 | The Supabase catalog tables (`catering_packages`, `packed_menu_items`, `function_rooms`) are never read by the app, and their data disagrees with what customers see: the DB has *Package 1–3* for 50–500 guests, the site shows *Package A–C* for 10–12 guests from `serviceCatalog.json`. Catalog edits in the DB never reach the site, so the catalog write access in F-08 has no UI effect and REQ-ADM-003 cannot be met through the DB | No query on those tables in `src/` or `webhook.js`; seed in migration `20260827090541:139-141`; live anon GET on 2026-10-07 | REQ-ADM-003, §4.4.2-4 | DS-06 |
-| **F-33** | **P1 (blocker)** | **The live site is blank in every browser.** The server's origin guard rejects the site's own origin, so the JS and CSS (loaded with an `Origin` header because Vite marks them `crossorigin`) return 403 *"This website origin is not allowed."*. The same guard rejects the inquiry form's POST, and the page then shows customers a raw parse error (*"Unexpected token 'T'…"*). Fix: add `https://capitolrestaurant.up.railway.app` to `FRONTEND_ORIGINS` on Railway, or let same-origin requests through the guard | `webhook.js:39-50` (guard uses only `FRONTEND_ORIGINS`); live: `curl -H 'Origin: https://capitolrestaurant.up.railway.app' …/assets/index-Bq1AsZVl.js` → 403 on 2026-10-07 | §5.1 Availability, REQ-INQ-001 | S-02, IQ-01, NF-01 |
+| **F-33** | **P1 (blocker)** | **The live site is blank in every browser.** The server's origin guard rejects the site's own origin, so the JS and CSS (loaded with an `Origin` header because Vite marks them `crossorigin`) return 403 *"This website origin is not allowed."*. The same guard rejects the inquiry form's POST, and the page then shows customers a raw parse error (*"Unexpected token 'T'…"*). Fix: add `https://capitolrestaurant.up.railway.app` to `FRONTEND_ORIGINS` on Railway, or let same-origin requests through the guard. **Fixed in `8990106` (same-origin requests now pass the guard); verified live 2026-10-07 (S-02 pass, IQ-01 submits)** | `webhook.js:39-50` (guard uses only `FRONTEND_ORIGINS`); live: `curl -H 'Origin: https://capitolrestaurant.up.railway.app' …/assets/index-Bq1AsZVl.js` → 403 on 2026-10-07 | §5.1 Availability, REQ-INQ-001 | S-02, IQ-01, NF-01 |
+| **F-34** | P1 | Manual order requests never alert staff: the server posts to `STAFF_NOTIFICATION_WEBHOOK_URL`, which is unset or failing on Railway, so the customer sees *"Your request was recorded, but the staff alert could not be delivered. Please call us to follow up."* (HTTP 202). The request still appears on `/operations`, but nobody is notified | `webhook.js:186-211` (`notifyStaff`), `:863` (202 response); live 2026-10-07 | §3.1 Real-time Alert Notifications, §4.1.2-2 | IQ-04, IQ-05 |
 
 ---
 
@@ -377,6 +378,7 @@ Base headers: `-H "apikey: $ANON" -H "Authorization: Bearer $JWT"` (for anon, us
 | 2026-10-07 | live site (Railway `main`); repo `db90eeb` | Claude (no-account automated checks) | Smoke, Features, DB / Security | 9 | 1 | 1 | S-01, S-20, MA-01, MA-02, IQ-03, DB-01, DB-02, DB-03, DB-16 pass; DB-15 fail → F-18 (also: live verify token is the `test-agent` fallback); IB-09 blocked (needs CUST JWT); new F-32. All account-based cases not yet run |
 | 2026-10-07 | live bundle `index-Bq1AsZVl.js`; source `010694c` | Claude (inspection) | Features | 2 | 24 | 0 | Inspection of the deployed code for missing features and fixed rules: FR-04, FR-05 pass; FR-02, FR-03, FR-10, FR-12 to FR-16, DO-08 to DO-10, DO-13, DO-14, DS-06, DS-08, DS-11, DS-13, DS-14, IQ-01, IQ-07, IB-08, MA-07, OP-08, OP-09 fail (all map to known findings). Re-confirm by test in the manual run |
 | 2026-10-07 | live site; bundle `index-Bq1AsZVl.js` | Claude (Playwright, guest) | Smoke, Features | 20 | 6 | 2 | Real Chrome: site blank → **F-33** (S-02 fail). With a test-only workaround for F-33: S-03, S-04, CT-01, CT-02, CT-07, CT-08, DO-01 to DO-04, DO-07, DO-12, FR-01, FR-04 to FR-06, PR-01, AU-02, AU-04, IQ-02 pass; FR-02, FR-03, FR-14, DO-13, IQ-01 fail (F-03, F-15, F-23, F-07 + F-33); NF-01, NF-03 blocked. Account-based, Messenger and JWT cases blocked: no QA accounts or Facebook test user yet |
+| 2026-10-07 | `main` @ `8990106` (F-33 fix live); bundle `index-Bq1AsZVl.js` | Claude (Playwright, real Chrome + curl) | All runnable | 31 | 7 | 2 | Retest after the F-33 fix, no workaround. S-02 now passes (**F-33 verified fixed**). Guest cases unchanged (20 pass, FR-02, FR-03, FR-14, DO-13 fail). IQ-01 now submits (fail: F-07, fallback reply shown). IQ-04 fail → **new F-34** (staff alert not delivered). NF-01 pass (≤ 3.3 s on 4G). Server/DB checks unchanged (DB-15 fail, F-18 still live). 96 cases still blocked: no QA accounts or Facebook test user |
 | | | | Smoke | | | | |
 | | | | Features | | | | |
 | | | | Role matrix | | | | |
