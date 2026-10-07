@@ -285,17 +285,19 @@ export function Operations({ section }: { section?: "function-bookings" | "cater
   return (
     <div>
       <section className="section dashboard-section">
-        <div className="dashboard-toolbar">
-          <div>
-            <p className="eyebrow">Capitol Restaurant</p>
-            <h2>{panelTitle}</h2>
-            <small className="ops-toolbar-hint">Tip: click a row to change package or booking info · Print via modal · 1 sheet A4 portrait</small>
+        {!section && (
+          <div className="dashboard-toolbar">
+            <div>
+              <p className="eyebrow">Capitol Restaurant</p>
+              <h2>{panelTitle}</h2>
+              <small className="ops-toolbar-hint">Tip: click a row to change package or booking info · Print via modal · 1 sheet A4 portrait</small>
+            </div>
+            <button className="reset-button" onClick={refreshDashboard} type="button">
+              <RefreshCw size={15} />
+              Refresh data
+            </button>
           </div>
-          <button className="reset-button" onClick={refreshDashboard} type="button">
-            <RefreshCw size={15} />
-            Refresh data
-          </button>
-        </div>
+        )}
         {bookingLoadError && <p className="field-error" role="alert">{bookingLoadError}</p>}
 
         {!section && (
