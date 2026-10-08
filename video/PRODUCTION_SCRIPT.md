@@ -6,7 +6,7 @@
 | --- | --- |
 | Runtime | 4:33 |
 | Format | 1920×1080, 30 fps, H.264 + AAC stereo |
-| Deliverable | `out/Capitol_Booking_System_Demo.mp4` (burned-in captions) |
+| Deliverable | `video/Capitol_Booking_System_Demo.mp4` (burned-in captions) |
 | Narrator | AI neural voice, warm male (en-US-AndrewMultilingualNeural, +6% pace) |
 | Music | Original score in D major, about 96 BPM, ducked under the narration |
 | Look | Capitol brand: deep red `#640000`, signal red `#B70100`, beige `#FFEFC1`, cream `#FDF6E3`; Playfair Display headlines, Georgia UI headings, Inter body |
