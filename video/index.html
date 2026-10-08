@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capitol Booking System — Product Film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@500;700&display=block" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  #controls { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: rgba(0,0,0,.75); color: #fff; font: 13px Inter, sans-serif; z-index: 9999; }
+  #controls input { flex: 1; }
+  #controls button { background: #b70100; color: #fff; border: 0; border-radius: 6px; padding: 6px 14px; font-weight: 700; cursor: pointer; }
+  body.render #controls { display: none; }
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+  <img id="watermark" src="assets/brand/wordmark-beige-600.png" alt="">
+  <div id="captions"><span></span></div>
+</div></div>
+<div id="controls"><button id="play">Play</button><span id="time">0:00.0</span><input id="scrub" type="range" min="0" step="0.01" value="0"><label><input id="cc" type="checkbox" checked> Captions</label></div>
+<audio id="audio" src="out/soundtrack.m4a" preload="auto"></audio>
+<script src="timeline.js"></script>
+<script src="engine.js"></script>
+<script src="common.js"></script>
+<script src="scenes1.js"></script>
+<script src="scenes2.js"></script>
+<script src="scenes3.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
