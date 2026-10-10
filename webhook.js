@@ -657,8 +657,11 @@ ${pkg.inclusions.map((item) => `• ${item}`).join('\n')}`).join('\n\n');
     `Catering: Buffet Packages\n\n${buffet}\n\n${SERVICE_CATALOG.cateringPackageNotes.join('\n')}`,
     `Catering: Individually Packed Meals
 
-${formatMenuForCustomer()}
-
+We offer a wide selection of individually packed meals (minimum 10 packs per meal type).
+${SITE_URL ? `
+View our full packed meals menu & catering details:
+${siteLink('/catering')}
+` : ''}
 Good to know:
 ${CATERING_RULES.map((rule) => `• ${rule}`).join('\n')}`,
     formatCateringForm()
@@ -703,15 +706,12 @@ function formatDeliveryInfo() {
 ${DELIVERY_RULES.map((rule) => `• ${rule}`).join('\n')}
 • Ordering on the website requires signing in.
 ${SITE_URL ? `
-Order here:
+Browse our packed meals & order here:
 ${siteLink('/delivery/order')}
 
 Track an order:
 ${siteLink('/delivery')}
 ` : ''}
-Our packed meals:
-${formatMenuForCustomer()}
-
 If you have a concern about an existing order, please send your reference number (CAP-XXXX) and your concern, and our staff will follow up.`;
 }
 
