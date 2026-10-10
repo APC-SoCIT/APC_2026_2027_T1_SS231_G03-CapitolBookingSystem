@@ -633,15 +633,11 @@ Tap a button below or reply with the number.`, SERVICE_QUICK_REPLIES)
 }
 
 function formatCateringForm() {
-  return `To request catering, please copy this form, fill it in, and send it back:
-
-Full Name:
-Contact Number:
-Event Type:
-Event Date:
-Number of Guests:
-Package or Style (Buffet / Packed Meals):
-Notes (optional):
+  return `To request catering, please send your:
+• Full Name & Contact Number
+• Event Type & Date
+• Number of Guests
+• Preferred Package (Buffet / Packed Meals)
 
 Our staff will review your request and reply to you here.
 
@@ -649,22 +645,27 @@ ${websiteLine('You may also reserve catering on our website after signing in', '
 }
 
 function formatCateringInfo() {
-  const buffet = CATERING_PACKAGES.map((pkg) => `${pkg.name} – ${peso(pkg.packagePrice)}
-${pkg.servingSize}
-${pkg.inclusions.map((item) => `• ${item}`).join('\n')}`).join('\n\n');
+  const packageSummaries = CATERING_PACKAGES.map((pkg) => `• ${pkg.name} – ${peso(pkg.packagePrice)} (${pkg.servingSize})`).join('\n');
 
   return [
-    `Catering: Buffet Packages\n\n${buffet}\n\n${SERVICE_CATALOG.cateringPackageNotes.join('\n')}`,
-    `Catering: Individually Packed Meals
+    `Catering Services
 
-We offer a wide selection of individually packed meals (minimum 10 packs per meal type).
+We offer two catering options for your occasions:
+
+1. Buffet Packages (good for 10 to 12 guests):
+${packageSummaries}
+
+2. Individually Packed Meals:
+• Minimum of 10 packs per meal type.
+
+Good to know:
+${CATERING_RULES.map((rule) => `• ${rule}`).join('\n')}
+• Catering reservations must be placed at least 2 days in advance.
 ${SITE_URL ? `
-View our full packed meals menu & catering details:
+View full menu inclusions & reserve online:
 ${siteLink('/catering')}
 ` : ''}
-Good to know:
-${CATERING_RULES.map((rule) => `• ${rule}`).join('\n')}`,
-    formatCateringForm()
+To book through chat, simply send your event date, guest count, and preferred package or style, and our staff will assist you!`
   ];
 }
 
