@@ -1,11 +1,13 @@
 import { Minus, Plus, Trash2, Package, UtensilsCrossed } from "lucide-react";
-import { CATERING_PACKAGES } from "../../constants";
+import { CATERING_PACKAGES, PACKED_MENU_ITEMS, type MenuItem } from "../../constants";
 import type { OrderItem, OrderItemType } from "../../data/delivery";
 import { useDeliveryMenuItems } from "../../data/deliveryMenu";
 
 type Props = {
   items: OrderItem[];
   onChange: (items: OrderItem[]) => void;
+  /** Packed-meal menu for the picker; defaults to the delivery menu. */
+  menuItems?: MenuItem[];
 };
 
 function makePackageItem(pkgId: string): OrderItem {
@@ -21,11 +23,12 @@ function makePackageItem(pkgId: string): OrderItem {
   };
 }
 
-export function OrderItemsEditor({ items, onChange }: Props) {
-  const menuItems = useDeliveryMenuItems();
+export function OrderItemsEditor({ items, onChange, menuItems }: Props) {
+  const deliveryMenu = useDeliveryMenuItems();
+  const meals = menuItems ?? deliveryMenu;
 
   function makeMealItem(mealId?: string): OrderItem {
-    const m = (mealId ? menuItems.find((x) => x.id === mealId) : null) || menuItems[0];
+    const m = (mealId ? meals.find((x) => x.id === mealId) : null) || meals[0];
     if (!m) throw new Error("meal not found");
     return {
       id: m.id,
@@ -104,14 +107,14 @@ export function OrderItemsEditor({ items, onChange }: Props) {
                 <select
                   value={item.id}
                   onChange={(e) => {
-                    const m = menuItems.find((x) => x.id === e.target.value) || menuItems[0];
+                    const m = meals.find((x) => x.id === e.target.value) || meals[0];
                     if (m) {
                       update(idx, { id: m.id, name: m.name, price: m.price, category: m.category });
                     }
                   }}
                   className="ops-select ops-select--grow"
                 >
-                  {menuItems.map((m) => (
+                  {meals.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name} — ₱{m.price} · {m.category}
                     </option>

@@ -144,6 +144,20 @@ export async function fetchMyDeliveryOrders(): Promise<
   return ((data ?? []) as unknown as DeliveryOrderRow[]).map(toOrder);
 }
 
+export async function fetchDeliveryOrderByReference(
+  reference: string,
+): Promise<SupabaseDeliveryOrder | null> {
+  const { data, error } = await supabase
+    .from("delivery_orders")
+    .select(
+      "reference, customer, phone, address, status, eta, placed_at, payment_method, notes, items_list, items_display, subtotal, delivery_fee, total, timeline, rider_id",
+    )
+    .eq("reference", reference)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toOrder(data as unknown as DeliveryOrderRow) : null;
+}
+
 export async function fetchAllDeliveryOrders(): Promise<
   SupabaseDeliveryOrder[]
 > {

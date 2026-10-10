@@ -414,6 +414,20 @@ button, input, textarea, select { font: inherit; }
 .confirmation-icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 1.25rem; border-radius: 50%; background: rgba(8, 116, 67, 0.1); color: #087443; }
 .order-confirmation > strong { display: block; margin: 0.5rem 0 1rem; color: #b70100; font-family: Georgia, "Times New Roman", serif; font-size: 2rem; letter-spacing: 0.06em; }
 .order-confirmation > p:not(.eyebrow) { max-width: 450px; margin: 0 auto; color: #6a4a4a; line-height: 1.7; }
+
+.order-confirmation__paid { color: #087443 !important; font-style: normal !important; font-weight: 600; }
+
+.order-confirmation__summary { max-width: 420px; margin: 1.5rem auto 0; padding: 1.25rem 1.5rem; border: 1px solid rgba(183, 1, 0, 0.16); border-radius: 12px; background: #fffdf8; text-align: left; }
+
+.order-confirmation__row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.92rem; }
+.order-confirmation__row span { color: #8a6a6a; }
+.order-confirmation__row strong { text-align: right; }
+
+.order-confirmation__items { list-style: none; margin: 0.9rem 0; padding: 0.9rem 0; border-top: 1px dashed rgba(183, 1, 0, 0.2); border-bottom: 1px dashed rgba(183, 1, 0, 0.2); }
+.order-confirmation__items li { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.92rem; padding: 0.2rem 0; }
+.order-confirmation__items span { color: #6a4a4a; }
+.order-confirmation__items li.order-confirmation__total { padding-top: 0.5rem; font-weight: 700; color: #b70100; }
+.order-confirmation__items li.order-confirmation__total span { color: #6a4a4a; font-weight: 600; }
 .confirmation-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
 .button--outline-light { border: 1.5px solid #640000; background: #fff; color: #640000; }
 .button--outline-light:hover { background: rgba(100, 0, 0, 0.06); }

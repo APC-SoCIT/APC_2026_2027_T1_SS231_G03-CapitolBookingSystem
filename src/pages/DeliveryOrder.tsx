@@ -1,6 +1,6 @@
 import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { SignInModal } from "../components/common";
 import { DELIVERY_FEE, type MenuItem } from "../constants";
 import {
@@ -8,7 +8,7 @@ import {
   useDeliveryCategoryDefs,
   useDeliveryMenuItems,
 } from "../data/deliveryMenu";
-import { createSupabaseDeliveryOrder } from "../data/deliveryOrders";
+import { createSupabaseDeliveryOrder, fetchDeliveryOrderByReference, type SupabaseDeliveryOrder } from "../data/deliveryOrders";
 import { useAuthGate } from "../hooks/useAuthGate";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -50,7 +50,7 @@ const EMPTY_DETAILS: CustomerDetails = {
   phone: "",
   address: "",
   notes: "",
-  payment: "Cash on delivery",
+  payment: "QR Ph",
 };
 
 const MAX_QUANTITY_PER_ITEM = 20;
@@ -68,7 +68,13 @@ export function DeliveryOrder() {
   const [submittedReference, setSubmittedReference] = useState<string | null>(
     null,
   );
+  // Full order for the confirmation screen when PayMongo sends the customer
+  // back with ?reference=… (the in-session COD flow has no reload to survive).
+  const [confirmedOrder, setConfirmedOrder] = useState<SupabaseDeliveryOrder | null>(null);
+  const [confirmationLoading, setConfirmationLoading] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [submitting, setSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [menuSearch, setMenuSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [variantProduct, setVariantProduct] = useState<ProductGroup | null>(
@@ -104,6 +110,51 @@ export function DeliveryOrder() {
       }));
     });
   }, [user]);
+
+  // PayMongo redirects back to /delivery/order?reference=D-… after payment.
+  // Pull the order from Supabase so the confirmation screen shows real data
+  // (this component remounted, so its in-memory state is gone).
+  useEffect(() => {
+    const reference = searchParams.get("reference");
+    if (!reference || submittedReference) return;
+    let cancelled = false;
+    setConfirmationLoading(true);
+    fetchDeliveryOrderByReference(reference)
+      .then((order) => {
+        if (cancelled) return;
+        if (order) {
+          setConfirmedOrder(order);
+          setSubmittedReference(order.reference);
+          // PayMongo fires its webhook about the same moment it redirects, so
+          // the first fetch can miss the "Paid" mark: recheck once, late.
+          const paidYet = order.timeline?.some((entry) =>
+            /\(Paid via PayMongo\)/.test(entry.status),
+          );
+          if (!paidYet) {
+            setTimeout(() => {
+              fetchDeliveryOrderByReference(reference)
+                .then((late) => late && setConfirmedOrder(late))
+                .catch(() => {});
+            }, 2500);
+          }
+        } else {
+          setSubmittedReference(reference);
+        }
+      })
+      .catch(() => setSubmittedReference(reference))
+      .finally(() => {
+        if (!cancelled) {
+          setConfirmationLoading(false);
+          // Clear ?reference so a reload of the menu cart doesn't re-trigger.
+          searchParams.delete("reference");
+          setSearchParams(searchParams, { replace: true });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateQuantity = (item: MenuItem, quantity: number) => {
     setCart((currentCart) => ({
@@ -292,8 +343,10 @@ export function DeliveryOrder() {
     const itemsDisplay = `${totalQuantity} item${totalQuantity === 1 ? "" : "s"} · ₱${total.toLocaleString()}`;
 
     setSubmitting(true);
+    setPaymentError(null);
+    let reference: string;
     try {
-      const reference = await createSupabaseDeliveryOrder({
+      reference = await createSupabaseDeliveryOrder({
         userId: user.id,
         customer: details.name.trim(),
         phone: details.phone.trim(),
@@ -306,25 +359,78 @@ export function DeliveryOrder() {
         paymentMethod: details.payment,
         notes: details.notes.trim(),
       });
-      setSubmittedReference(reference);
-      setShowDetailsModal(false);
-      setCart({});
     } catch {
+      setSubmitting(false);
       setFieldMessages({
         items: "Order could not be placed. Please try again.",
       });
-    } finally {
-      setSubmitting(false);
+      setShowDetailsModal(false);
+      return;
     }
+
+    // GCash/Card go through PayMongo's hosted checkout before the order
+    // is marked paid by the server's /api/paymongo/webhook endpoint.
+    if (details.payment !== "Cash on delivery") {
+      const apiBase = (
+        import.meta.env.VITE_WEBHOOK_URL || window.location.origin
+      ).replace(/\/+$/, "");
+      try {
+        const response = await fetch(`${apiBase}/api/payments/create-checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reference,
+            items: itemsList,
+            deliveryFee,
+            total,
+            method: details.payment,
+            successUrl: `${window.location.origin}/delivery/order?reference=${reference}`,
+            cancelUrl: `${window.location.origin}/delivery/order`,
+          }),
+        });
+        const result = (await response.json()) as {
+          checkoutUrl?: string;
+          error?: string;
+        };
+        if (!response.ok || !result.checkoutUrl) {
+          throw new Error(result.error || "Payment could not be started.");
+        }
+        window.location.assign(result.checkoutUrl);
+        return;
+      } catch (error) {
+        // The order was saved; surface the payment problem inside the modal
+        // (not the sidebar behind it) and let the customer retry.
+        // Fetch-level failures reject as TypeError (Chrome "Failed to fetch",
+        // Firefox "NetworkError..."); server errors we throw ourselves.
+        setPaymentError(
+          error instanceof TypeError
+            ? "Could not reach the payment service. Is the server running?"
+            : error instanceof Error
+              ? error.message
+              : "Payment could not be started.",
+        );
+        return;
+      } finally {
+        setSubmitting(false);
+      }
+    }
+
+    setSubmittedReference(reference);
+    setShowDetailsModal(false);
+    setCart({});
+    setSubmitting(false);
   };
 
   if (submittedReference) {
     return (
       <OrderConfirmation
-        customerName={details.name}
+        customerName={confirmedOrder?.customer || details.name}
+        order={confirmedOrder}
         reference={submittedReference}
+        loading={confirmationLoading}
         onPlaceAnother={() => {
           setSubmittedReference(null);
+          setConfirmedOrder(null);
           setDetails(EMPTY_DETAILS);
           setCart({});
         }}
@@ -483,6 +589,7 @@ export function DeliveryOrder() {
           total={total}
           submitting={submitting}
           savedAddresses={savedAddresses}
+          paymentError={paymentError}
           onClose={() => setShowDetailsModal(false)}
           onChange={updateDetail}
           onConfirm={handleConfirmDetails}
@@ -855,6 +962,7 @@ function DeliveryDetailsModal({
   total,
   submitting,
   savedAddresses,
+  paymentError,
   onClose,
   onChange,
   onConfirm,
@@ -865,6 +973,7 @@ function DeliveryDetailsModal({
   total: number;
   submitting: boolean;
   savedAddresses: StoredAddress[];
+  paymentError: string | null;
   onClose: () => void;
   onChange: (key: keyof CustomerDetails, value: string) => void;
   onConfirm: () => void;
@@ -992,8 +1101,8 @@ function DeliveryDetailsModal({
                 value={details.payment}
                 onChange={(event) => onChange("payment", event.target.value)}
               >
+                <option>QR Ph</option>
                 <option>Cash on delivery</option>
-                <option>GCash</option>
                 <option>Card</option>
               </select>
             </label>
@@ -1012,6 +1121,11 @@ function DeliveryDetailsModal({
             </label>
           </div>
 
+          {paymentError && (
+            <p className="field-error order-sidebar__error" role="alert">
+              {paymentError}
+            </p>
+          )}
           <button
             className="button button--red order-submit"
             onClick={onConfirm}
@@ -1057,21 +1171,38 @@ function FormField({
   );
 }
 
+const PAID_LABEL_PATTERN = /\(Paid via PayMongo\)/;
+
 function OrderConfirmation({
   customerName,
+  order,
   onPlaceAnother,
   reference,
+  loading,
 }: {
   customerName: string;
+  order: SupabaseDeliveryOrder | null;
   onPlaceAnother: () => void;
   reference: string;
+  loading: boolean;
 }) {
+  const paid = order?.timeline?.some((entry) =>
+    PAID_LABEL_PATTERN.test(entry.status),
+  );
+  const paymentLabel = order?.paymentMethod
+    ? order.paymentMethod.replace(/\s*\(Paid via PayMongo\)\s*/g, "")
+    : "";
+
   return (
     <div>
       <section className="page-hero">
         <p className="eyebrow">Order confirmed</p>
         <h1>Thank you, {customerName}.</h1>
-        <p>Your Capitol delivery request has been added to the order queue.</p>
+        <p>
+          {order
+            ? "Your Capitol delivery request has been added to the order queue."
+            : "Looking up your order…"}
+        </p>
       </section>
 
       <section className="section order-confirmation">
@@ -1080,6 +1211,49 @@ function OrderConfirmation({
         </div>
         <p className="eyebrow">Your tracking reference</p>
         <strong>{reference}</strong>
+        {paid && (
+          <p className="order-confirmation__paid">
+            Payment received via {paymentLabel || "PayMongo"}. Capitol&apos;s
+            staff will confirm and prepare your order.
+          </p>
+        )}
+        {order && (
+          <div className="order-confirmation__summary">
+            <div className="order-confirmation__row">
+              <span>Status</span>
+              <strong>{order.status}</strong>
+            </div>
+            <div className="order-confirmation__row">
+              <span>Payment</span>
+              <strong>
+                {paymentLabel || "Cash on delivery"}
+                {paid ? " · Paid ✓" : ""}
+              </strong>
+            </div>
+            <ul className="order-confirmation__items">
+              {order.itemsList.map((item) => (
+                <li key={item.id}>
+                  <span>
+                    {item.quantity} × {item.name}
+                  </span>
+                  <strong>₱{item.price * item.quantity}</strong>
+                </li>
+              ))}
+              <li>
+                <span>Delivery fee</span>
+                <strong>₱{order.deliveryFee}</strong>
+              </li>
+              <li className="order-confirmation__total">
+                <span>Total</span>
+                <strong>₱{order.total.toLocaleString()}</strong>
+              </li>
+            </ul>
+            <div className="order-confirmation__row">
+              <span>Deliver to</span>
+              <strong>{order.address}</strong>
+            </div>
+          </div>
+        )}
         <p>
           Keep this reference to check your order progress. Capitol&apos;s staff
           will update its status as it moves through delivery.

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import axios from 'axios';
+import crypto from 'node:crypto';
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,6 +31,10 @@ app.use((req, res, next) => {
     && (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.trycloudflare.com'));
 
   if (!isRailwayHost && !isLocalDevelopmentHost) {
+    // Echo CORS headers even on this reject so browsers surface our message
+    // instead of an opaque "NetworkError" (the rejection itself is unchanged).
+    res.set('Access-Control-Allow-Origin', process.env.FRONTEND_ORIGINS?.split(',')[0]?.trim() || '*');
+    res.set('Vary', 'Origin');
     return res.status(403).send('Requests must use the Railway public domain.');
   }
 
@@ -64,10 +69,10 @@ app.use((req, res, next) => {
     }
   })();
   const isSameOrigin = Boolean(originHostname) && originHostname === requestHostname;
-
-  if (origin && !configuredOrigins.includes(origin.replace(/\/$/, '')) && !isSameOrigin && !isLocalDevelopmentOrigin) {
-    return res.status(403).send('This website origin is not allowed.');
-  }
+  const originAllowed = !origin
+    || configuredOrigins.includes(origin.replace(/\/$/, ''))
+    || isSameOrigin
+    || isLocalDevelopmentOrigin;
 
   if (origin) {
     res.set('Access-Control-Allow-Origin', origin);
@@ -77,10 +82,17 @@ app.use((req, res, next) => {
   }
 
   if (req.method === 'OPTIONS') return res.sendStatus(204);
+  if (!originAllowed) {
+    return res.status(403).send('This website origin is not allowed.');
+  }
   next();
 });
 
-app.use(express.json());
+// Keep a copy of the raw body so the PayMongo webhook signature can be verified
+// (the HMAC is computed over the exact bytes PayMongo sent).
+app.use(express.json({
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 app.use(express.static(frontendDistPath, { index: false }));
 
 // Initialize Supabase using environment variables
@@ -216,6 +228,17 @@ async function notifyStaff({ inquiryId, senderId, name, email, source, message }
 const DELIVERY_FEE = SERVICE_CATALOG.deliveryFee;
 const MENU_ITEMS = SERVICE_CATALOG.deliveryMenuItems;
 const CATERING_PACKAGES = SERVICE_CATALOG.cateringPackages;
+const PACKED_MENU_ITEMS = SERVICE_CATALOG.packedMenuItems;
+
+// Items within a packed-meal category share the same per-pack price.
+function packedMenuGroups() {
+  return Object.entries(
+    PACKED_MENU_ITEMS.reduce((groups, item) => {
+      (groups[item.category] ??= []).push(item);
+      return groups;
+    }, {})
+  );
+}
 
 const AGENT_CONTEXT = fs.readFileSync(path.join(projectRoot, 'docs/capitol-ai-agent-context.md'), 'utf8').replace(/\r\n/g, '\n');
 // Railway sets RAILWAY_PUBLIC_DOMAIN automatically, so deployments get the link without extra setup.
@@ -269,12 +292,13 @@ const websiteLine = (intro, pagePath) => (SITE_URL ? `${intro}:\n${siteLink(page
 if (!SITE_URL) console.warn('⚠️ PUBLIC_SITE_URL is not set; replies will not include website links.');
 
 const KNOWN_FACTS = `WEBSITE DATA (use these menu items and prices; you may quote them):
-Delivery menu (packed meals), delivery fee ${peso(DELIVERY_FEE)}:
+Delivery menu and delivery fee ${peso(DELIVERY_FEE)}:
 ${MENU_ITEMS.map((item) => `- ${item.name}: ${peso(item.price)} (${item.description})`).join('\n')}
 Catering buffet packages:
 ${CATERING_PACKAGES.map((pkg) => `- ${pkg.name}: ${peso(pkg.packagePrice)} per package, ${pkg.servingSize}. Includes ${pkg.inclusions.join(', ')}.`).join('\n')}
 ${SERVICE_CATALOG.cateringPackageNotes.join(' ')}
-Catering packed meals use the same menu as delivery.
+Catering individually packed meals (minimum 10 packs per delivery and 10 packs per kind):
+${packedMenuGroups().map(([category, items]) => `- ${category}: ${items.map((item) => `${item.name} (${peso(item.price)})`).join(', ')}`).join('\n')}
 Function room event types: ${SERVICE_CATALOG.functionRoomEventTypes.join(', ')}.
 ${SITE_URL ? `Website pages (share the matching link whenever you mention the website):
 - Home: ${SITE_URL}
@@ -371,6 +395,13 @@ async function clearMessengerSession(psid) {
 
 function formatMenuForCustomer() {
   return MENU_ITEMS.map((item) => `• ${item.name} – ${peso(item.price)}`).join('\n');
+}
+
+// Catering packed meals (solo / bento / two-ulam) differ from the delivery menu.
+function formatPackedMealsForCustomer() {
+  return packedMenuGroups()
+    .map(([category, items]) => `${category} – ${peso(items[0].price)} per pack\n${items.map((item) => `• ${item.name}`).join('\n')}`)
+    .join('\n\n');
 }
 
 // --- Service selection: Function Room, Catering, or Delivery ---
@@ -657,7 +688,7 @@ ${pkg.inclusions.map((item) => `• ${item}`).join('\n')}`).join('\n\n');
     `Catering: Buffet Packages\n\n${buffet}\n\n${SERVICE_CATALOG.cateringPackageNotes.join('\n')}`,
     `Catering: Individually Packed Meals
 
-${formatMenuForCustomer()}
+${formatPackedMealsForCustomer()}
 
 Good to know:
 ${CATERING_RULES.map((rule) => `• ${rule}`).join('\n')}`,
@@ -1018,6 +1049,154 @@ app.post('/inquiry-bot', (req, res) => {
       });
     }
   }
+});
+
+// --- PayMongo checkout (GCash / Card) for delivery orders ---
+
+// Test keys (sk_test_) run simulated payments; live keys need real account
+// activation and charge real money.
+const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY || '';
+const PAYMONGO_WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET || '';
+const paymongoAuth = { username: PAYMONGO_SECRET_KEY, password: '' };
+
+// QR Ph first: it covers every bank and e-wallet app (GCash, Maya, Maya bank,
+// BPI, BDO…). GCash direct and Card are later options with their own types.
+const PAYMENT_METHOD_TYPES = { 'QR Ph': ['qrph'], GCash: ['gcash'], Card: ['card'] };
+
+function formatEventDate(epochOrIso) {
+  const date = epochOrIso > 1e12 ? new Date(Number(epochOrIso)) : new Date(epochOrIso * 1000 || epochOrIso);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    .toISOString().replace('T', ' ').slice(0, 16) + ' PHT';
+}
+
+app.post('/api/payments/create-checkout', async (req, res) => {
+  if (!PAYMONGO_SECRET_KEY) {
+    return res.status(500).json({ error: 'Payments are not configured yet. Please choose cash on delivery.' });
+  }
+
+  const { reference, items, deliveryFee, total, method, successUrl, cancelUrl } = req.body || {};
+  const methodTypes = PAYMENT_METHOD_TYPES[method];
+  if (!reference || !Array.isArray(items) || !items.length || !methodTypes) {
+    return res.status(400).json({ error: 'Invalid checkout request.' });
+  }
+  const centavos = (pesos) => Math.round(Number(pesos) * 100);
+  const lineItems = items.map((item) => ({
+    name: String(item.name).slice(0, 120),
+    quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
+    amount: centavos(item.price),
+    currency: 'PHP'
+  }));
+  if (deliveryFee > 0) {
+    lineItems.push({ name: 'Delivery fee', quantity: 1, amount: centavos(deliveryFee), currency: 'PHP' });
+  }
+
+  try {
+    const { data: sessionData } = await axios.post(
+      'https://api.paymongo.com/v2/checkout_sessions',
+      {
+        data: {
+          attributes: {
+            line_items: lineItems,
+            payment_method_types: methodTypes,
+            reference_number: reference,
+            metadata: { reference, method },
+            success_url: successUrl,
+            cancel_url: cancelUrl
+          }
+        }
+      },
+      { auth: paymongoAuth }
+    );
+    // axios unwraps HTTP into response.data (the JSON:API body), whose own
+    // .data holds the resource: {data: {id, type, attributes: {...}}}.
+    const attrs = sessionData?.data?.attributes || {};
+    if (!attrs.checkout_url) throw new Error('PayMongo returned no checkout_url.');
+    console.log(`🧾 PayMongo checkout session created for ${reference} (${method}, livemode=${attrs.livemode})`);
+    return res.json({ checkoutUrl: attrs.checkout_url, livemode: attrs.livemode });
+  } catch (error) {
+    const paymongoError = error.response?.data?.errors?.[0]?.detail || error.message;
+    console.error(`❌ PayMongo checkout failed for ${reference}:`, paymongoError);
+    return res.status(502).json({ error: 'Payment could not be started. Please try again.' });
+  }
+});
+
+// PayMongo calls this once the customer completes (or fails) a checkout.
+// Finds the delivery order by the reference stored in event metadata.
+app.post('/api/paymongo/webhook', async (req, res) => {
+  // Signature check needs the secret from the PayMongo dashboard webhook settings.
+  if (PAYMONGO_WEBHOOK_SECRET) {
+    const signature = String(req.get('paymongo-signature') || '');
+    const [tPart, ...sigParts] = signature.split(',');
+    const timestamp = tPart?.replace(/^t=/, '');
+    const valid = sigParts
+      .map((part) => part.replace(/^v1=/, ''))
+      .some((sig) => {
+        const digest = crypto.createHmac('sha256', PAYMONGO_WEBHOOK_SECRET)
+          .update(`${timestamp}.${req.rawBody ? req.rawBody.toString('utf8') : ''}`)
+          .digest('base64');
+        return digest === sig;
+      });
+    if (!valid) {
+      console.error('❌ PayMongo webhook signature check failed.');
+      return res.status(400).json({ error: 'Invalid signature.' });
+    }
+  }
+
+  const event = req.body?.data || {};
+  const eventType = req.body?.type || event?.type;
+  if (!['payment.paid', 'checkout_session.payment.paid'].includes(eventType)) {
+    return res.json({ received: true, ignored: eventType });
+  }
+
+  // The reference sits in metadata / reference_number somewhere within the event
+  // payload depending on checkout v1 vs v2, so walk the whole object for it.
+  const findReference = (node) => {
+    if (!node || typeof node !== 'object') return null;
+    if (node.reference) return String(node.reference);
+    if (node.metadata && typeof node.metadata === 'object' && node.metadata.reference) return String(node.metadata.reference);
+    if (node.reference_number) return String(node.reference_number);
+    for (const value of Object.values(node)) {
+      if (value && typeof value === 'object') {
+        const found = findReference(value);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  const reference = findReference(event);
+  if (!reference) {
+    console.error('❌ PayMongo paid event without a reference:', eventType);
+    return res.json({ received: true, ignored: 'no-reference' });
+  }
+
+  const method = event.attributes?.data?.attributes?.metadata?.method || 'Payment';
+  const paidLabel = `${method} (Paid via PayMongo)`;
+  const now = formatEventDate(Date.now());
+
+  const { data: order } = await supabase
+    .from('delivery_orders')
+    .select('timeline, payment_method, status')
+    .eq('reference', reference)
+    .maybeSingle();
+  if (!order) {
+    console.error(`❌ PayMongo paid event references unknown order ${reference}.`);
+    return res.status(404).json({ error: 'Unknown order reference.' });
+  }
+
+  const { error } = await supabase
+    .from('delivery_orders')
+    .update({
+      payment_method: paidLabel,
+      timeline: [...(order.timeline || []), { status: paidLabel, at: now }],
+      updated_at: new Date().toISOString()
+    })
+    .eq('reference', reference);
+  if (error) {
+    console.error(`❌ Failed to mark ${reference} as paid:`, error);
+    return res.status(500).json({ error: 'Could not record the payment.' });
+  }
+  console.log(`💰 Order ${reference} paid via PayMongo (${method}).`);
+  return res.json({ received: true });
 });
 
 // --- Staff actions on Messenger inquiries (Inquiry Bot page) ---

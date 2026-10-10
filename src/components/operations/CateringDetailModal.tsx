@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Printer, X } from "lucide-react";
-import { CATERING_PACKAGES } from "../../constants";
+import { CATERING_PACKAGES, PACKED_MENU_ITEMS } from "../../constants";
 import type { CateringBooking, CateringVenue, ReservationStatus } from "../../data/reservations";
 import { FUNCTION_ROOM_CHOICES, RESERVATION_STATUSES } from "../../data/reservations";
 import type { OrderItem } from "../../data/delivery";
@@ -207,7 +207,7 @@ export function CateringDetailModal({ booking, onClose, onSave }: Props) {
             ) : (
               <div>
                 <p className="ops-tab-intro">Packed meals for this catering booking. Add dishes like delivery orders. No delivery fee.</p>
-                <OrderItemsEditor items={items} onChange={setItems} />
+                <OrderItemsEditor items={items} onChange={setItems} menuItems={PACKED_MENU_ITEMS} />
                 <div className="ops-totals-preview"><div className="ops-totals-preview__row"><span>Subtotal</span><strong>₱{totals.subtotal.toLocaleString()}</strong></div><div className="ops-totals-preview__row ops-totals-preview__row--grand"><span>Total</span><strong>₱{totals.total.toLocaleString()}</strong></div></div>
               </div>
             )

@@ -71,111 +71,185 @@
   "packedMenuItems": [
     {
       "id": "pm-01",
-      "name": "Adobong Manok",
-      "description": "Classic Filipino chicken adobo in garlic, soy, and vinegar.",
-      "price": 120,
-      "category": "Solo Meals",
-      "categories": [
-        "Solo Meals",
-        "Chicken"
-      ]
+      "name": "Buttered Chicken",
+      "description": "Buttered glazed fried chicken. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
     },
     {
       "id": "pm-02",
-      "name": "Lechon Kawali",
-      "description": "Crispy deep-fried pork belly served with liver sauce.",
-      "price": 145,
-      "category": "Solo Meals",
-      "categories": [
-        "Solo Meals",
-        "Pork"
-      ]
+      "name": "Capitol Chicken",
+      "description": "Capitol house-style fried chicken. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
     },
     {
       "id": "pm-03",
-      "name": "Pork Sinigang",
-      "description": "Tamarind-based pork soup with fresh vegetables.",
-      "price": 135,
-      "category": "Solo Meals",
-      "categories": [
-        "Solo Meals",
-        "Pork"
-      ]
+      "name": "Sizzling Chicken",
+      "description": "Sizzling chicken in savory sauce. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
     },
     {
       "id": "pm-04",
-      "name": "Beef Kaldereta",
-      "description": "Braised beef in tomato and liver sauce with bell peppers.",
-      "price": 165,
-      "category": "Solo Meals",
-      "categories": [
-        "Solo Meals",
-        "Beef"
-      ]
+      "name": "Chicken Pork Adobo",
+      "description": "Classic chicken and pork adobo. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
     },
     {
       "id": "pm-05",
-      "name": "Chicken Tinola",
-      "description": "Ginger-based chicken soup with green papaya and chili leaves.",
-      "price": 115,
-      "category": "Solo Meals",
-      "categories": [
-        "Solo Meals",
-        "Chicken"
-      ]
+      "name": "Lumpiang Shanghai",
+      "description": "Crispy pork spring rolls. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
     },
     {
       "id": "pm-06",
-      "name": "Pinakbet",
-      "description": "Mixed vegetables sautéed with shrimp paste and pork.",
+      "name": "Sweet & Sour Pork",
+      "description": "Sweet-and-sour crispy pork. Comes with 1 cup steamed rice.",
       "price": 100,
-      "category": "Solo Meals",
-      "categories": [
-        "Solo Meals",
-        "Vegetables"
-      ]
+      "category": "Solo Meals"
     },
     {
       "id": "pm-07",
-      "name": "Laing",
-      "description": "Taro leaves simmered in coconut milk with chili.",
-      "price": 95,
-      "category": "Solo Meals",
-      "categories": [
-        "Solo Meals",
-        "Vegetables"
-      ]
+      "name": "Capitol Porkchop",
+      "description": "Capitol-style breaded porkchop. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
     },
     {
       "id": "pm-08",
-      "name": "Pancit Bihon",
-      "description": "Stir-fried rice noodles with pork, vegetables, and soy sauce.",
-      "price": 110,
-      "category": "Solo Meals",
-      "categories": [
-        "Solo Meals",
-        "Pasta & Noodles"
-      ]
+      "name": "Fried Fish Fillet",
+      "description": "Crispy fried fish fillet. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
     },
     {
       "id": "pm-09",
-      "name": "Steamed Rice",
-      "description": "Freshly cooked premium white rice per serving.",
-      "price": 35,
-      "category": "Sides",
-      "categories": [
-        "Sides"
-      ]
+      "name": "Sweet & Sour Fish",
+      "description": "Sweet-and-sour fish fillet. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
     },
     {
       "id": "pm-10",
-      "name": "Leche Flan",
-      "description": "Classic Filipino caramel custard dessert.",
-      "price": 75,
-      "category": "Desserts",
-      "categories": [
-        "Desserts"
-      ]
+      "name": "Fish Tofu",
+      "description": "Fish tofu strips. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
+    },
+    {
+      "id": "pm-11",
+      "name": "Chopsuey Rice",
+      "description": "Chopsuey served over steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
+    },
+    {
+      "id": "pm-12",
+      "name": "Gising Rice",
+      "description": "Gising-gising served over steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
+    },
+    {
+      "id": "pm-13",
+      "name": "Beef Tapa",
+      "description": "Cured beef tapa. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
+    },
+    {
+      "id": "pm-14",
+      "name": "Beef Brisket",
+      "description": "Slow-braised beef brisket. Comes with 1 cup steamed rice.",
+      "price": 100,
+      "category": "Solo Meals"
+    },
+    {
+      "id": "pm-15",
+      "name": "Chicken (Pancit + Rice)",
+      "description": "Bento meal of pancit with chicken and rice.",
+      "price": 125,
+      "category": "1 Ulam & Pancit with Rice"
+    },
+    {
+      "id": "pm-16",
+      "name": "Pork (Pancit + Rice)",
+      "description": "Bento meal of pancit with pork and rice.",
+      "price": 125,
+      "category": "1 Ulam & Pancit with Rice"
+    },
+    {
+      "id": "pm-17",
+      "name": "Fish (Pancit + Rice)",
+      "description": "Bento meal of pancit with fish and rice.",
+      "price": 125,
+      "category": "1 Ulam & Pancit with Rice"
+    },
+    {
+      "id": "pm-18",
+      "name": "Chicken (Veggie + Rice)",
+      "description": "Bento meal with chicken, vegetables, and rice.",
+      "price": 125,
+      "category": "1 Ulam & Veggie with Rice"
+    },
+    {
+      "id": "pm-19",
+      "name": "Pork (Veggie + Rice)",
+      "description": "Bento meal with pork, vegetables, and rice.",
+      "price": 125,
+      "category": "1 Ulam & Veggie with Rice"
+    },
+    {
+      "id": "pm-20",
+      "name": "Fish (Veggie + Rice)",
+      "description": "Bento meal with fish, vegetables, and rice.",
+      "price": 125,
+      "category": "1 Ulam & Veggie with Rice"
+    },
+    {
+      "id": "pm-21",
+      "name": "Buttered Chicken + Lumpiang Shanghai",
+      "description": "Buttered chicken and lumpiang shanghai with steamed rice.",
+      "price": 150,
+      "category": "2 Ulam with Rice"
+    },
+    {
+      "id": "pm-22",
+      "name": "Capitol Chicken + Lumpiang Shanghai",
+      "description": "Capitol chicken and lumpiang shanghai with steamed rice.",
+      "price": 150,
+      "category": "2 Ulam with Rice"
+    },
+    {
+      "id": "pm-23",
+      "name": "Buttered Chicken + Sweet & Sour Fish",
+      "description": "Buttered chicken and sweet-and-sour fish with steamed rice.",
+      "price": 150,
+      "category": "2 Ulam with Rice"
+    },
+    {
+      "id": "pm-24",
+      "name": "Sweet & Sour Pork + Fish Tofu",
+      "description": "Sweet-and-sour pork and fish tofu with steamed rice.",
+      "price": 150,
+      "category": "2 Ulam with Rice"
+    },
+    {
+      "id": "pm-25",
+      "name": "Capitol Porkchop + Fried Fish Fillet",
+      "description": "Capitol porkchop and fried fish fillet with steamed rice.",
+      "price": 150,
+      "category": "2 Ulam with Rice"
+    },
+    {
+      "id": "pm-26",
+      "name": "Beef Brisket + Chopsuey",
+      "description": "Beef brisket and chopsuey with steamed rice.",
+      "price": 150,
+      "category": "2 Ulam with Rice"
     }
   ],
   "packedMealGuidelines": {
