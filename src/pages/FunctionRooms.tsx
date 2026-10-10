@@ -8,14 +8,22 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SignInModal } from "../components/common";
-import { FUNCTION_ROOM_AMENITIES as amenities, FUNCTION_ROOMS as rooms } from "../constants";
+import { FUNCTION_ROOM_AMENITIES as amenities } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import { useAuthGate } from "../hooks/useAuthGate";
 
 const GALLERY_SLIDES = [
-  "Private Dining Room",
-  "Event Setup",
-  "Banquet Arrangement",
+  { src: "/function-rooms/room1-01.jpg", label: "Stage and event setup" },
+  { src: "/function-rooms/room1-02.jpg", label: "Main dining hall" },
+  { src: "/function-rooms/room1-03.jpg", label: "Heritage wall" },
+  { src: "/function-rooms/room1-04.jpg", label: "Stage and seating" },
+  { src: "/function-rooms/room1-05.jpg", label: "Mural wall" },
+  { src: "/function-rooms/room1-06.jpg", label: "Stage close-up" },
+  { src: "/function-rooms/room2-01.jpg", label: "Celebrations at Capitol" },
+  { src: "/function-rooms/room2-02.jpg", label: "Dinner gathering" },
+  { src: "/function-rooms/room2-03.jpg", label: "Night at the hall" },
+  { src: "/function-rooms/room2-04.jpg", label: "Videoke and dining" },
+  { src: "/function-rooms/room2-05.jpg", label: "Group celebration" },
 ];
 
 export function FunctionRooms() {
@@ -62,11 +70,12 @@ export function FunctionRooms() {
             </button>
           </div>
         </div>
-        <div
-          className="fr-landing-hero__visual"
-          role="img"
-          aria-label="Function room photo placeholder"
-        />
+        <div className="fr-landing-hero__visual">
+          <img
+            src="/function-rooms/room1-02.jpg"
+            alt="Capitol function room dining hall set for a celebration"
+          />
+        </div>
       </section>
 
       <section className="section fr-gallery-section" aria-labelledby="fr-gallery-title">
@@ -80,14 +89,18 @@ export function FunctionRooms() {
               className="fr-gallery__track"
               style={{ transform: `translateX(-${galleryIndex * 100}%)` }}
             >
-              {GALLERY_SLIDES.map((label, index) => (
+              {GALLERY_SLIDES.map((slide, index) => (
                 <div
                   className="fr-gallery__slide"
-                  key={label}
-                  role="img"
-                  aria-label={`${label} — photo placeholder`}
+                  key={slide.src}
                   aria-hidden={index !== galleryIndex}
-                />
+                >
+                  <img
+                    src={slide.src}
+                    alt={`${slide.label} at Capitol function rooms`}
+                    loading={index === 0 ? "eager" : "lazy"}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -105,15 +118,15 @@ export function FunctionRooms() {
               <ChevronLeft size={18} />
             </button>
             <div className="fr-gallery__dots">
-              {GALLERY_SLIDES.map((label, index) => (
+              {GALLERY_SLIDES.map((slide, index) => (
                 <button
-                  aria-label={`Show photo ${index + 1} of ${GALLERY_SLIDES.length}: ${label}`}
+                  aria-label={`Show photo ${index + 1} of ${GALLERY_SLIDES.length}: ${slide.label}`}
                   className={
                     index === galleryIndex
                       ? "fr-gallery__dot fr-gallery__dot--active"
                       : "fr-gallery__dot"
                   }
-                  key={label}
+                  key={slide.src}
                   onClick={() => setGalleryIndex(index)}
                   type="button"
                 />
@@ -132,28 +145,9 @@ export function FunctionRooms() {
         </div>
       </section>
 
-      <section className="section fr-info-section" aria-labelledby="fr-info-title">
-        <h2 className="content-heading" id="fr-info-title">
-          About Our Rooms
-        </h2>
-        {rooms.map((room) => (
-          <article className="room-card" key={room.title}>
-            <div
-              className="room-card__media"
-              role="img"
-              aria-label={`${room.title} — photo placeholder`}
-            />
-            <h3>{room.title}</h3>
-            <p>{room.detail}</p>
-            <div
-              className="room-card__media room-card__media--plan"
-              role="img"
-              aria-label={`${room.title} floor plan placeholder`}
-            />
-          </article>
-        ))}
+      <section className="section fr-info-section" aria-labelledby="fr-amenities-title">
         <div className="amenities-card">
-          <h3>Included Amenities</h3>
+          <h3 id="fr-amenities-title">Included Amenities</h3>
           <ul>
             {amenities.map((item) => (
               <li key={item}>

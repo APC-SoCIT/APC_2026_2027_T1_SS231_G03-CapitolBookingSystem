@@ -7,6 +7,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: "Catering", path: "/catering" },
   { label: "Function Rooms", path: "/function-rooms" },
   { label: "Delivery", path: "/delivery" },
+  { label: "About", path: "/about" },
 ];
 
 export const RESTAURANT_INFO = {
@@ -15,7 +16,7 @@ export const RESTAURANT_INFO = {
   since: "1940",
   phone: "8556-1313",
   email: "reservations@capitolrestaurant.com",
-  address: "Pasay City, Metro Manila, Philippines",
+  address: "319 Antonio S. Arnaiz Ave, Pasay City",
   location: { lat: 14.5447, lng: 121.003 },
 };
 

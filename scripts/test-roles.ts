@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { canAccessRoute, getRoleHome, isUserRole, ROLE_LABELS } from "../src/lib/roles.ts";
 
 const CUSTOMER_PATHS = [
-  "/", "/about-us", "/catering", "/catering/buffet", "/catering/packed",
+  "/", "/about", "/catering", "/catering/buffet", "/catering/packed",
   "/function-rooms", "/function-rooms/reserve", "/inquiries",
   "/delivery", "/delivery/order", "/profile",
 ];

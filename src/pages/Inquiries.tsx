@@ -128,7 +128,7 @@ export function Inquiries() {
               <MapPin size={18} />
               <span>
                 <small>Visit us</small>
-                Pasay City, Metro Manila, Philippines
+                319 Antonio S. Arnaiz Ave, Pasay City
               </span>
             </div>
           </div>

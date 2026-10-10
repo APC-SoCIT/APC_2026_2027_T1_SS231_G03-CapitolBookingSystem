@@ -23,7 +23,7 @@ const ROLE_HOMES: Record<UserRole, string> = {
 
 const CUSTOMER_PATHS = [
   "/",
-  "/about-us",
+  "/about",
   "/catering",
   "/catering/buffet",
   "/catering/packed",

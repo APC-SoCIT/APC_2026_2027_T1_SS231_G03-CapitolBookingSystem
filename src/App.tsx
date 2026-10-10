@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Layout, ProfileSetupModal } from "./components/common";
-import { AboutUs } from "./pages/AboutUs";
+import { About } from "./pages/About";
 import { Catering } from "./pages/Catering";
 import { CateringBuffet } from "./pages/CateringBuffet";
 import { CateringPacked } from "./pages/CateringPacked";
@@ -51,7 +51,7 @@ export default function App() {
       <RoleGuard>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/about" element={<About />} />
           <Route path="/catering" element={<Catering />} />
           <Route path="/catering/buffet" element={<CateringBuffet />} />
           <Route path="/catering/packed" element={<CateringPacked />} />

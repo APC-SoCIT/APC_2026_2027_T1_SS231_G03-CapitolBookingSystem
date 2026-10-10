@@ -10,18 +10,18 @@ const services = [
     cta: "Book Now",
   },
   {
-    label: "Events",
-    title: "Function Rooms",
-    text: "Host celebrations in our elegant function rooms, from corporate events to family gatherings.",
-    path: "/function-rooms",
-    cta: "Reserve Now",
-  },
-  {
     label: "Delivery",
     title: "Delivery",
     text: "Enjoy Capitol's home-cooked favorites delivered straight to your door in select areas.",
     path: "/delivery",
     cta: "Order Now",
+  },
+  {
+    label: "Events",
+    title: "Function Rooms",
+    text: "Host celebrations in our elegant function rooms, from corporate events to family gatherings.",
+    path: "/function-rooms",
+    cta: "Reserve Now",
   },
 ];
 
