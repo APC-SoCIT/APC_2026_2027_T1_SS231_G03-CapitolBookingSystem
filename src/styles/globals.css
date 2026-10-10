@@ -167,6 +167,17 @@ button, input, textarea, select { font: inherit; }
 .proceed-bar-v2__price { color: rgba(253, 246, 227, 0.62); font-size: 0.82rem; }
 .proceed-bar-v2__hint { color: rgba(255, 239, 193, 0.45); font-size: 0.9rem; font-style: italic; }
 .proceed-bar-v2__btn { flex-shrink: 0; padding: 0.9rem 2.25rem; font-size: 0.95rem; font-weight: 700; }
+/* Floating checkout bar — pinned to the bottom once an order has items */
+.checkout-bar { position: fixed; right: 0; bottom: 0; left: 0; z-index: 60; padding: 0.75rem 1rem max(0.75rem, env(safe-area-inset-bottom)); border-top: 3px solid #ffefc1; background: #640000; box-shadow: 0 -10px 30px rgba(58, 0, 0, 0.28); animation: checkout-bar-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.checkout-bar__inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1160px; margin: 0 auto; }
+.checkout-bar__info { display: flex; flex-direction: column; min-width: 0; }
+.checkout-bar__summary { overflow: hidden; color: rgba(255, 239, 193, 0.7); font-size: 0.78rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.checkout-bar__total { color: #ffefc1; font-family: Georgia, "Times New Roman", serif; font-size: 1.35rem; line-height: 1.2; }
+.checkout-bar__hint { color: #ffc9a8; font-size: 0.75rem; }
+.checkout-bar__btn { flex-shrink: 0; padding: 0.85rem 1.6rem; border: 0; cursor: pointer; }
+.checkout-bar-spacer { height: 6rem; }
+@keyframes checkout-bar-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (min-width: 641px) { .checkout-bar--mobile-only { display: none; } }
 .button--red { border: 0; background: #b70100; color: #ffefc1; cursor: pointer; }
 .button--red:disabled { background: rgba(183, 1, 0, 0.3); cursor: not-allowed; transform: none; }
 .button--gold:disabled { background: rgba(255, 239, 193, 0.2); color: rgba(255, 239, 193, 0.35); cursor: not-allowed; transform: none; box-shadow: none; }
@@ -583,9 +594,9 @@ button, input, textarea, select { font: inherit; }
 }
 .calendar-modal__success { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; padding: 2.25rem 2.5rem 1.5rem; text-align: center; }
 .calendar-modal__success-icon { display: grid; place-items: center; width: 76px; height: 76px; margin-bottom: 1rem; border-radius: 50%; background: rgba(6, 120, 70, 0.1); color: #067846; animation: check-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.success-ref-block { display: flex; flex-direction: column; align-items: center; margin: 0 0 0.75rem; animation: fade-up 0.3s ease 0.06s both; }
+.success-ref-block { display: flex; flex-direction: column; align-items: center; max-width: 100%; margin: 0 0 0.75rem; animation: fade-up 0.3s ease 0.06s both; }
 .success-ref-label { color: #8a5a5a; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
-.success-ref-number { color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 2.4rem; font-weight: 700; letter-spacing: 0.04em; line-height: 1.1; }
+.success-ref-number { max-width: 100%; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.45rem, 4vw, 2.4rem); font-weight: 700; letter-spacing: 0.04em; line-height: 1.15; overflow-wrap: anywhere; }
 .success-ref-divider { width: 40px; height: 2px; margin: 0.6rem auto 0; background: linear-gradient(90deg, transparent, #ffefc1, transparent); }
 .calendar-modal__success h2 { margin: 0 0 1rem; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.65rem; animation: fade-up 0.3s ease 0.12s both; }
 /* Booking summary card inside success */
@@ -594,7 +605,8 @@ button, input, textarea, select { font: inherit; }
 .booking-summary { width: 100%; max-width: 400px; margin: 0 auto 1.1rem; overflow: hidden; border: 1px solid rgba(100, 0, 0, 0.1); border-radius: 9px; background: #fff; animation: fade-up 0.3s ease 0.18s both; }
 .booking-summary__row { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; color: #5a3a3a; font-size: 0.9rem; }
 .booking-summary__row:not(:last-child) { border-bottom: 1px solid rgba(100, 0, 0, 0.07); }
-.booking-summary__row strong { color: #640000; font-weight: 700; }
+.booking-summary__row { gap: 1rem; }
+.booking-summary__row strong { min-width: 0; color: #640000; font-weight: 700; text-align: right; overflow-wrap: anywhere; }
 .success-next-steps { max-width: 380px; margin: 0 auto 1.5rem; color: #6a4a4a; font-size: 0.875rem; line-height: 1.75; animation: fade-up 0.3s ease 0.24s both; }
 .success-next-steps strong { color: #640000; }
 /* Both buttons same solid crimson — formal, cohesive */
@@ -1147,8 +1159,10 @@ button, input, textarea, select { font: inherit; }
   .calendar-modal__success { padding: 2rem 1rem 1.25rem; }
   .success-actions { width: 100%; flex-direction: column; }
   .success-actions .button { width: 100%; }
-  .function-rooms-page .fr-landing-hero { grid-template-columns: 1fr; padding-top: 3rem; padding-bottom: 3rem; }
-  .fr-landing-hero__visual { min-height: 16rem; }
+  .function-rooms-page .fr-landing-hero { grid-template-columns: minmax(0, 1fr); gap: 2rem; padding-top: 3rem; padding-bottom: 3rem; }
+  .fr-landing-hero__visual { aspect-ratio: 4 / 3; }
+  .fr-landing-hero .fr-primary-cta { width: 100%; min-width: 0; }
+  .success-ref-number { font-size: 1.3rem; letter-spacing: 0.02em; }
   .function-rooms-page .reservation-form { padding: 1.25rem; }
   .menu-manager-toolbar { align-items: flex-start; flex-direction: column; }
   .menu-manager-toolbar__actions { flex-wrap: wrap; }

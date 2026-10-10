@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarModal,
+  CheckoutBar,
   SignInModal,
   type BookingDetails,
 } from "../components/common";
@@ -27,7 +28,7 @@ export function CateringBuffet() {
       if (!(event.target instanceof Element)) return;
       if (
         event.target.closest(".package-card") ||
-        event.target.closest(".proceed-bar") ||
+        event.target.closest(".checkout-bar") ||
         event.target.closest(".calendar-modal-backdrop") ||
         event.target.closest(".signin-modal")
       ) {
@@ -89,30 +90,6 @@ export function CateringBuffet() {
             ))}
           </ul>
         </div>
-        <div className="proceed-bar">
-          <div>
-            {selected ? (
-              <>
-                <small>Selected package:</small>
-                <strong>
-                  {selected.name} · ₱{selected.packagePrice.toLocaleString()}/package
-                </strong>
-              </>
-            ) : (
-              <em>Please select a package to continue.</em>
-            )}
-          </div>
-          <button
-            className="button button--red"
-            disabled={!selected}
-            onClick={() => {
-              if (requireAuth()) setModalOpen(true);
-            }}
-            type="button"
-          >
-            Proceed →
-          </button>
-        </div>
         {submitted && (
           <p className="booking-notice">
             Reservation request submitted for {selected?.name}. Capitol&apos;s
@@ -120,6 +97,15 @@ export function CateringBuffet() {
           </p>
         )}
       </section>
+      <CheckoutBar
+        visible={Boolean(selected)}
+        summary={selected ? `${selected.name} · ${selected.servingSize}` : ""}
+        total={selected?.packagePrice ?? 0}
+        actionLabel="Proceed →"
+        onAction={() => {
+          if (requireAuth()) setModalOpen(true);
+        }}
+      />
       <CalendarModal
         bookingKind="catering_buffet"
         isOpen={modalOpen}

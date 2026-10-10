@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarModal,
+  CheckoutBar,
   SignInModal,
   type BookingDetails,
 } from "../components/common";
@@ -97,7 +98,7 @@ export function CateringPacked() {
       if (!(event.target instanceof Element)) return;
       if (
         event.target.closest(".menu-card") ||
-        event.target.closest(".proceed-bar") ||
+        event.target.closest(".checkout-bar") ||
         event.target.closest(".calendar-modal-backdrop") ||
         event.target.closest(".filter-row") ||
         event.target.closest(".order-menu-search") ||
@@ -239,37 +240,6 @@ export function CateringPacked() {
           </div>
         </div>
 
-        <div className="proceed-bar">
-          <div>
-            {selectedMeals.length > 0 ? (
-              <>
-                <small>
-                  {selectedMeals.length} meal type{selectedMeals.length === 1 ? "" : "s"} selected:
-                </small>
-                <strong>
-                  {totalPacks} packs · ₱{total}
-                </strong>
-                {!canProceed && (
-                  <small className="field-error">
-                    Each meal type requires at least {MIN_PACKED_MEAL_QUANTITY} packs.
-                  </small>
-                )}
-              </>
-            ) : (
-              <p>Select a meal above to continue. Minimum order: 10 packs per kind.</p>
-            )}
-          </div>
-          <button
-            className="button button--red"
-            disabled={!canProceed}
-            onClick={() => {
-              if (requireAuth()) setModalOpen(true);
-            }}
-            type="button"
-          >
-            Proceed <ArrowRight size={16} />
-          </button>
-        </div>
         {submitted && (
           <p className="booking-notice">
             Reservation request submitted for {selectedMeals.length} packed meal
@@ -278,6 +248,25 @@ export function CateringPacked() {
           </p>
         )}
       </section>
+      <CheckoutBar
+        visible={selectedMeals.length > 0}
+        summary={`${totalPacks} pack${totalPacks === 1 ? "" : "s"} · ${selectedMeals.length} meal type${selectedMeals.length === 1 ? "" : "s"}`}
+        total={total}
+        hint={
+          !canProceed
+            ? `Each meal type needs at least ${MIN_PACKED_MEAL_QUANTITY} packs.`
+            : undefined
+        }
+        disabled={!canProceed}
+        actionLabel={
+          <>
+            Proceed <ArrowRight size={16} />
+          </>
+        }
+        onAction={() => {
+          if (requireAuth()) setModalOpen(true);
+        }}
+      />
       <CalendarModal
         bookingKind="catering_packed"
         isOpen={modalOpen}
