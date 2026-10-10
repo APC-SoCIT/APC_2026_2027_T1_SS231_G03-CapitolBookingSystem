@@ -169,43 +169,43 @@
     },
     {
       "id": "pm-15",
-      "name": "Chicken (Pancit + Rice)",
-      "description": "Bento meal of pancit with chicken and rice.",
+      "name": "Chicken",
+      "description": "Bento meal of pancit with chicken.",
       "price": 125,
       "category": "1 Ulam & Pancit with Rice"
     },
     {
       "id": "pm-16",
-      "name": "Pork (Pancit + Rice)",
-      "description": "Bento meal of pancit with pork and rice.",
+      "name": "Pork",
+      "description": "Bento meal of pancit with pork.",
       "price": 125,
       "category": "1 Ulam & Pancit with Rice"
     },
     {
       "id": "pm-17",
-      "name": "Fish (Pancit + Rice)",
-      "description": "Bento meal of pancit with fish and rice.",
+      "name": "Fish",
+      "description": "Bento meal of pancit with fish.",
       "price": 125,
       "category": "1 Ulam & Pancit with Rice"
     },
     {
       "id": "pm-18",
-      "name": "Chicken (Veggie + Rice)",
-      "description": "Bento meal with chicken, vegetables, and rice.",
+      "name": "Chicken",
+      "description": "Bento meal with chicken and vegetables.",
       "price": 125,
       "category": "1 Ulam & Veggie with Rice"
     },
     {
       "id": "pm-19",
-      "name": "Pork (Veggie + Rice)",
-      "description": "Bento meal with pork, vegetables, and rice.",
+      "name": "Pork",
+      "description": "Bento meal with pork and vegetables.",
       "price": 125,
       "category": "1 Ulam & Veggie with Rice"
     },
     {
       "id": "pm-20",
-      "name": "Fish (Veggie + Rice)",
-      "description": "Bento meal with fish, vegetables, and rice.",
+      "name": "Fish",
+      "description": "Bento meal with fish and vegetables.",
       "price": 125,
       "category": "1 Ulam & Veggie with Rice"
     },

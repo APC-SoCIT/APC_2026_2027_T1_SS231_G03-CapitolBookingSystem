@@ -176,6 +176,8 @@ button, input, textarea, select { font: inherit; }
 .filter-button { padding: 0.4rem 1.1rem; border: 1.5px solid rgba(100, 0, 0, 0.2); border-radius: 20px; background: transparent; color: #640000; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
 .filter-button--active { border-color: #b70100; background: #b70100; color: #ffefc1; }
 .menu-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.packed-category + .packed-category { margin-top: 2.5rem; }
+.packed-category .menu-grid { margin-top: 0; }
 .menu-card { position: relative; padding: 1.1rem 1.25rem; border: 1.5px solid rgba(100, 0, 0, 0.08); border-radius: 8px; background: #fff; cursor: pointer; text-align: left; transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease; }
 .menu-card:hover { border-color: rgba(183, 1, 0, 0.2); }
 .menu-card--selected { border-color: #640000 !important; background: #640000 !important; box-shadow: 0 8px 24px rgba(100, 0, 0, 0.18); }

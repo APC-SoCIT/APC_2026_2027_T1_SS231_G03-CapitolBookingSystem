@@ -17,12 +17,9 @@ import { useAuth } from "../context/AuthContext";
 
 const MIN_PACKED_MEAL_QUANTITY = 10;
 
+const PACKED_CATEGORIES = [...new Set(PACKED_MENU_ITEMS.map((item) => item.category))];
+
 export function CateringPacked() {
-  const categories = [
-    "All",
-    ...new Set(PACKED_MENU_ITEMS.map((item) => item.category)),
-  ];
-  const [activeCategory, setActiveCategory] = useState("All");
   const [menuSearch, setMenuSearch] = useState("");
   const [selectedMeals, setSelectedMeals] = useState<MenuItem[]>([]);
   const [mealQuantities, setMealQuantities] = useState<Record<string, number>>({});
@@ -32,21 +29,15 @@ export function CateringPacked() {
   const { user } = useAuth();
 
   const displayItems = useMemo(() => {
-    let items =
-      activeCategory === "All"
-        ? PACKED_MENU_ITEMS
-        : PACKED_MENU_ITEMS.filter((item) => item.category === activeCategory);
     const query = menuSearch.trim().toLowerCase();
-    if (query) {
-      items = items.filter(
-        (item) =>
-          item.name.toLowerCase().includes(query) ||
-          item.category.toLowerCase().includes(query) ||
-          item.description.toLowerCase().includes(query),
-      );
-    }
-    return items;
-  }, [activeCategory, menuSearch]);
+    if (!query) return PACKED_MENU_ITEMS;
+    return PACKED_MENU_ITEMS.filter(
+      (item) =>
+        item.name.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query),
+    );
+  }, [menuSearch]);
 
   const totalPacks = selectedMeals.reduce(
     (sum, meal) => sum + (mealQuantities[meal.id] ?? 0),
@@ -125,22 +116,6 @@ export function CateringPacked() {
         <p>{PACKED_MEAL_GUIDELINES.intro}</p>
       </section>
       <section className="section packed-section">
-        <div className="filter-row">
-          {categories.map((category) => (
-            <button
-              className={
-                activeCategory === category
-                  ? "filter-button filter-button--active"
-                  : "filter-button"
-              }
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              type="button"
-            >
-              {category}
-            </button>
-          ))}
-        </div>
         <label className="order-menu-search">
           <Search size={16} aria-hidden="true" />
           <input
@@ -150,28 +125,36 @@ export function CateringPacked() {
             onChange={(event) => setMenuSearch(event.target.value)}
           />
         </label>
-        <div className="menu-grid">
-          {displayItems.map((item) => (
-            <button
-              className={`menu-card ${selectedMeals.some((meal) => meal.id === item.id) ? "menu-card--selected" : ""}`}
-              key={item.id}
-              onClick={() => chooseMeal(item)}
-              type="button"
-            >
-              <div className="menu-card__top">
-                <h2>{item.name}</h2>
-                <strong>₱{item.price}</strong>
+        {displayItems.length === 0 && (
+          <p className="cart-empty">
+            No dishes match &ldquo;{menuSearch}&rdquo;.
+          </p>
+        )}
+        {PACKED_CATEGORIES.map((category) => {
+          const items = displayItems.filter((item) => item.category === category);
+          if (items.length === 0) return null;
+          return (
+            <div className="packed-category" key={category}>
+              <h2 className="content-heading">{category}</h2>
+              <div className="menu-grid">
+                {items.map((item) => (
+                  <button
+                    className={`menu-card ${selectedMeals.some((meal) => meal.id === item.id) ? "menu-card--selected" : ""}`}
+                    key={item.id}
+                    onClick={() => chooseMeal(item)}
+                    type="button"
+                  >
+                    <div className="menu-card__top">
+                      <h2>{item.name}</h2>
+                      <strong>₱{item.price}</strong>
+                    </div>
+                    <p>{item.description}</p>
+                  </button>
+                ))}
               </div>
-              <span className="menu-card__category">{item.category}</span>
-              <p>{item.description}</p>
-            </button>
-          ))}
-          {displayItems.length === 0 && (
-            <p className="cart-empty">
-              No dishes match &ldquo;{menuSearch}&rdquo;.
-            </p>
-          )}
-        </div>
+            </div>
+          );
+        })}
 
         <div className="packed-guidelines">
           <h2>Ordering details</h2>
