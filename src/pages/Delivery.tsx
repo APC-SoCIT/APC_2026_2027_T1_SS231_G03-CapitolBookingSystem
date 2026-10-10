@@ -17,11 +17,12 @@ export function Delivery() {
             </Link>
           </div>
         </div>
-        <div
-          className="delivery-landing-hero__visual"
-          role="img"
-          aria-label="Food photo placeholder"
-        />
+        <div className="delivery-landing-hero__visual">
+          <img
+            src="/delivery/delivery-hero.jpeg"
+            alt="Capitol Crispy Ulo and Yangchow Rice in Capitol packaging"
+          />
+        </div>
       </section>
     </div>
   );

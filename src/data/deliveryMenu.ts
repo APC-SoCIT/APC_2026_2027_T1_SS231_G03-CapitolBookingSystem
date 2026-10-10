@@ -12,6 +12,7 @@ export type CategoryDefinition = {
 };
 
 export const DEFAULT_CATEGORY_DEFS: CategoryDefinition[] = [
+  { name: "Best Sellers", hidden: false },
   { name: "Pancit / Noodles", hidden: false },
   { name: "Pancit sa Bilao", hidden: false },
   { name: "Chicken", hidden: false },
@@ -19,9 +20,10 @@ export const DEFAULT_CATEGORY_DEFS: CategoryDefinition[] = [
   { name: "Vegetables", hidden: false },
   { name: "Rice", hidden: false },
   { name: "Pork", hidden: false },
-  { name: "Best Sellers", hidden: false },
   { name: "Seafood", hidden: false },
   { name: "Soup", hidden: false },
+  { name: "Solo Meals", hidden: false },
+  { name: "Harlem Classics", hidden: false },
 ];
 
 export const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_DEFS.map((c) => c.name);

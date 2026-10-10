@@ -590,13 +590,23 @@ function VariantGroupCard({
   categoryDefs: ReturnType<typeof useDeliveryCategoryDefs>;
   onOpen: () => void;
 }) {
+  const groupImage = product.variants.find((v) => v.image)?.image;
   return (
     <article className="order-menu-card" key={product.key}>
       <div className="order-menu-card__media">
-        <div
-          className="order-menu-card__img order-menu-card__img--blank"
-          aria-label="No image available"
-        />
+        {groupImage ? (
+          <img
+            src={groupImage}
+            alt={product.name}
+            className="order-menu-card__img"
+            loading="lazy"
+          />
+        ) : (
+          <div
+            className="order-menu-card__img order-menu-card__img--blank"
+            aria-label="No image available"
+          />
+        )}
       </div>
 
       <div className="order-menu-card__body">
