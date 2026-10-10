@@ -676,6 +676,7 @@ Full Name:
 Contact Number:
 Event Type:
 Event Date:
+Preferred Room (Function Room A / Function Room B):
 Start Time and Duration:
 Number of Guests (10 to 50):
 
@@ -686,9 +687,9 @@ ${websiteLine('You may also reserve a room on our website after signing in', '/f
 
 function formatFunctionRoomInfo() {
   return [
-    `Function Room
+    `Function Rooms
 
-${FUNCTION_ROOMS.map((room) => `Capacity: ${room.capacity}`).join('\n')}
+${FUNCTION_ROOMS.map((room) => `• ${room.name} (Capacity: ${room.capacity})`).join('\n')}
 
 Good to know:
 ${FUNCTION_ROOM_RULES.map((rule) => `• ${rule}`).join('\n')}
