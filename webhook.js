@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 
 const app = express();
+app.disable('x-powered-by');
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const frontendDistPath = path.join(projectRoot, 'dist');
 
@@ -88,12 +89,54 @@ app.use((req, res, next) => {
   next();
 });
 
-// Keep a copy of the raw body so the PayMongo webhook signature can be verified
-// (the HMAC is computed over the exact bytes PayMongo sent).
+// Keep a copy of the raw body so webhook signatures can be verified
+// (the HMAC is computed over the exact bytes the sender sent).
 app.use(express.json({
   verify: (req, res, buf) => { req.rawBody = buf; }
 }));
-app.use(express.static(frontendDistPath, { index: false }));
+
+// Security headers for every response. The site loads its own bundle plus map
+// tiles/geocoding and Supabase, so the CSP allowlist is kept to those origins.
+const connectOrigins = [
+  "'self'",
+  'https://*.supabase.co',
+  'wss://*.supabase.co',
+  'https://nominatim.openstreetmap.org',
+  'https://router.project-osrm.org',
+  ...(process.env.FRONTEND_ORIGINS || '').split(',').map((value) => value.trim()).filter(Boolean)
+];
+app.use((req, res, next) => {
+  res.set('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https://tile.openstreetmap.org",
+    `connect-src ${connectOrigins.join(' ')}`,
+    "font-src 'self'",
+    "frame-src 'self' https://*.supabase.co",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'"
+  ].join('; '));
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (req.secure || req.get('x-forwarded-proto') === 'https') {
+    res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+// Never serve or fall back to dotfiles (.env, .git, .htaccess, ...).
+app.use((req, res, next) => {
+  if (req.path.split('/').some((segment) => segment.startsWith('.'))) {
+    return res.sendStatus(404);
+  }
+  next();
+});
+app.use(express.static(frontendDistPath, { index: false, dotfiles: 'ignore' }));
 
 // Initialize Supabase using environment variables
 const supabase = createClient(
@@ -104,7 +147,14 @@ const supabase = createClient(
 // Initialize Gemini AI using environment variables
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'test-agent';
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || '';
+
+// Constant-time string comparison so the verify token cannot be probed byte by byte.
+function tokensMatch(provided, expected) {
+  const providedBuf = Buffer.from(String(provided || ''), 'utf8');
+  const expectedBuf = Buffer.from(String(expected || ''), 'utf8');
+  return providedBuf.length === expectedBuf.length && crypto.timingSafeEqual(providedBuf, expectedBuf);
+}
 
 // 1. Meta Verification Endpoint (GET)
 app.get('/inquiry-bot', (req, res, next) => {
@@ -119,9 +169,13 @@ app.get('/inquiry-bot', (req, res, next) => {
   console.log('--- Incoming Verification Request ---');
   console.log('Mode from Meta:', mode);
   console.log('Token from Meta:', token);
-  console.log('Expected Token:', VERIFY_TOKEN);
 
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+  if (!VERIFY_TOKEN) {
+    console.error('❌ VERIFY_TOKEN is not configured; rejecting Meta handshake.');
+    return res.sendStatus(503);
+  }
+
+  if (mode === 'subscribe' && tokensMatch(token, VERIFY_TOKEN)) {
     console.log('✅ Webhook verified successfully!');
     return res.status(200).send(challenge);
   }
@@ -1023,7 +1077,28 @@ function queueForSender(senderId, task) {
   });
 }
 
+// Meta signs the raw body with the app secret (X-Hub-Signature-256). Without a
+// valid signature anyone could spend Gemini quota and write inquiries.
+function verifyMetaSignature(req) {
+  const appSecret = process.env.META_APP_SECRET || '';
+  if (!appSecret) return false;
+  const provided = String(req.get('x-hub-signature-256') || '').replace(/^sha256=/, '');
+  const expected = crypto.createHmac('sha256', appSecret)
+    .update(req.rawBody ? req.rawBody.toString('utf8') : '')
+    .digest('hex');
+  return tokensMatch(provided, expected);
+}
+
 app.post('/inquiry-bot', (req, res) => {
+  if (!process.env.META_APP_SECRET) {
+    console.error('❌ META_APP_SECRET is not configured; rejecting Messenger webhook.');
+    return res.status(503).send('Webhook signature secret is not configured.');
+  }
+  if (!verifyMetaSignature(req)) {
+    console.error('❌ Messenger webhook signature check failed.');
+    return res.status(401).send('Invalid signature.');
+  }
+
   const body = req.body;
   if (body?.object !== 'page') return res.sendStatus(404);
 
@@ -1063,6 +1138,26 @@ const paymongoAuth = { username: PAYMONGO_SECRET_KEY, password: '' };
 // BPI, BDO…). GCash direct and Card are later options with their own types.
 const PAYMENT_METHOD_TYPES = { 'QR Ph': ['qrph'], GCash: ['gcash'], Card: ['card'] };
 
+// Return URLs must point back at this deployment (or an explicitly configured
+// origin) so PayMongo cannot bounce a paying customer to a phishing site.
+function isSafeReturnUrl(value, req) {
+  if (typeof value !== 'string' || !value) return false;
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
+  const requestOrigin = `${req.protocol}://${req.get('host')}`;
+  const allowedOrigins = new Set([
+    requestOrigin,
+    SITE_URL,
+    ...(process.env.FRONTEND_ORIGINS || '').split(',').map((origin) => origin.trim().replace(/\/$/, '')).filter(Boolean)
+  ]);
+  return allowedOrigins.has(url.origin);
+}
+
 function formatEventDate(epochOrIso) {
   const date = epochOrIso > 1e12 ? new Date(Number(epochOrIso)) : new Date(epochOrIso * 1000 || epochOrIso);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
@@ -1078,6 +1173,9 @@ app.post('/api/payments/create-checkout', async (req, res) => {
   const methodTypes = PAYMENT_METHOD_TYPES[method];
   if (!reference || !Array.isArray(items) || !items.length || !methodTypes) {
     return res.status(400).json({ error: 'Invalid checkout request.' });
+  }
+  if ((successUrl && !isSafeReturnUrl(successUrl, req)) || (cancelUrl && !isSafeReturnUrl(cancelUrl, req))) {
+    return res.status(400).json({ error: 'Invalid checkout return URL.' });
   }
   const centavos = (pesos) => Math.round(Number(pesos) * 100);
   const lineItems = items.map((item) => ({
@@ -1124,22 +1222,32 @@ app.post('/api/payments/create-checkout', async (req, res) => {
 // Finds the delivery order by the reference stored in event metadata.
 app.post('/api/paymongo/webhook', async (req, res) => {
   // Signature check needs the secret from the PayMongo dashboard webhook settings.
-  if (PAYMONGO_WEBHOOK_SECRET) {
-    const signature = String(req.get('paymongo-signature') || '');
-    const [tPart, ...sigParts] = signature.split(',');
-    const timestamp = tPart?.replace(/^t=/, '');
-    const valid = sigParts
-      .map((part) => part.replace(/^v1=/, ''))
-      .some((sig) => {
-        const digest = crypto.createHmac('sha256', PAYMONGO_WEBHOOK_SECRET)
-          .update(`${timestamp}.${req.rawBody ? req.rawBody.toString('utf8') : ''}`)
-          .digest('base64');
-        return digest === sig;
-      });
-    if (!valid) {
-      console.error('❌ PayMongo webhook signature check failed.');
-      return res.status(400).json({ error: 'Invalid signature.' });
-    }
+  // Fail closed: an unverified event must never mark an order as paid.
+  if (!PAYMONGO_WEBHOOK_SECRET) {
+    console.error('❌ PAYMONGO_WEBHOOK_SECRET is not configured; rejecting PayMongo webhook.');
+    return res.status(503).json({ error: 'Webhook signature secret is not configured.' });
+  }
+  const signature = String(req.get('paymongo-signature') || '');
+  const [tPart, ...sigParts] = signature.split(',');
+  const timestamp = tPart?.replace(/^t=/, '');
+  // Reject stale signatures so a captured request cannot be replayed later.
+  const timestampSeconds = Number(timestamp);
+  if (!Number.isFinite(timestampSeconds) || Math.abs(Date.now() / 1000 - timestampSeconds) > 300) {
+    console.error('❌ PayMongo webhook timestamp missing or outside tolerance.');
+    return res.status(400).json({ error: 'Invalid signature timestamp.' });
+  }
+  const expected = crypto.createHmac('sha256', PAYMONGO_WEBHOOK_SECRET)
+    .update(`${timestamp}.${req.rawBody ? req.rawBody.toString('utf8') : ''}`)
+    .digest();
+  const valid = sigParts
+    .map((part) => part.replace(/^v1=/, ''))
+    .some((sig) => {
+      const provided = Buffer.from(sig, 'base64');
+      return provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
+    });
+  if (!valid) {
+    console.error('❌ PayMongo webhook signature check failed.');
+    return res.status(400).json({ error: 'Invalid signature.' });
   }
 
   const event = req.body?.data || {};
@@ -1276,10 +1384,20 @@ app.patch('/inquiries/:id/status', requireStaffAuth, async (req, res) => {
 });
 
 // Serve the Vite single-page app for browser routes after API endpoints.
-app.get(/.*/, (_req, res, next) => {
+// Only extension-less routes get index.html; a missing file request such as
+// /webhook.config.js must 404 instead of downloading the app shell.
+app.get(/.*/, (req, res, next) => {
+  if (path.extname(req.path)) return res.sendStatus(404);
   res.sendFile(path.join(frontendDistPath, 'index.html'), (error) => {
     if (error) next(error);
   });
+});
+
+// Final error handler: log the detail, never leak stacks or internal paths.
+app.use((err, req, res, next) => {
+  const status = Number(err.status || err.statusCode) || 500;
+  if (status >= 500) console.error('❌ Unhandled error:', err.message);
+  res.status(status).send(status >= 500 ? 'Something went wrong.' : 'Not found.');
 });
 
 const PORT = process.env.PORT || 8000;

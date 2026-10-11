@@ -75,7 +75,10 @@ async function toAppUser(authUser: SupabaseUser): Promise<User> {
 
 function authRedirectUrl() {
   const currentRoute = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  return new URL(currentRoute || "/", window.location.origin).toString();
+  const url = new URL(currentRoute || "/", window.location.origin);
+  // A path like //evil.com resolves cross-origin; never redirect off-site.
+  if (url.origin !== window.location.origin) return `${window.location.origin}/`;
+  return url.toString();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
