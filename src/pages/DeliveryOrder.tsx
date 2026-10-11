@@ -1,7 +1,7 @@
 import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingBag, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { SignInModal } from "../components/common";
+import { CheckoutBar, SignInModal } from "../components/common";
 import { DELIVERY_FEE, type MenuItem } from "../constants";
 import {
   getVisibleCategoryName,
@@ -81,6 +81,7 @@ export function DeliveryOrder() {
     null,
   );
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const orderSummaryRef = useRef<HTMLElement>(null);
   const [savedAddresses, setSavedAddresses] = useState<StoredAddress[]>([]);
   const [awaitingSignIn, setAwaitingSignIn] = useState(false);
   // Guest tapped Add before signing in: hold that add until the dialog closes.
@@ -557,7 +558,7 @@ export function DeliveryOrder() {
             )}
           </div>
 
-          <aside className="order-sidebar">
+          <aside className="order-sidebar" ref={orderSummaryRef}>
             <OrderSummaryCard
               selectedItems={selectedItems}
               cart={cart}
@@ -581,6 +582,15 @@ export function DeliveryOrder() {
           </aside>
         </div>
       </section>
+      <CheckoutBar
+        mobileOnly
+        visible={totalQuantity > 0}
+        summary={`${totalQuantity} item${totalQuantity === 1 ? "" : "s"} · incl. ₱${deliveryFee} delivery`}
+        total={total}
+        detailsRef={orderSummaryRef}
+        actionLabel="Place order"
+        onAction={openDetailsModal}
+      />
       {showDetailsModal && (
         <DeliveryDetailsModal
           details={details}

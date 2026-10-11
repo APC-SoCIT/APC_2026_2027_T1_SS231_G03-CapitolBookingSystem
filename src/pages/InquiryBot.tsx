@@ -1,6 +1,7 @@
 import { Bot, Check, Clock, MessageSquare, RefreshCw, Search, Send, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusPill } from "../components/operations/StatusPill";
+import { useNotificationFocus, useNotificationRow } from "../context/StaffNotificationsContext";
 import { supabase } from "../lib/supabase";
 
 type InquiryStatus = "New" | "In progress" | "Resolved";
@@ -77,6 +78,13 @@ export function InquiryBot() {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [replyingId, setReplyingId] = useState<string | null>(null);
+
+  // Arriving from a notification: clear filters so the inquiry is listed.
+  useNotificationFocus(() => {
+    setStatusFilter("All");
+    setTypeFilter("All types");
+    setSearch("");
+  });
 
   const loadInquiries = useCallback(async () => {
     const { data, error } = await supabase
@@ -268,8 +276,9 @@ function InquiryCard({
   onStatus: (status: InquiryStatus) => void;
 }) {
   const resolved = inquiry.status === "Resolved";
+  const highlight = useNotificationRow(`inquiry:${inquiry.id}`);
   return (
-    <article className={`bot-card${resolved ? "" : " bot-card--open"}`}>
+    <article className={`bot-card${resolved ? "" : " bot-card--open"}${highlight.className}`} {...highlight.rowProps}>
       <div className="bot-card__head">
         <div className="bot-card__who">
           <strong>{inquiry.name}</strong>

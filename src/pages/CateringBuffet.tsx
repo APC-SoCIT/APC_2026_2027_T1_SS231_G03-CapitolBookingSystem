@@ -1,8 +1,9 @@
 import { Check, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarModal,
+  CheckoutBar,
   SignInModal,
   type BookingDetails,
 } from "../components/common";
@@ -18,6 +19,7 @@ import { useAuth } from "../context/AuthContext";
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const selectedCardRef = useRef<HTMLButtonElement>(null);
   const [submitted, setSubmitted] = useState(false);
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
   const { user } = useAuth();
@@ -27,7 +29,7 @@ export function CateringBuffet() {
       if (!(event.target instanceof Element)) return;
       if (
         event.target.closest(".package-card") ||
-        event.target.closest(".proceed-bar") ||
+        event.target.closest(".checkout-bar") ||
         event.target.closest(".calendar-modal-backdrop") ||
         event.target.closest(".signin-modal")
       ) {
@@ -55,6 +57,7 @@ export function CateringBuffet() {
             <button
               className={`package-card ${selected?.id === pkg.id ? "package-card--selected" : ""}`}
               key={pkg.id}
+              ref={selected?.id === pkg.id ? selectedCardRef : undefined}
               onClick={() => setSelected((prev) => (prev?.id === pkg.id ? null : pkg))}
               type="button"
             >
@@ -89,30 +92,6 @@ export function CateringBuffet() {
             ))}
           </ul>
         </div>
-        <div className="proceed-bar">
-          <div>
-            {selected ? (
-              <>
-                <small>Selected package:</small>
-                <strong>
-                  {selected.name} · ₱{selected.packagePrice.toLocaleString()}/package
-                </strong>
-              </>
-            ) : (
-              <em>Please select a package to continue.</em>
-            )}
-          </div>
-          <button
-            className="button button--red"
-            disabled={!selected}
-            onClick={() => {
-              if (requireAuth()) setModalOpen(true);
-            }}
-            type="button"
-          >
-            Proceed →
-          </button>
-        </div>
         {submitted && (
           <p className="booking-notice">
             Reservation request submitted for {selected?.name}. Capitol&apos;s
@@ -120,6 +99,16 @@ export function CateringBuffet() {
           </p>
         )}
       </section>
+      <CheckoutBar
+        visible={Boolean(selected)}
+        summary={selected ? `${selected.name} · ${selected.servingSize}` : ""}
+        total={selected?.packagePrice ?? 0}
+        detailsRef={selectedCardRef}
+        actionLabel="Proceed →"
+        onAction={() => {
+          if (requireAuth()) setModalOpen(true);
+        }}
+      />
       <CalendarModal
         bookingKind="catering_buffet"
         isOpen={modalOpen}

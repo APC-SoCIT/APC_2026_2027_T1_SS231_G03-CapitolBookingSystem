@@ -33,6 +33,7 @@ import {
 } from "../data/deliveryOrders";
 import { OrderDetailModal } from "../components/operations/OrderDetailModal";
 import { StatusPill } from "../components/operations/StatusPill";
+import { useNotificationFocus, useNotificationRow } from "../context/StaffNotificationsContext";
 
 type OrderFilter = DeliveryStatus | "All";
 type RiderFilter = string; // "all" | "unassigned" | rider id
@@ -49,6 +50,13 @@ export function AdminDelivery() {
   const [newRiderName, setNewRiderName] = useState("");
   const [newRiderPhone, setNewRiderPhone] = useState("");
   const [riderError, setRiderError] = useState("");
+
+  // Arriving from a notification: clear filters so the order is listed.
+  useNotificationFocus(() => {
+    setStatusFilter("All");
+    setRiderFilter("all");
+    setSearch("");
+  });
 
   const loadRemote = async () => {
     try {
@@ -442,8 +450,9 @@ function DeliveryRow({
   onConfirmStatus: () => void;
   onAssignRider: (reference: string, riderId: string | null) => void;
 }) {
+  const highlight = useNotificationRow(`delivery:${order.reference}`);
   return (
-    <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen()}>
+    <article className={`ops-order-row${highlight.className}`} {...highlight.rowProps} onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen()}>
       <div className="ops-order-row__id"><strong>{order.reference}</strong><span>{order.customer}</span>{order.phone && <small>{order.phone}</small>}</div>
       <div className="ops-order-row__items"><span>{order.items}</span><small><MapPin size={10} /> {order.address}</small>{order.total !== undefined && <small className="ops-order-row__price">₱{order.total.toLocaleString()}</small>}</div>
       <div className="ops-order-row__when"><span><CalendarDays size={12} /> {order.eta}</span><small>Placed {order.placedAt}</small></div>

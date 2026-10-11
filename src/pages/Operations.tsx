@@ -43,6 +43,7 @@ import { OrderDetailModal } from "../components/operations/OrderDetailModal";
 import { FunctionDetailModal } from "../components/operations/FunctionDetailModal";
 import { CateringDetailModal } from "../components/operations/CateringDetailModal";
 import { StatusPill } from "../components/operations/StatusPill";
+import { useNotificationFocus, useNotificationRow } from "../context/StaffNotificationsContext";
 import { supabase } from "../lib/supabase";
 
 type ResFilter = ReservationStatus | "All";
@@ -63,6 +64,18 @@ export function Operations() {
   const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
   const [pendingFunctionStatus, setPendingFunctionStatus] = useState<Record<string, ReservationStatus>>({});
   const [pendingCateringStatus, setPendingCateringStatus] = useState<Record<string, ReservationStatus>>({});
+
+  // Arriving from a notification: clear filters so the booking is listed.
+  useNotificationFocus((id) => {
+    if (id.startsWith("function:")) {
+      setFunctionFilter("All");
+      setFunctionSearch("");
+    } else {
+      setCateringFilter("All");
+      setCateringKindFilter("All");
+      setCateringSearch("");
+    }
+  });
   const bookingFetchVersion = useRef(0);
 
   const loadBookings = useCallback(async () => {
@@ -376,8 +389,9 @@ function StatCard({ icon, label, value, hint, accent }: { icon: React.ReactNode;
 }
 
 function FunctionRow({ booking, onOpen, onStatusChange, statusDraft, dirty, onDraftStatus, onConfirmStatus, cancellationRequested }: { booking: FunctionBooking; onOpen: () => void; onStatusChange: (id: string, s: ReservationStatus) => void; statusDraft: ReservationStatus; dirty: boolean; onDraftStatus: (s: ReservationStatus) => void; onConfirmStatus: () => void; cancellationRequested: boolean }) {
+  const highlight = useNotificationRow(`function:${booking.id}`);
   return (
-    <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter" && onOpen()}>
+    <article className={`ops-order-row${highlight.className}`} {...highlight.rowProps} onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter" && onOpen()}>
       <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small>{cancellationRequested && <small className="inquiry-manual-badge">Cancellation requested</small>}</div>
       <div className="ops-order-row__items"><span>{booking.eventType} · {booking.guests} guests</span><small><Building2 size={10}/> {booking.room}</small><small style={{color:"#b70100"}}><Users size={10}/> {booking.email}</small></div>
       <div className="ops-order-row__when"><span><CalendarDays size={12}/> {booking.date} {booking.time}</span><small>Placed {booking.placedAt}</small></div>
@@ -402,8 +416,9 @@ function CateringRow({ booking, onOpen, onStatusChange, statusDraft, dirty, onDr
   const kindLabel = booking.kind === "catering_buffet" ? `Buffet · ${booking.packageName} · ${booking.pax} pax` : `Packed · ${booking.itemsList?.length ?? 0} items · ${booking.guestCount ?? 0} guests`;
   const price = booking.total ? `₱${booking.total.toLocaleString()}` : "—";
   const venueLabel = booking.venueType === "function_room" ? `Room · ${booking.functionRoomName ?? booking.functionRoomId ?? ""}` : booking.deliveryAddress ? `Deliver · ${booking.deliveryAddress}` : "Delivered";
+  const highlight = useNotificationRow(`catering:${booking.id}`);
   return (
-    <article className="ops-order-row" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter"&&onOpen()}>
+    <article className={`ops-order-row${highlight.className}`} {...highlight.rowProps} onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e)=>e.key==="Enter"&&onOpen()}>
       <div className="ops-order-row__id"><strong>{booking.id}</strong><span>{booking.customer}</span><small>{booking.phone}</small>{cancellationRequested && <small className="inquiry-manual-badge">Cancellation requested</small>}</div>
       <div className="ops-order-row__items"><span>{kindLabel}</span><small><UtensilsCrossed size={10}/> {booking.kind === "catering_buffet" ? `₱${booking.pricePerPax}/pax` : `${booking.itemsList?.map(i=>i.name).join(", ") || "Inquiry"}`}</small><small>{venueLabel}</small><small className="ops-order-row__price">{price}</small></div>
       <div className="ops-order-row__when"><span><CalendarDays size={12}/> {booking.date} {booking.time}</span><small>Placed {booking.placedAt}</small></div>
