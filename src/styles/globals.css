@@ -652,6 +652,15 @@ button, input, textarea, select { font: inherit; }
 .notif-toast__close { display: grid; place-items: center; width: 28px; height: 28px; margin: 0.5rem 0.5rem 0 0; border: 0; border-radius: 50%; background: transparent; color: #8a5a5a; cursor: pointer; }
 .notif-toast__close:hover { background: rgba(100, 0, 0, 0.07); }
 @keyframes notif-toast-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+/* Staff rows: faint while new and untouched, strong flash when opened from a notification */
+.notif-row--new { position: relative; border-color: rgba(214, 160, 0, 0.45); background: #fff6d6; box-shadow: inset 4px 0 0 #e0a800; }
+.notif-row--new::after { position: absolute; top: 0.45rem; right: 0.6rem; padding: 0.1rem 0.45rem; border-radius: 999px; background: #e0a800; color: #3a0000; content: "New"; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; pointer-events: none; }
+.notif-row--flash { animation: notif-row-flash 2.2s ease-out both; }
+@keyframes notif-row-flash {
+  0%, 30% { background: #ffe08a; border-color: #b70100; box-shadow: 0 0 0 3px #b70100, 0 10px 30px rgba(183, 1, 0, 0.3); }
+  100% { background: #fdfbf3; border-color: rgba(100, 0, 0, 0.08); box-shadow: 0 0 0 0 rgba(183, 1, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .notif-row--flash { animation: none; border-color: #b70100; background: #ffe08a; box-shadow: 0 0 0 3px #b70100; } }
 
 .auth-signin-btn {
   display: inline-flex; align-items: center; gap: 0.45rem;

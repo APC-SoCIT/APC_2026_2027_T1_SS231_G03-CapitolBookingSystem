@@ -1,11 +1,10 @@
 import { Bell, CalendarDays, MessageCircle, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import type {
   StaffNotification,
   StaffNotificationKind,
 } from "../../data/staffNotifications";
-import type { useStaffNotifications } from "../../hooks/useStaffNotifications";
+import type { StaffNotificationsValue } from "../../context/StaffNotificationsContext";
 
 const TOAST_DURATION_MS = 6000;
 
@@ -26,15 +25,15 @@ function timeAgo(iso: string) {
 }
 
 type NotificationBellProps = {
-  notifications: ReturnType<typeof useStaffNotifications>;
+  notifications: StaffNotificationsValue;
 };
 
 export function NotificationBell({ notifications }: NotificationBellProps) {
-  const { items, isUnread, unreadCount, markRead, latest, dismissLatest } = notifications;
+  const { items, isUnread, unreadCount, markRead, latest, dismissLatest, openNotification } =
+    notifications;
   const [open, setOpen] = useState(false);
   const [ringing, setRinging] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!open) return;
@@ -64,10 +63,8 @@ export function NotificationBell({ notifications }: NotificationBellProps) {
   }, [latest, dismissLatest]);
 
   const openItem = (item: StaffNotification) => {
-    markRead(item.path);
     setOpen(false);
-    dismissLatest();
-    navigate(item.path);
+    openNotification(item);
   };
 
   const LatestIcon = latest ? KIND_ICONS[latest.kind] : null;

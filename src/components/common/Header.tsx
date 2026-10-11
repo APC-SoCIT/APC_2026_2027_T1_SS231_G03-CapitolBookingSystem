@@ -5,7 +5,7 @@ import { NAVIGATION_ITEMS, RESTAURANT_INFO } from "../../constants";
 import { useAuth } from "../../context/AuthContext";
 import { NotificationBell } from "./NotificationBell";
 import { SignInModal } from "./SignInModal";
-import { useStaffNotifications } from "../../hooks/useStaffNotifications";
+import { useStaffNotifications } from "../../context/StaffNotificationsContext";
 import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
 
 /** Top-nav tabs for system admins, matching the use-case diagram: the three
