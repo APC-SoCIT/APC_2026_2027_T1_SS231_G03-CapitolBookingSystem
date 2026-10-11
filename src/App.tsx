@@ -17,7 +17,8 @@ import { Home } from "./pages/Home";
 import { Inquiries } from "./pages/Inquiries";
 import { InquiryBot } from "./pages/InquiryBot";
 import { Profile } from "./pages/Profile";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { NotFound } from "./pages/NotFound";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { canAccessRoute, getRoleHome } from "./lib/roles";
 
@@ -48,8 +49,9 @@ function RoleGuard({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <Layout>
-      <RoleGuard>
-        <Routes>
+      <Routes>
+        {/* RoleGuard gates known routes only; unknown paths fall through to NotFound. */}
+        <Route element={<RoleGuard><Outlet /></RoleGuard>}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/catering" element={<Catering />} />
@@ -67,9 +69,9 @@ export default function App() {
           <Route path="/operations" element={<Operations />} />
           <Route path="/inquiry-bot" element={<InquiryBot />} />
           <Route path="/delivery/rider" element={<DeliveryRider />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </RoleGuard>
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </Layout>
   );
 }

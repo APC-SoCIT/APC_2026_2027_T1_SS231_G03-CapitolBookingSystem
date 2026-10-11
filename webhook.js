@@ -132,7 +132,7 @@ app.use((req, res, next) => {
 // Never serve or fall back to dotfiles (.env, .git, .htaccess, ...).
 app.use((req, res, next) => {
   if (req.path.split('/').some((segment) => segment.startsWith('.'))) {
-    return res.sendStatus(404);
+    return sendErrorPage(res, 404, '404.html', 'Not found.');
   }
   next();
 });
@@ -1383,21 +1383,47 @@ app.patch('/inquiries/:id/status', requireStaffAuth, async (req, res) => {
   return res.json({ inquiry: updated });
 });
 
-// Serve the Vite single-page app for browser routes after API endpoints.
-// Only extension-less routes get index.html; a missing file request such as
-// /webhook.config.js must 404 instead of downloading the app shell.
-app.get(/.*/, (req, res, next) => {
-  if (path.extname(req.path)) return res.sendStatus(404);
+// --- 404 catch-all and error handling (must stay after every route) ---
+
+function isApiPath(requestPath) {
+  return requestPath === '/api' || requestPath.startsWith('/api/');
+}
+
+function wantsJsonResponse(req) {
+  return isApiPath(req.path) || (req.method !== 'GET' && req.method !== 'HEAD');
+}
+
+function sendErrorPage(res, status, file, fallback) {
+  res.status(status).sendFile(path.join(frontendDistPath, file), (error) => {
+    if (error && !res.headersSent) res.status(status).send(fallback);
+  });
+}
+
+// Unmatched requests: API and non-GET callers get JSON 404, missing files get
+// the static 404 page, and extension-less GETs keep serving index.html so the
+// React router can handle them (soft 404).
+app.use((req, res, next) => {
+  if (wantsJsonResponse(req)) return res.status(404).json({ error: 'Not found' });
+  if (path.extname(req.path)) return sendErrorPage(res, 404, '404.html', 'Not found.');
   res.sendFile(path.join(frontendDistPath, 'index.html'), (error) => {
     if (error) next(error);
   });
 });
 
-// Final error handler: log the detail, never leak stacks or internal paths.
+// Final error handler: log the real error server-side and send a generic body
+// only - never err.message, stacks, or file paths.
 app.use((err, req, res, next) => {
-  const status = Number(err.status || err.statusCode) || 500;
-  if (status >= 500) console.error('❌ Unhandled error:', err.message);
-  res.status(status).send(status >= 500 ? 'Something went wrong.' : 'Not found.');
+  if (res.headersSent) return next(err);
+  console.error('❌ Request error:', err);
+  const isBadRequest = err.type === 'entity.parse.failed' || err.status === 400;
+  const status = isBadRequest ? 400 : 500;
+  const jsonForRequest = isApiPath(req.path)
+    || req.path === '/inquiry-bot'
+    || req.path.startsWith('/inquiry-bot/');
+  if (jsonForRequest) {
+    return res.status(status).json({ error: isBadRequest ? 'Bad request' : 'Internal server error' });
+  }
+  sendErrorPage(res, status, isBadRequest ? '400.html' : '500.html', isBadRequest ? 'Bad request.' : 'Something went wrong.');
 });
 
 const PORT = process.env.PORT || 8000;

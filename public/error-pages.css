@@ -1,0 +1,91 @@
+/* Shared styles for the static 400/404/500 pages served by Express.
+   Self-contained: matches the site brand without touching the React bundle. */
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #2d1717;
+  background: #fdf6e3;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fdf6e3;
+}
+
+.error-header {
+  background: #640000;
+  padding: 0 1.5rem;
+}
+
+.error-brand {
+  display: block;
+  max-width: 1200px;
+  min-height: 72px;
+  margin: 0 auto;
+  color: #ffefc1;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  letter-spacing: 0.14em;
+  line-height: 72px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.error-page {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.error-page h1 {
+  margin: 0;
+  color: #640000;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.25rem, 8vw, 5rem);
+  line-height: 1.08;
+}
+
+.error-page p {
+  max-width: 38rem;
+  margin: 0 auto;
+  line-height: 1.6;
+  color: #2d1717;
+}
+
+.error-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 2rem;
+  border: 0;
+  border-radius: 6px;
+  background: #b70100;
+  color: #ffefc1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.error-button:hover {
+  background: #c30b09;
+  box-shadow: 0 8px 22px rgba(183, 1, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.error-button:focus-visible {
+  outline: 3px solid rgba(183, 1, 0, 0.28);
+  outline-offset: 2px;
+}
