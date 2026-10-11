@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { NAVIGATION_ITEMS, RESTAURANT_INFO } from "../../constants";
 import { useAuth } from "../../context/AuthContext";
+import { NotificationBell } from "./NotificationBell";
 import { SignInModal } from "./SignInModal";
+import { useStaffNotifications } from "../../hooks/useStaffNotifications";
 import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
 
 /** Top-nav tabs for system admins, matching the use-case diagram: the three
@@ -42,6 +44,17 @@ export function Header() {
     canAccessRoute({ role }, item.path),
   );
   const navigate = useNavigate();
+  const notifications = useStaffNotifications();
+
+  const navBadge = (path: string) => {
+    const count = notifications.unreadByPath[path] ?? 0;
+    if (!count) return null;
+    return (
+      <span className="nav-badge" aria-label={`${count} new`}>
+        {count > 9 ? "9+" : count}
+      </span>
+    );
+  };
 
   useEffect(() => setMenuOpen(false), [pathname]);
 
@@ -101,12 +114,14 @@ export function Header() {
                 to={item.path}
               >
                 {item.label}
+                {navBadge(item.path)}
               </NavLink>
             ))}
           </nav>
 
           {/* Right side: Sign In / User badge */}
           <div className="header-auth">
+            {notifications.enabled && <NotificationBell notifications={notifications} />}
             {loading ? null : user ? (
               <div className="auth-user-badge">
                 {role === "customer" ? (
@@ -184,6 +199,7 @@ export function Header() {
                 to={item.path}
               >
                 {item.label}
+                {navBadge(item.path)}
               </NavLink>
             ))}
           </nav>
