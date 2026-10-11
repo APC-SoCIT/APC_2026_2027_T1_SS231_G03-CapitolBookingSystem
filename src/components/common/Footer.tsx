@@ -37,9 +37,6 @@ export function Footer() {
           <div className="footer-links">
             <span>{RESTAURANT_INFO.address}</span>
             <a href={`tel:${RESTAURANT_INFO.phone}`}>{RESTAURANT_INFO.phone}</a>
-            <a href={`mailto:${RESTAURANT_INFO.email}`}>
-              {RESTAURANT_INFO.email}
-            </a>
           </div>
           <div className="footer-socials">
             <a

@@ -11,6 +11,7 @@ import {
   Search,
   Settings,
   Trash2,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -50,6 +51,8 @@ export function AdminDelivery() {
   const [newRiderName, setNewRiderName] = useState("");
   const [newRiderPhone, setNewRiderPhone] = useState("");
   const [riderError, setRiderError] = useState("");
+  const [riderToDelete, setRiderToDelete] = useState<DeliveryRider | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   // Arriving from a notification: clear filters so the order is listed.
   useNotificationFocus(() => {
@@ -88,6 +91,7 @@ export function AdminDelivery() {
   const resetOrders = () => {
     resetDeliveryOrders();
     setSelectedRef(null);
+    setConfirmReset(false);
     void loadRemote();
   };
 
@@ -253,7 +257,7 @@ export function AdminDelivery() {
             <small className="ops-toolbar-hint">Riders and their delivery orders · Assign a rider per order · Status changes save instantly</small>
           </div>
           <div className="dashboard-toolbar__actions">
-            <button className="reset-button" onClick={resetOrders} type="button">
+            <button className="reset-button" onClick={() => setConfirmReset(true)} type="button">
               <RefreshCw size={15} />
               Reset order data
             </button>
@@ -304,7 +308,7 @@ export function AdminDelivery() {
                   <button
                     aria-label={`Remove rider ${rider.name}`}
                     className="rider-card__remove"
-                    onClick={() => removeRider(rider.id)}
+                    onClick={() => setRiderToDelete(rider)}
                     title="Remove rider (unassigns their orders)"
                     type="button"
                   >
@@ -427,6 +431,77 @@ export function AdminDelivery() {
       </section>
 
       {selectedOrder && <OrderDetailModal order={selectedOrder} onClose={() => setSelectedRef(null)} onSave={handleOrderSave} />}
+
+      {confirmReset && (
+        <div className="ops-modal-backdrop" onClick={() => setConfirmReset(false)}>
+          <div className="ops-modal" role="dialog" aria-modal="true" aria-label="Confirm data reset" onClick={(e) => e.stopPropagation()}>
+            <div className="ops-modal__header">
+              <div>
+                <span className="ops-modal__kicker">Confirm Reset</span>
+                <h2>Reset order data?</h2>
+              </div>
+              <button className="ops-modal__close" onClick={() => setConfirmReset(false)} type="button">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="ops-modal__body">
+              <p className="menu-manager-delete-msg">
+                This restores local demo delivery orders from the default dataset.
+              </p>
+              <p className="menu-manager-delete-hint">
+                Any locally edited statuses, riders, or order details will be replaced. Server orders are re-fetched and stay untouched.
+              </p>
+            </div>
+            <div className="ops-modal__footer">
+              <button className="ops-btn ops-btn--ghost" onClick={() => setConfirmReset(false)} type="button">
+                Cancel
+              </button>
+              <button className="ops-btn ops-btn--danger" onClick={resetOrders} type="button">
+                <RefreshCw size={14} /> Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {riderToDelete && (
+        <div className="ops-modal-backdrop" onClick={() => setRiderToDelete(null)}>
+          <div className="ops-modal" role="dialog" aria-modal="true" aria-label="Confirm rider deletion" onClick={(e) => e.stopPropagation()}>
+            <div className="ops-modal__header">
+              <div>
+                <span className="ops-modal__kicker">Confirm Deletion</span>
+                <h2>Remove {riderToDelete.name}?</h2>
+              </div>
+              <button className="ops-modal__close" onClick={() => setRiderToDelete(null)} type="button">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="ops-modal__body">
+              <p className="menu-manager-delete-msg">
+                Are you sure you want to permanently remove <strong>{riderToDelete.name}</strong> from the fleet?
+              </p>
+              <p className="menu-manager-delete-hint">
+                Riders cannot be recovered once deleted. Their assigned orders stay in the list but become unassigned.
+              </p>
+            </div>
+            <div className="ops-modal__footer">
+              <button className="ops-btn ops-btn--ghost" onClick={() => setRiderToDelete(null)} type="button">
+                Cancel
+              </button>
+              <button
+                className="ops-btn ops-btn--danger"
+                onClick={() => {
+                  removeRider(riderToDelete.id);
+                  setRiderToDelete(null);
+                }}
+                type="button"
+              >
+                <Trash2 size={14} /> Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

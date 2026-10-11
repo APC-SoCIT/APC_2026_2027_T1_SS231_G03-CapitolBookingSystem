@@ -29,7 +29,6 @@ const CUSTOMER_PATHS = [
   "/catering/packed",
   "/function-rooms",
   "/function-rooms/reserve",
-  "/inquiries",
   "/delivery",
   "/delivery/order",
   "/profile",

@@ -9,7 +9,7 @@ import { useStaffNotifications } from "../../context/StaffNotificationsContext";
 import { canAccessRoute, ROLE_LABELS } from "../../lib/roles";
 
 /** Top-nav tabs for system admins, matching the use-case diagram: the three
- * booking-management screens plus Operations, Dashboard, and Inquiries. */
+ * booking-management screens plus Operations, Dashboard, and Inquiry Bot. */
 export const ADMIN_MANAGE_NAVIGATION_ITEMS = [
   { label: "Delivery Orders", path: "/delivery/staff" },
   { label: "Operations", path: "/operations" },

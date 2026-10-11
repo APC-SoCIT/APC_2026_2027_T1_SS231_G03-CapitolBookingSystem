@@ -3,21 +3,18 @@ import { Link } from "react-router-dom";
 
 const services = [
   {
-    label: "Catering",
     title: "Catering",
     text: "Bring Capitol's authentic flavors to your event with buffet packages or individually packed meals.",
     path: "/catering",
     cta: "Book Now",
   },
   {
-    label: "Delivery",
     title: "Delivery",
     text: "Enjoy Capitol's home-cooked favorites delivered straight to your door in select areas.",
     path: "/delivery",
     cta: "Order Now",
   },
   {
-    label: "Events",
     title: "Function Rooms",
     text: "Host celebrations in our elegant function rooms, from corporate events to family gatherings.",
     path: "/function-rooms",
@@ -62,7 +59,6 @@ export function Home() {
         <div className="service-grid">
           {services.map((service) => (
             <Link className="service-card" key={service.path} to={service.path}>
-              <span className="service-card__label">{service.label}</span>
               <h3>{service.title}</h3>
               <p>{service.text}</p>
               <span className="service-card__action">

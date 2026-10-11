@@ -14,7 +14,6 @@ import { DeliveryMenuManager } from "./pages/DeliveryMenuManager";
 import { Dashboard } from "./pages/Dashboard";
 import { Operations } from "./pages/Operations";
 import { Home } from "./pages/Home";
-import { Inquiries } from "./pages/Inquiries";
 import { InquiryBot } from "./pages/InquiryBot";
 import { Profile } from "./pages/Profile";
 import { NotFound } from "./pages/NotFound";
@@ -59,7 +58,6 @@ export default function App() {
           <Route path="/catering/packed" element={<CateringPacked />} />
           <Route path="/function-rooms" element={<FunctionRooms />} />
           <Route path="/function-rooms/reserve" element={<FunctionRoomReservation />} />
-          <Route path="/inquiries" element={<Inquiries />} />
           <Route path="/delivery" element={<Delivery />} />
           <Route path="/delivery/order" element={<DeliveryOrder />} />
           <Route path="/profile" element={<Profile />} />
