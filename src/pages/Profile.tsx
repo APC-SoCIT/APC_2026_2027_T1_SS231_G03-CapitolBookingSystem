@@ -122,143 +122,147 @@ export function Profile() {
 
   return (
     <div className="inquiries-page">
-      <section className="section profile-layout">
-        <div className="profile-side">
-          <div className="inquiry-form profile-account-card">
-            <p className="eyebrow">Account</p>
-            <h2>{user.displayName}</h2>
-            <span className="profile-role-badge">
-              {user.role ? ROLE_LABELS[user.role] : "Customer"}
-            </span>
-            <dl className="profile-account-meta">
-              <div>
-                <dt>Email</dt>
-                <dd>{user.email}</dd>
-              </div>
-              {phone.trim() !== "" && (
-                <div>
-                  <dt>Phone</dt>
-                  <dd>{phone}</dd>
-                </div>
-              )}
-            </dl>
-            <p className="profile-account-note">
-              Reservations and orders made with this account show up in your
-              booking history automatically.
-            </p>
-          </div>
-
-          <div className="inquiry-form profile-bookings-card">
-            <h2>My bookings</h2>
-            <BookingHistory userId={user.id} />
-          </div>
-
-          <DeliveryTracker />
-        </div>
-
-        <div className="inquiry-form">
-          <h2>Contact details</h2>
-
-          <label className="form-field">
-            <span>Full Name</span>
-            <input
-              className="input"
-              placeholder="Juan dela Cruz"
-              type="text"
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                setError("");
-                setSaved(false);
-              }}
-              autoComplete="name"
-            />
-          </label>
-
-          <label className="form-field">
-            <span>Phone Number</span>
-            <input
-              className="input"
-              placeholder="09XX XXX XXXX"
-              type="tel"
-              value={phone}
-              onChange={(event) => {
-                setPhone(event.target.value);
-                setError("");
-                setSaved(false);
-              }}
-              autoComplete="tel"
-            />
-          </label>
-
-          {addresses.map((entry, index) => (
-            <div key={index} className="profile-address-block">
-              <p className="eyebrow">Address {index + 1}</p>
-
-              <label className="form-field">
-                <span>Label</span>
-                <input
-                  className="input"
-                  placeholder={index === 0 ? "Home" : "Office"}
-                  value={entry.label}
-                  onChange={(event) =>
-                    updateAddress(index, "label", event.target.value)
-                  }
-                />
-              </label>
-
-              <label className="form-field">
-                <span>Address</span>
-                <textarea
-                  className="input"
-                  placeholder="Street, barangay, city"
-                  rows={3}
-                  value={entry.address}
-                  onChange={(event) =>
-                    updateAddress(index, "address", event.target.value)
-                  }
-                  autoComplete="street-address"
-                />
-              </label>
-
-              <label className="form-field">
-                <span>Note</span>
-                <input
-                  className="input"
-                  placeholder="Gate code, landmark, delivery instructions"
-                  value={entry.note}
-                  onChange={(event) =>
-                    updateAddress(index, "note", event.target.value)
-                  }
-                />
-              </label>
-            </div>
-          ))}
-
-          {error && (
-            <p className="signin-error" role="alert">
-              {error}
-            </p>
-          )}
-
-          <button
-            className="button button--red"
-            onClick={() => void saveProfile()}
-            disabled={saving}
-            type="button"
-          >
-            {saving ? "Saving…" : "Save Profile"}
-          </button>
-
-          {saved && (
-            <div className="success-message">
-              <strong>Profile saved.</strong>
-              <span>
-                Your details will be prefilled on delivery and reservation
-                forms.
+      <section className="section">
+        <div className="profile-grid">
+          <div className="profile-left-column">
+            <div className="inquiry-form profile-account-card">
+              <p className="eyebrow">Account</p>
+              <h2>{user.displayName}</h2>
+              <span className="profile-role-badge">
+                {user.role ? ROLE_LABELS[user.role] : "Customer"}
               </span>
+              <dl className="profile-account-meta">
+                <div>
+                  <dt>Email</dt>
+                  <dd>{user.email}</dd>
+                </div>
+                {phone.trim() !== "" && (
+                  <div>
+                    <dt>Phone</dt>
+                    <dd>{phone}</dd>
+                  </div>
+                )}
+              </dl>
+              <p className="profile-account-note">
+                Reservations and orders made with this account show up in your
+                booking history automatically.
+              </p>
             </div>
-          )}
+
+            <div className="inquiry-form profile-bookings-card">
+              <h2 className="profile-card__title">My Bookings</h2>
+              <BookingHistory userId={user.id} />
+            </div>
+          </div>
+
+          <div className="inquiry-form">
+            <h2 className="profile-card__title">Contact details</h2>
+            <label className="form-field">
+              <span>Full Name</span>
+              <input
+                className="input"
+                placeholder="Juan dela Cruz"
+                type="text"
+                value={name}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setError("");
+                  setSaved(false);
+                }}
+                autoComplete="name"
+              />
+            </label>
+
+            <label className="form-field">
+              <span>Phone Number</span>
+              <input
+                className="input"
+                placeholder="09XX XXX XXXX"
+                type="tel"
+                value={phone}
+                onChange={(event) => {
+                  setPhone(event.target.value);
+                  setError("");
+                  setSaved(false);
+                }}
+                autoComplete="tel"
+              />
+            </label>
+
+            {addresses.map((entry, index) => (
+              <div key={index} className="profile-address-block">
+                <p className="eyebrow">Address {index + 1}</p>
+
+                <label className="form-field">
+                  <span>Label</span>
+                  <input
+                    className="input"
+                    placeholder={index === 0 ? "Home" : "Office"}
+                    value={entry.label}
+                    onChange={(event) =>
+                      updateAddress(index, "label", event.target.value)
+                    }
+                  />
+                </label>
+
+                <label className="form-field">
+                  <span>Address</span>
+                  <textarea
+                    className="input"
+                    placeholder="Street, barangay, city"
+                    rows={3}
+                    value={entry.address}
+                    onChange={(event) =>
+                      updateAddress(index, "address", event.target.value)
+                    }
+                    autoComplete="street-address"
+                  />
+                </label>
+
+                <label className="form-field">
+                  <span>Note</span>
+                  <input
+                    className="input"
+                    placeholder="Gate code, landmark, delivery instructions"
+                    value={entry.note}
+                    onChange={(event) =>
+                      updateAddress(index, "note", event.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            ))}
+
+            {error && (
+              <p className="signin-error" role="alert">
+                {error}
+              </p>
+            )}
+
+            <button
+              className="button button--red"
+              onClick={() => void saveProfile()}
+              disabled={saving}
+              type="button"
+            >
+              {saving ? "Saving…" : "Save Profile"}
+            </button>
+
+            {saved && (
+              <div className="success-message">
+                <strong>Profile saved.</strong>
+                <span>
+                  Your details will be prefilled on delivery and reservation
+                  forms.
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="inquiry-form profile-grid__wide">
+            <h2 className="profile-card__title">My Deliveries</h2>
+            <DeliveryTracker />
+          </div>
         </div>
       </section>
     </div>

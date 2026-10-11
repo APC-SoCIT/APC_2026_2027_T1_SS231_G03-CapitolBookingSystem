@@ -1,11 +1,4 @@
-import {
-  Check,
-  Clock3,
-  MapPin,
-  Package,
-  Search,
-  Truck,
-} from "lucide-react";
+import { Check, Clock3, MapPin, Package, Truck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -18,9 +11,11 @@ import {
   type SupabaseDeliveryOrder,
 } from "../../data/deliveryOrders";
 import { useAuth } from "../../context/AuthContext";
+import { OrderGroup } from "./OrderGroup";
 import { DeliveryMap } from "./DeliveryMap";
 
 type AnyOrder = {
+  id: string;
   reference: string;
   eta: string;
   status: string;
@@ -40,6 +35,7 @@ const TRACK_STEPS = [
 
 function toAnyOrder(order: SupabaseDeliveryOrder): AnyOrder {
   return {
+    id: order.reference,
     reference: order.reference,
     eta: order.eta,
     status: order.status,
@@ -52,6 +48,7 @@ function toAnyOrder(order: SupabaseDeliveryOrder): AnyOrder {
 
 function toAnyLocal(order: LocalDeliveryOrder): AnyOrder {
   return {
+    id: order.reference,
     reference: order.reference,
     eta: order.eta,
     status: order.status,
@@ -66,8 +63,7 @@ export function DeliveryTracker() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const initialReference = searchParams.get("reference") ?? "";
-  const [reference, setReference] = useState(initialReference);
-  const [searchedReference, setSearchedReference] = useState(initialReference);
+  const [activeRef, setActiveRef] = useState(initialReference);
   const [remoteOrders, setRemoteOrders] = useState<SupabaseDeliveryOrder[]>([]);
   const [loading, setLoading] = useState(Boolean(user));
 
@@ -101,92 +97,95 @@ export function DeliveryTracker() {
   }, [user?.id]);
 
   const localOrders = useMemo(() => getDeliveryOrders(), []);
+  const orders = useMemo(() => remoteOrders.map(toAnyOrder), [remoteOrders]);
 
-  const order: AnyOrder | undefined = useMemo(() => {
-    const key = searchedReference.trim().toLowerCase();
+  const tracked = useMemo(() => {
+    const key = activeRef.trim().toLowerCase();
     if (!key) return undefined;
-    const remote = remoteOrders.find(
+    const remote = orders.find(
       (item) => item.reference.toLowerCase() === key,
     );
-    if (remote) return toAnyOrder(remote);
+    if (remote) return remote;
     const local = localOrders.find(
       (item) => item.reference.toLowerCase() === key,
     );
     return local ? toAnyLocal(local) : undefined;
-  }, [remoteOrders, localOrders, searchedReference]);
+  }, [activeRef, orders, localOrders]);
+
+  const ongoing = orders.filter(
+    (item) => item.status !== "Delivered" && item.status !== "Cancelled",
+  );
+  const past = orders.filter(
+    (item) => item.status === "Delivered" || item.status === "Cancelled",
+  );
+
+  const selectRow = (id: string | null) => {
+    const next = id ?? "";
+    setActiveRef(next);
+    if (next) {
+      requestAnimationFrame(() => {
+        document
+          .getElementById("delivery-track-result")
+          ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    }
+  };
 
   return (
-    <div className="inquiry-form profile-track">
-      <h2>Track your delivery</h2>
-      <p className="profile-track__intro">
-        Enter your booking reference to see the latest update.
-      </p>
+    <div className="profile-track">
+      {user &&
+        (loading ? (
+          <p className="profile-track__intro">Loading your orders…</p>
+        ) : orders.length > 0 ? (
+          <>
+            <p className="profile-track__intro">
+              Tap an order to see its live status below.
+            </p>
+            {ongoing.length > 0 && (
+              <OrderGroup
+                label="Ongoing"
+                items={ongoing}
+                activeId={tracked ? tracked.reference : null}
+                onSelect={selectRow}
+                summary={(order) => `${order.placedAt} · ${order.items}`}
+              />
+            )}
+            {past.length > 0 && (
+              <OrderGroup
+                label="Past"
+                items={past}
+                activeId={tracked ? tracked.reference : null}
+                onSelect={selectRow}
+                summary={(order) => `${order.placedAt} · ${order.items}`}
+              />
+            )}
+          </>
+        ) : (
+          <p className="profile-track__intro">
+            No delivery orders yet — orders you place show up here
+            automatically.
+          </p>
+        ))}
 
-      <div className="profile-track-search">
-        <label className="form-field">
-          <span>Booking reference</span>
-          <input
-            aria-label="Booking reference"
-            className="input"
-            placeholder="e.g. CAP-1050"
-            value={reference}
-            onChange={(event) => setReference(event.target.value)}
-            onKeyDown={(event) =>
-              event.key === "Enter" && setSearchedReference(reference)
-            }
-          />
-        </label>
-        <button
-          className="button button--red"
-          onClick={() => setSearchedReference(reference)}
-          type="button"
-        >
-          <Search size={17} /> Track
-        </button>
-      </div>
-
-      {user && (
-        <div className="profile-track__mine">
-          {loading ? (
-            <span>Loading your orders…</span>
-          ) : remoteOrders.length > 0 ? (
-            <>
-              <span>Your orders:</span>
-              {remoteOrders.map((item) => (
-                <button
-                  key={item.reference}
-                  onClick={() => {
-                    setReference(item.reference);
-                    setSearchedReference(item.reference);
-                  }}
-                  type="button"
-                >
-                  {item.reference} · {item.status}
-                </button>
-              ))}
-            </>
-          ) : (
-            <span>No delivery orders yet — orders you place show up here automatically.</span>
-          )}
-        </div>
-      )}
-
-      {!searchedReference && !user && (
+      {!user && !activeRef && (
         <ReferenceHint
           onSelect={(value) => {
-            setReference(value);
-            setSearchedReference(value);
+            setActiveRef(value);
           }}
         />
       )}
-      {searchedReference && !order && (
+      {activeRef && tracked && (
+        <div id="delivery-track-result">
+          <TrackingResult order={tracked} />
+        </div>
+      )}
+      {activeRef && !tracked && (
         <div className="empty-state">
           <Package size={28} />
           <strong>We could not find that reference.</strong>
           <span>Check the code from your order confirmation and try again.</span>
         </div>
       )}
-      {order && <TrackingResult order={order} />}
     </div>
   );
 }

@@ -448,39 +448,71 @@ button, input, textarea, select { font: inherit; }
 .inquiry-form .button { align-self: flex-start; }
 .profile-address-block { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
 .profile-address-block .eyebrow { margin: 0; }
-.profile-layout { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 2rem; align-items: start; }
-.profile-side { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
-.profile-account-card { gap: 0.75rem; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; align-items: start; }
+.profile-grid__tall { grid-row: span 2; }
+.profile-grid__wide { grid-column: 1 / -1; }
+.profile-card__title { margin: 0 0 1rem; font-size: 1.5rem; }
+.profile-left-column { display: flex; flex-direction: column; gap: 1.5rem; align-self: stretch; min-height: 0; }
+.profile-account-card { flex: 0 0 auto; gap: 0.75rem; }
 .profile-account-card h2 { margin: 0; font-size: 1.9rem; line-height: 1.2; overflow-wrap: anywhere; }
 .profile-role-badge { display: inline-flex; align-self: flex-start; padding: 0.3rem 0.85rem; border: 1.5px solid #b70100; border-radius: 999px; color: #b70100; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
 .profile-account-meta { display: flex; flex-direction: column; gap: 0.6rem; margin: 0.25rem 0 0; }
 .profile-account-meta dt { color: #8a5a5a; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .profile-account-meta dd { margin: 0.1rem 0 0; color: #3a2a2a; font-size: 0.95rem; line-height: 1.5; overflow-wrap: anywhere; }
-.profile-account-note { margin: 0; color: #8a5a5a; font-size: 0.85rem; line-height: 1.6; }
-.profile-bookings-card h2 { margin-bottom: 0.5rem; }
-.profile-track h2 { margin-bottom: 0.25rem; }
-.profile-track__intro { margin: 0 0 0.25rem; color: #8a5a5a; font-size: 0.85rem; }
-.profile-track-search { display: flex; align-items: flex-end; gap: 0.6rem; }
-.profile-track-search .form-field { flex: 1; min-width: 0; margin: 0; }
-.profile-track-search .input { height: 2.75rem; }
-.profile-track-search .button { flex-shrink: 0; height: 2.75rem; padding-top: 0; padding-bottom: 0; align-self: flex-end; }
+.profile-account-note { margin: 0.75rem 0 0; color: #8a5a5a; font-size: 0.85rem; line-height: 1.6; }
+.profile-address-block { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid rgba(100, 0, 0, 0.08); }
+.profile-address-block .eyebrow { margin: 0; }
+.profile-track h2 { margin: 0 0 0.25rem; }
+.profile-track__intro { margin: 0 0 0.75rem; color: #8a5a5a; font-size: 0.85rem; }
+.profile-order-list { display: flex; flex-direction: column; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
+.profile-order-list__empty { margin: 0; color: #8a5a5a; font-size: 0.85rem; }
+.profile-order-row { display: flex; align-items: center; gap: 0.9rem; width: 100%; min-height: 4.25rem; padding: 0.85rem 1.05rem; border: 1px solid rgba(100, 0, 0, 0.12); border-radius: 10px; background: #fff; color: inherit; cursor: pointer; font-family: inherit; text-align: left; transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease; }
+.profile-order-row:hover { border-color: rgba(183, 1, 0, 0.45); box-shadow: 0 2px 8px rgba(100, 0, 0, 0.06); }
+.profile-order-row:focus-visible { outline: 2px solid #b70100; outline-offset: 2px; }
+.profile-order-row--open { border-color: #b70100; background: #fffdf6; }
+.profile-order-row__body { display: flex; flex: 1; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.profile-order-row__ref { overflow: hidden; color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1rem; letter-spacing: 0.05em; text-overflow: ellipsis; white-space: nowrap; }
+.profile-order-row__meta { color: #8a5a5a; font-size: 0.82rem; }
+.profile-order-row__chevron { flex-shrink: 0; color: #b70100; transition: transform 180ms ease; }
+.profile-order-row--open .profile-order-row__chevron { transform: rotate(180deg); }
+.profile-order-row__detail { margin-top: 0.6rem; }
+.profile-order-row__detail .tracking-result, .profile-order-row__detail .profile-booking { margin-top: 0; }
+/* My Bookings card: fixed height driven by the Account card; body scrolls. */
+.profile-bookings-card { flex: 1 1 0; min-height: 0; align-self: auto; display: flex; flex-direction: column; }
+.profile-bookings-card__body { flex: 1 1 auto; min-height: 0; padding-right: 0.35rem; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(107, 0, 0, 0.4) #fdf6e3; }
+.profile-bookings-card__body::-webkit-scrollbar { width: 6px; }
+.profile-bookings-card__body::-webkit-scrollbar-track { background: #fdf6e3; }
+.profile-bookings-card__body::-webkit-scrollbar-thumb { background: rgba(107, 0, 0, 0.35); border-radius: 999px; }
+/* Bookings rows only: detail line wraps (no ellipsis) so the full time shows. */
+.profile-bookings-card .profile-order-row__body { min-width: 0; flex: 1 1 auto; }
+.profile-bookings-card .profile-order-row__ref { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.profile-bookings-card .profile-order-row__meta { overflow: visible; text-overflow: clip; white-space: normal; }
+.profile-bookings-card .profile-order-row .ops-pill, .profile-bookings-card .profile-order-row__chevron { flex-shrink: 0; }
+/* Track your delivery: scroll region ends on a whole-row boundary
+   (4 rows * 4.25rem + 3 * 0.6rem gap = 18.8rem) with a bottom fade. */
+.profile-track .profile-history__section { margin-top: 1.5rem; }
+.profile-track .profile-history__section .eyebrow { margin: 0 0 0.75rem; }
+.profile-track .profile-order-list { max-height: 18.8rem; padding-right: 0.35rem; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(107, 0, 0, 0.4) transparent; -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.75rem), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 1.75rem), transparent); }
+.profile-track .profile-order-list::-webkit-scrollbar { width: 6px; }
+.profile-track .profile-order-list::-webkit-scrollbar-track { background: transparent; }
+.profile-track .profile-order-list::-webkit-scrollbar-thumb { background: rgba(107, 0, 0, 0.35); border-radius: 999px; }
+.profile-track .profile-order-row:hover { background: #fdfaf4; }
+.profile-track .profile-order-row--open { border-left: 3px solid #6b0000; background: #fdfaf4; }
+#delivery-track-result { margin-top: 1rem; }
 .profile-track .reference-hint { margin: 0; }
 .profile-track .empty-state { padding: 1.5rem; }
-.profile-track .tracking-result { margin-top: 0.25rem; }
+.profile-track .tracking-result { margin-top: 0.75rem; }
 .profile-track .order-summary { flex-wrap: wrap; gap: 1rem 2.5rem; }
 .profile-track .order-summary .status-pill { margin-left: 0; }
-.profile-track .tracking-layout { grid-template-columns: 1fr; gap: 1.25rem; padding: 1.25rem; }
-.profile-track .delivery-map { height: 240px; }
+.profile-track .tracking-layout { gap: 1.25rem; padding: 1.25rem; }
+.profile-track .delivery-map { height: auto; aspect-ratio: 16 / 9; max-height: 26rem; }
 .profile-track .delivery-details { padding: 1rem 1.25rem; }
-.profile-history { display: flex; flex-direction: column; gap: 1.5rem; }
+.profile-history { display: flex; flex-direction: column; gap: 1.25rem; }
 .profile-history__status { margin: 0; color: #8a5a5a; }
 .profile-history__status--error { color: #b70100; }
 .profile-history__section .eyebrow { margin: 0 0 0.6rem; }
-.profile-history__cards { display: grid; gap: 0.9rem; }
 .profile-booking { display: flex; flex-direction: column; gap: 0.85rem; padding: 1.25rem 1.4rem; border: 1px solid rgba(100, 0, 0, 0.14); border-radius: 10px; background: #fdfaf4; }
-.profile-booking__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-.profile-booking__ref { color: #640000; font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: 0.06em; }
-.profile-booking__meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7rem 1.2rem; margin: 0; }
+.profile-booking__meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem 1.2rem; margin: 0; }
 .profile-booking__meta dt { color: #8a5a5a; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .profile-booking__meta dd { margin: 0.15rem 0 0; color: #3a2a2a; font-size: 0.95rem; line-height: 1.5; }
 .profile-booking__notes { margin: 0; padding: 0.6rem 0.8rem; border-left: 3px solid rgba(183, 1, 0, 0.35); background: rgba(183, 1, 0, 0.05); color: #5a3a3a; font-size: 0.85rem; }
@@ -493,13 +525,17 @@ button, input, textarea, select { font: inherit; }
 .profile-timeline__row--current::before { content: "●"; }
 .profile-booking__cancel { align-self: flex-start; }
 .profile-booking__requested { margin: 0; color: #0f5ca7; font-size: 0.85rem; font-weight: 600; }
-.profile-track__mine { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.75rem 0 0; color: #8a5a5a; font-size: 0.85rem; }
-.profile-track__mine button { padding: 0.25rem 0.6rem; border: 1px solid rgba(183, 1, 0, 0.3); border-radius: 999px; background: #fff; color: #b70100; font-size: 0.8rem; cursor: pointer; }
 .venue-option { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; color: #3a2a2a; font-size: 0.95rem; cursor: pointer; }
 .venue-option input { accent-color: #b70100; }
 @media (max-width: 640px) {
   .profile-booking { padding: 1rem; }
-  .profile-booking__head { align-items: flex-start; flex-direction: column; }
+  .profile-left-column { display: block; align-self: auto; }
+  .profile-bookings-card { flex: none; min-height: 0; contain: none; }
+  .profile-bookings-card__body { overflow: visible; }
+  .profile-order-row { flex-wrap: wrap; row-gap: 0.5rem; }
+  .profile-order-row__body { flex: 1 1 100%; }
+  .profile-order-row .ops-pill { margin-left: auto; }
+  .profile-order-row__ref { white-space: normal; }
 }
 .nav-link--dashboard { margin-left: 0.5rem; border-left: 1px solid rgba(255, 239, 193, 0.25); }
 /* Operations has no page-hero banner (admin, not customer-facing) — give the
@@ -1122,7 +1158,7 @@ button, input, textarea, select { font: inherit; }
   .order-summary { gap: 1rem; }
   .order-summary .status-pill { margin-left: 0; align-self: flex-start; }
   .inquiries-grid { grid-template-columns: 1fr; gap: 2rem; }
-  .profile-layout { grid-template-columns: 1fr; gap: 1.5rem; }
+  .profile-grid { grid-template-columns: 1fr; gap: 1.5rem; }
   .inquiry-form { padding: 1.25rem; }
   .delivery-actions { align-items: flex-start; flex-direction: column; }
   .order-content { grid-template-columns: 1fr; }

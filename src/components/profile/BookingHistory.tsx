@@ -12,7 +12,7 @@ import {
 } from "../../data/reservations";
 import { useAuth } from "../../context/AuthContext";
 import { BookingCalendarGrid } from "../common/BookingCalendarGrid";
-import { StatusPill } from "../operations/StatusPill";
+import { OrderGroup } from "./OrderGroup";
 
 type Props = {
   userId: string;
@@ -27,6 +27,7 @@ export function BookingHistory({ userId }: Props) {
   const [cancelTarget, setCancelTarget] = useState<CancellationTarget | null>(null);
   const [requestedIds, setRequestedIds] = useState<string[]>([]);
   const [serverRequestedIds, setServerRequestedIds] = useState<string[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const fetchVersion = useRef(0);
 
   const loadBookings = useCallback(async () => {
@@ -82,41 +83,49 @@ export function BookingHistory({ userId }: Props) {
   }
 
   return (
-    <div className="profile-history">
-      {functionBookings.length > 0 && (
-        <BookingSection label="Function room reservations">
-          {functionBookings.map((booking) => (
-            <FunctionCard
-              booking={booking}
-              key={booking.id}
-              cancellationRequested={
-                requestedIds.includes(booking.id) ||
-                serverRequestedIds.includes(booking.id)
-              }
-              onRequestChange={() =>
-                setCancelTarget({ bookingType: "function_room", booking })
-              }
-            />
-          ))}
-        </BookingSection>
-      )}
-      {cateringBookings.length > 0 && (
-        <BookingSection label="Catering bookings">
-          {cateringBookings.map((booking) => (
-            <CateringCard
-              booking={booking}
-              key={booking.id}
-              cancellationRequested={
-                requestedIds.includes(booking.id) ||
-                serverRequestedIds.includes(booking.id)
-              }
-              onRequestChange={() =>
-                setCancelTarget({ bookingType: "catering", booking })
-              }
-            />
-          ))}
-        </BookingSection>
-      )}
+    <div className="profile-history profile-bookings-card__body">
+      <OrderGroup
+        label="Function room reservations"
+        items={functionBookings}
+        activeId={expandedId}
+        onSelect={setExpandedId}
+        emptyMessage="No function room reservations yet"
+        summary={(booking) => `${booking.room} · ${booking.date} · ${booking.time}`}
+        renderDetail={(booking) => (
+          <FunctionCard
+            booking={booking}
+            cancellationRequested={
+              requestedIds.includes(booking.id) ||
+              serverRequestedIds.includes(booking.id)
+            }
+            onRequestChange={() =>
+              setCancelTarget({ bookingType: "function_room", booking })
+            }
+          />
+        )}
+      />
+      <OrderGroup
+        label="Catering bookings"
+        items={cateringBookings}
+        activeId={expandedId}
+        onSelect={setExpandedId}
+        emptyMessage="No catering bookings yet"
+        summary={(booking) =>
+          `${booking.kind === "catering_buffet" ? "Buffet catering" : "Packed meals"} · ${booking.date} · ${booking.time} · ₱${(booking.total ?? 0).toLocaleString()}`
+        }
+        renderDetail={(booking) => (
+          <CateringCard
+            booking={booking}
+            cancellationRequested={
+              requestedIds.includes(booking.id) ||
+              serverRequestedIds.includes(booking.id)
+            }
+            onRequestChange={() =>
+              setCancelTarget({ bookingType: "catering", booking })
+            }
+          />
+        )}
+      />
       {cancelTarget && user && (
         <CancelRequestModal
           target={cancelTarget}
@@ -136,15 +145,6 @@ export function BookingHistory({ userId }: Props) {
   );
 }
 
-function BookingSection({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <section className="profile-history__section">
-      <p className="eyebrow">{label}</p>
-      <div className="profile-history__cards">{children}</div>
-    </section>
-  );
-}
-
 function FunctionCard({
   booking,
   cancellationRequested,
@@ -157,10 +157,6 @@ function FunctionCard({
   const changeable = booking.status === "Pending" || booking.status === "Confirmed";
   return (
     <article className="profile-booking">
-      <header className="profile-booking__head">
-        <strong className="profile-booking__ref">{booking.id}</strong>
-        <StatusPill status={booking.status} />
-      </header>
       <dl className="profile-booking__meta">
         <div>
           <dt>Room</dt>
@@ -224,10 +220,6 @@ function CateringCard({
   const changeable = booking.status === "Pending" || booking.status === "Confirmed";
   return (
     <article className="profile-booking">
-      <header className="profile-booking__head">
-        <strong className="profile-booking__ref">{booking.id}</strong>
-        <StatusPill status={booking.status} />
-      </header>
       <dl className="profile-booking__meta">
         <div>
           <dt>Type</dt>
