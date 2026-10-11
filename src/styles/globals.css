@@ -1436,3 +1436,7 @@ button, input, textarea, select { font: inherit; }
 .bot-banner--error { border: 1px solid rgba(183,1,0,0.3); background: rgba(183,1,0,0.07); color: #640000; }
 .bot-banner--success { border: 1px solid rgba(8,116,67,0.3); background: rgba(8,116,67,0.08); color: #054d2c; }
 .bot-modal--narrow { width: min(560px, 100%); }
+
+/* ErrorBoundary fallback (mirrors public/error-pages.css) */
+.error-brand { color: #ffefc1; font-family: Georgia, "Times New Roman", serif; font-size: 1.55rem; letter-spacing: 0.14em; text-decoration: none; text-transform: uppercase; }
+.error-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
