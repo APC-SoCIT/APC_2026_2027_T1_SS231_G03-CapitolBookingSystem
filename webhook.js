@@ -664,15 +664,11 @@ Tap a button below or reply with the number.`, SERVICE_QUICK_REPLIES)
 }
 
 function formatCateringForm() {
-  return `To request catering, please copy this form, fill it in, and send it back:
-
-Full Name:
-Contact Number:
-Event Type:
-Event Date:
-Number of Guests:
-Package or Style (Buffet / Packed Meals):
-Notes (optional):
+  return `To request catering, please send your:
+• Full Name & Contact Number
+• Event Type & Date
+• Number of Guests
+• Preferred Package (Buffet / Packed Meals)
 
 Our staff will review your request and reply to you here.
 
@@ -680,19 +676,28 @@ ${websiteLine('You may also reserve catering on our website after signing in', '
 }
 
 function formatCateringInfo() {
-  const buffet = CATERING_PACKAGES.map((pkg) => `${pkg.name} – ${peso(pkg.packagePrice)}
-${pkg.servingSize}
-${pkg.inclusions.map((item) => `• ${item}`).join('\n')}`).join('\n\n');
+  const packageSummaries = CATERING_PACKAGES.map((pkg) => `• ${pkg.name} – ${peso(pkg.packagePrice)} (${pkg.servingSize})`).join('\n');
 
   return [
-    `Catering: Buffet Packages\n\n${buffet}\n\n${SERVICE_CATALOG.cateringPackageNotes.join('\n')}`,
-    `Catering: Individually Packed Meals
+    `Catering Services
 
+We offer two catering options for your occasions:
+
+1. Buffet Packages (good for 10 to 12 guests):
+${packageSummaries}
+
+2. Individually Packed Meals:
 ${formatPackedMealsForCustomer()}
+• Minimum of 10 packs per meal type.
 
 Good to know:
-${CATERING_RULES.map((rule) => `• ${rule}`).join('\n')}`,
-    formatCateringForm()
+${CATERING_RULES.map((rule) => `• ${rule}`).join('\n')}
+• Catering reservations must be placed at least 2 days in advance.
+${SITE_URL ? `
+View full menu inclusions & reserve online:
+${siteLink('/catering')}
+` : ''}
+To book through chat, simply send your event date, guest count, and preferred package or style, and our staff will assist you!`
   ];
 }
 
@@ -703,6 +708,7 @@ Full Name:
 Contact Number:
 Event Type:
 Event Date:
+Preferred Room (Function Room A / Function Room B):
 Start Time and Duration:
 Number of Guests (10 to 50):
 
@@ -713,9 +719,9 @@ ${websiteLine('You may also reserve a room on our website after signing in', '/f
 
 function formatFunctionRoomInfo() {
   return [
-    `Function Room
+    `Function Rooms
 
-${FUNCTION_ROOMS.map((room) => `Capacity: ${room.capacity}`).join('\n')}
+${FUNCTION_ROOMS.map((room) => `• ${room.name} (Capacity: ${room.capacity})`).join('\n')}
 
 Good to know:
 ${FUNCTION_ROOM_RULES.map((rule) => `• ${rule}`).join('\n')}
@@ -734,15 +740,12 @@ function formatDeliveryInfo() {
 ${DELIVERY_RULES.map((rule) => `• ${rule}`).join('\n')}
 • Ordering on the website requires signing in.
 ${SITE_URL ? `
-Order here:
+Browse our packed meals & order here:
 ${siteLink('/delivery/order')}
 
 Track an order:
 ${siteLink('/delivery')}
 ` : ''}
-Our packed meals:
-${formatMenuForCustomer()}
-
 If you have a concern about an existing order, please send your reference number (CAP-XXXX) and your concern, and our staff will follow up.`;
 }
 

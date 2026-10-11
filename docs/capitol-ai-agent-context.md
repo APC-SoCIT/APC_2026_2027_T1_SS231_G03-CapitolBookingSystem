@@ -51,11 +51,12 @@ If a detail is marked TO BE FILLED IN, do not state it. Tell the customer that s
 
 | Room | Capacity |
 |---|---|
-| Function Room | 10 to 50 guests |
+| Function Room A | 10 to 50 guests |
+| Function Room B | 10 to 50 guests |
 
-- Capitol has one function room. There are no other rooms or halls to choose from.
+- Capitol has two function rooms: Function Room A and Function Room B (each accommodating 10 to 50 guests).
 - Amenities include tables and chairs, air conditioning, sound system, projector and screen, and Wi-Fi.
-- Online reservations accept parties of **10 to 50 guests**.
+- Online reservations accept parties of **10 to 50 guests** per room.
 - Reservations must be placed at least **2 days** before the requested date.
 - A **deposit** is required to secure a reservation. The deposit is paid online through the website.
 - A selected slot is held for **10 minutes** while the deposit is paid. After that, the slot is released.
