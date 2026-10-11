@@ -1,5 +1,5 @@
 import { ArrowRight, ChevronRight, Minus, Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarModal,
@@ -28,6 +28,7 @@ export function CateringPacked() {
   const [selectedMeals, setSelectedMeals] = useState<MenuItem[]>([]);
   const [mealQuantities, setMealQuantities] = useState<Record<string, number>>({});
   const [modalOpen, setModalOpen] = useState(false);
+  const orderSummaryRef = useRef<HTMLDivElement>(null);
   const [submitted, setSubmitted] = useState(false);
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
   const { user } = useAuth();
@@ -183,7 +184,7 @@ export function CateringPacked() {
           </ul>
         </div>
 
-        <div className="packed-order-summary">
+        <div className="packed-order-summary" ref={orderSummaryRef}>
           <div className="order-summary-card">
             <h2>Your order</h2>
             {selectedMeals.length > 0 ? (
@@ -252,6 +253,7 @@ export function CateringPacked() {
         visible={selectedMeals.length > 0}
         summary={`${totalPacks} pack${totalPacks === 1 ? "" : "s"} · ${selectedMeals.length} meal type${selectedMeals.length === 1 ? "" : "s"}`}
         total={total}
+        detailsRef={orderSummaryRef}
         hint={
           !canProceed
             ? `Each meal type needs at least ${MIN_PACKED_MEAL_QUANTITY} packs.`

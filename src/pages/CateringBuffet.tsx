@@ -1,5 +1,5 @@
 import { Check, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarModal,
@@ -19,6 +19,7 @@ import { useAuth } from "../context/AuthContext";
 export function CateringBuffet() {
   const [selected, setSelected] = useState<CateringPackage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const selectedCardRef = useRef<HTMLButtonElement>(null);
   const [submitted, setSubmitted] = useState(false);
   const { closeSignIn, requireAuth, showSignIn } = useAuthGate();
   const { user } = useAuth();
@@ -56,6 +57,7 @@ export function CateringBuffet() {
             <button
               className={`package-card ${selected?.id === pkg.id ? "package-card--selected" : ""}`}
               key={pkg.id}
+              ref={selected?.id === pkg.id ? selectedCardRef : undefined}
               onClick={() => setSelected((prev) => (prev?.id === pkg.id ? null : pkg))}
               type="button"
             >
@@ -101,6 +103,7 @@ export function CateringBuffet() {
         visible={Boolean(selected)}
         summary={selected ? `${selected.name} · ${selected.servingSize}` : ""}
         total={selected?.packagePrice ?? 0}
+        detailsRef={selectedCardRef}
         actionLabel="Proceed →"
         onAction={() => {
           if (requireAuth()) setModalOpen(true);

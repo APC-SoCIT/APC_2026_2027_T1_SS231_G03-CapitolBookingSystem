@@ -170,12 +170,17 @@ button, input, textarea, select { font: inherit; }
 /* Floating checkout bar — pinned to the bottom once an order has items */
 .checkout-bar { position: fixed; right: 0; bottom: 0; left: 0; z-index: 60; padding: 0.75rem 1rem max(0.75rem, env(safe-area-inset-bottom)); border-top: 3px solid #ffefc1; background: #640000; box-shadow: 0 -10px 30px rgba(58, 0, 0, 0.28); animation: checkout-bar-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 .checkout-bar__inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1160px; margin: 0 auto; }
-.checkout-bar__info { display: flex; flex-direction: column; min-width: 0; }
-.checkout-bar__summary { overflow: hidden; color: rgba(255, 239, 193, 0.7); font-size: 0.78rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.checkout-bar--clickable { cursor: pointer; }
+.checkout-bar__info { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: inherit; }
+.checkout-bar__info:disabled { cursor: default; }
+.checkout-bar__info:focus-visible { outline: 2px solid #ffefc1; outline-offset: 4px; border-radius: 4px; }
+.checkout-bar__summary { display: inline-flex; align-items: center; gap: 0.3rem; max-width: 100%; overflow: hidden; color: rgba(255, 239, 193, 0.7); font-size: 0.78rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .checkout-bar__total { color: #ffefc1; font-family: Georgia, "Times New Roman", serif; font-size: 1.35rem; line-height: 1.2; }
 .checkout-bar__hint { color: #ffc9a8; font-size: 0.75rem; }
 .checkout-bar__btn { flex-shrink: 0; padding: 0.85rem 1.6rem; border: 0; cursor: pointer; }
 .checkout-bar-spacer { height: 6rem; }
+/* Keep scrolled-to order details clear of the sticky header */
+.packed-order-summary, .order-sidebar, .package-card { scroll-margin-top: 92px; }
 @keyframes checkout-bar-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @media (min-width: 641px) { .checkout-bar--mobile-only { display: none; } }
 .button--red { border: 0; background: #b70100; color: #ffefc1; cursor: pointer; }
