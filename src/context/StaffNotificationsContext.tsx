@@ -209,7 +209,7 @@ function useStaffNotificationsState() {
     [updateStored],
   );
 
-  const flashTimer = useRef<number>();
+  const flashTimer = useRef<number | undefined>(undefined);
   const flash = useCallback((id: string) => {
     window.clearTimeout(flashTimer.current);
     setFlashId(id);
