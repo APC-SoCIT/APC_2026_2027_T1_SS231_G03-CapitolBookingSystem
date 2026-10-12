@@ -22,8 +22,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       <div className="app-shell">
         <header className="site-header">
           <div className="site-header__inner">
-            <a className="error-brand" href="/">
-              CAPITOL
+            <a className="brand" href="/" aria-label="Capitol Restaurant home">
+              <img
+                className="brand__logo"
+                src="/brand/wordmark-beige-600.png"
+                alt="Capitol"
+              />
+              <span className="brand__meta">Since 1940 · Pasay City</span>
             </a>
           </div>
         </header>
